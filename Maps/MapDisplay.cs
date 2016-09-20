@@ -21,7 +21,8 @@ public class MapDisplay : MonoBehaviour {
 
     public float meshHeightMultiplier;
     public AnimationCurve meshHeightCurve;
-        
+    public Material terrainMaterial;    
+
     public TerrainType[] sections;
 
     public bool autoUpdate;
@@ -93,6 +94,7 @@ public class MapDisplay : MonoBehaviour {
 
         Texture2D texture = TextureGenerator.generateTexture(map, displayMode, sections);
         Renderer textureRenderer = mapObject.GetComponent<Renderer>();
+        textureRenderer.sharedMaterial = terrainMaterial;
         textureRenderer.sharedMaterial.mainTexture = texture;
         mapObject.transform.localScale = new Vector3(width, 1, height);
     }

@@ -66,7 +66,6 @@ public static class Noise {
             for (int x = 0; x < mapWidth; x++)
                 noiseMap[x, y] = noiseMap[x, y] / maxValue;
 
-
         return noiseMap;
     }
 }
