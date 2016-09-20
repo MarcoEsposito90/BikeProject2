@@ -2,17 +2,17 @@
 using UnityEditor;
 using System.Collections;
 
-[CustomEditor(typeof(MapDisplay))]
+//[CustomEditor(typeof(MapDisplay))]
 public class MapDisplayEditor : Editor {
 
     public override void OnInspectorGUI()
     {
         MapDisplay mapDisplay = (MapDisplay)target;
 
-        if (DrawDefaultInspector() && mapDisplay.autoUpdate)
-            mapDisplay.drawNoiseMap();
+        //if (DrawDefaultInspector() && mapDisplay.autoUpdate)
+        //    mapDisplay.drawNoiseMap();
 
-        if (GUILayout.Button("Generate"))
-            mapDisplay.drawNoiseMap();
+        //if (GUILayout.Button("Generate"))
+        //    mapDisplay.drawNoiseMap();
     }
 }

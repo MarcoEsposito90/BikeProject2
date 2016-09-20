@@ -7,8 +7,6 @@ public class MapDisplay : MonoBehaviour {
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    private GameObject mapObject;
-
     public enum DisplayMode { GreyScale, Colour };
     public DisplayMode displayMode;
 
@@ -17,7 +15,6 @@ public class MapDisplay : MonoBehaviour {
 
     [Range(0,4)]
     public int levelOfDetail;
-    public Transform viewer;
 
     public float meshHeightMultiplier;
     public AnimationCurve meshHeightCurve;
@@ -45,21 +42,6 @@ public class MapDisplay : MonoBehaviour {
     }
 
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- CLASSES ------------------------------------------------------ */
-    /* ----------------------------------------------------------------------------------------- */
-
-    public class MapQuadrant
-    {
-        public Vector2 coordinates;
-        public int width;
-        public int height;
-    }
-
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- CONSTRUCTORS ------------------------------------------------- */
-    /* ----------------------------------------------------------------------------------------- */
-
-    /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- UNITY -------------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
@@ -75,36 +57,31 @@ public class MapDisplay : MonoBehaviour {
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public void drawNoiseMap(float[,] map)
+    public void drawNoiseMap(float[,] map, EndlessTerrainGenerator.MapChunk mapChunk)
     {
         latestNoiseMap = map;
         int width = map.GetLength(0);
         int height = map.GetLength(1);
-
-        if(mapObject == null)
-        {
-            mapObject = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            mapObject.transform.position = new Vector3(0, 0, 0);
-        }
+        GameObject chunkObject = mapChunk.mapChunkObject;
 
         if (renderingMode == RenderingMode.Mesh)
-            mapObject.GetComponent<MeshFilter>().mesh = MeshGenerator.generateMesh(map, meshHeightCurve, meshHeightMultiplier,levelOfDetail);
+            chunkObject.GetComponent<MeshFilter>().mesh = MeshGenerator.generateMesh(map, meshHeightCurve, meshHeightMultiplier,levelOfDetail);
         else
-            mapObject.GetComponent<MeshFilter>().mesh = MeshGenerator.generateMesh(width,height);
+            chunkObject.GetComponent<MeshFilter>().mesh = MeshGenerator.generateMesh(width,height);
 
         Texture2D texture = TextureGenerator.generateTexture(map, displayMode, sections);
-        Renderer textureRenderer = mapObject.GetComponent<Renderer>();
+        Renderer textureRenderer = chunkObject.GetComponent<Renderer>();
         textureRenderer.sharedMaterial = terrainMaterial;
         textureRenderer.sharedMaterial.mainTexture = texture;
-        mapObject.transform.localScale = new Vector3(width, 1, height);
+        chunkObject.transform.localScale = new Vector3(width, 1, height);
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
-    public void drawNoiseMap()
-    {
-        if (latestNoiseMap != null)
-            drawNoiseMap(latestNoiseMap);
-    }
+    //public void drawNoiseMap( mapObject)
+    //{
+    //    if (latestNoiseMap != null)
+    //        drawNoiseMap(latestNoiseMap, mapObject);
+    //}
 
 }
