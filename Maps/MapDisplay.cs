@@ -76,8 +76,8 @@ public class MapDisplay : MonoBehaviour {
         chunkObject.GetComponent<MeshFilter>().mesh = newMesh;
         Texture2D texture = TextureGenerator.generateTexture(map, displayMode, sections);
         Renderer textureRenderer = chunkObject.GetComponent<Renderer>();
-        textureRenderer.sharedMaterial = terrainMaterial;
-        //textureRenderer.sharedMaterial.mainTexture = texture;
+        textureRenderer.sharedMaterial = new Material(terrainMaterial);
+        textureRenderer.sharedMaterial.mainTexture = texture;
         //chunkObject.transform.localScale = new Vector3(width, 1, height);
     }
 

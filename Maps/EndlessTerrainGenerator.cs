@@ -104,14 +104,12 @@ public class EndlessTerrainGenerator : MonoBehaviour {
     {
         foreach (MapChunk chunk in TerrainChunks.Values)
         {
-            //Debug.Log(chunk.bounds.center + "|" + chunk.bounds.extents);
             float dist = chunk.bounds.SqrDistance(new Vector3(viewer.position.x, 0, viewer.position.z));
             dist = Mathf.Sqrt(dist);
             bool visible = false;
 
             for (int i = 0; i < LODThresholds.Length; i++)
             {
-                Debug.Log(dist + " <= " + LODThresholds[i] + "? " + (dist <= LODThresholds[i]));
                 if (dist < LODThresholds[i])
                 {
                     updateChunk(chunk, i);
@@ -131,7 +129,6 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         if (chunk.latestLOD == LOD)
             return;
 
-        Debug.Log("updating chunk with LOD: " + LOD);
         this.GetComponent<MapGenerator>().GenerateMap(chunk, LOD);
         chunk.latestLOD = LOD;
     }
