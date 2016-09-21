@@ -139,8 +139,8 @@ public class EndlessTerrainGenerator : MonoBehaviour {
     {
         float startX = position.x - LODThresholds[LODThresholds.Length - 1];
         float endX = position.x + LODThresholds[LODThresholds.Length - 1];
-        float startY = position.y - LODThresholds[LODThresholds.Length - 1];
-        float endY = position.y + LODThresholds[LODThresholds.Length - 1];
+        float startY = position.z - LODThresholds[LODThresholds.Length - 1];
+        float endY = position.z + LODThresholds[LODThresholds.Length - 1];
 
         for(float x = startX; x <= endX; x += chunkSize)
             for(float y = startY; y <= endY; y += chunkSize)
