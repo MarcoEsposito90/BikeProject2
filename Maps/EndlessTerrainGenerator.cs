@@ -33,18 +33,29 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         public GameObject mapChunkObject;
         public Bounds bounds;
         public int latestLOD;
+        public bool isVisible;
 
         public MapChunk(int x, int y, int size)
         {
             this.position = new Vector2(x, y);
             this.size = size;
             latestLOD = -1;
+            isVisible = true;
             bounds = new Bounds(new Vector3(x*size, 0, y*size), new Vector3(size,size, size));
             
             mapChunkObject = new GameObject("chunk (" + x  + "," + y + ")");
             mapChunkObject.AddComponent<MeshFilter>();
             mapChunkObject.AddComponent<MeshRenderer>();
             mapChunkObject.transform.position = new Vector3(x * size, 0, y * size);
+        }
+
+        public void setVisible(bool visibility)
+        {
+            if (isVisible == visibility)
+                return;
+
+            isVisible = visibility;
+            mapChunkObject.SetActive(visibility);
         }
     }
 
@@ -76,8 +87,8 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
         if (distance >= viewerDistanceUpdate)
         {
-            //updateChunks();
             createNewChunks(viewer.position);
+            updateChunks();
             latestViewerRecordedPosition = viewer.position;
         }
 
@@ -109,10 +120,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
                 }
             }
 
-            if (!visible)
-            {
-                // hide the mesh
-            }
+            chunk.setVisible(visible);
         }
     }
 
