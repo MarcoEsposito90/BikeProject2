@@ -32,22 +32,19 @@ public class MapGenerator : MonoBehaviour {
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public void GenerateMap(int x, int y, EndlessTerrainGenerator.MapChunk mapChunk)
+    public void GenerateMap(EndlessTerrainGenerator.MapChunk mapChunk, int LOD)
     {
-        int width = mapChunk.size;
-        int height = mapChunk.size;
-
         float[,] noiseMap = Noise.GenerateNoiseMap(
-            width, 
-            height, 
+            mapChunk.size,
+            mapChunk.size, 
             noiseScale,
-            x*width,
-            y*width,
+            mapChunk.position.x * mapChunk.size,
+            mapChunk.position.y * mapChunk.size,
             numberOfFrequencies,
             frequencyMultiplier,
             amplitudeDemultiplier);
 
-        this.GetComponent<MapDisplay>().drawNoiseMap(noiseMap, mapChunk);
+        this.GetComponent<MapDisplay>().drawNoiseMap(noiseMap, mapChunk, LOD);
     }
 
 }

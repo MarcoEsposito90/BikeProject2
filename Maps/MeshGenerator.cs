@@ -133,7 +133,6 @@ public static class MeshGenerator
             mesh.vertices = vertices;
             mesh.triangles = triangles;
             mesh.uv = uvs;
-            mesh.name = "mapChunk";
             mesh.RecalculateNormals();
             return mesh;
         }

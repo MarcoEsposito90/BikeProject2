@@ -15,7 +15,6 @@ public static class Noise {
     {
 
         // initialization and chacks --------------------------------------------------
-
         float[,] noiseMap = new float[mapWidth, mapHeight];
 
         if (scale <= 0)
@@ -34,8 +33,8 @@ public static class Noise {
             for(int x = 0; x < mapWidth; x++)
             {
                 float sampleValue = 0.0f;
-                float sampleX = (x ) / scale;
-                float sampleY = (y ) / scale;
+                float sampleX = (x -mapWidth/2.0f + offsetX) / scale;
+                float sampleY = (y -mapHeight/2.0f - offsetY) / scale;
 
                 float amplitudeFraction = 1.0f;
 
@@ -44,8 +43,8 @@ public static class Noise {
                     float noiseValue = Mathf.PerlinNoise(sampleX, sampleY);
                     sampleValue += noiseValue / amplitudeFraction;
 
-                    sampleX = (x * frequencyMultipler) / scale;
-                    sampleY = (y * frequencyMultipler) / scale;
+                    sampleX = (x * frequencyMultipler + offsetX) / scale;
+                    sampleY = (y * frequencyMultipler - offsetY) / scale;
                     amplitudeFraction *= (float)amplitudeDemultiplier;
                 }
 
