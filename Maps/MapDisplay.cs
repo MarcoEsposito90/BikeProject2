@@ -73,7 +73,7 @@ public class MapDisplay : MonoBehaviour {
         Renderer textureRenderer = chunkObject.GetComponent<Renderer>();
         textureRenderer.sharedMaterial = terrainMaterial;
         textureRenderer.sharedMaterial.mainTexture = texture;
-        chunkObject.transform.localScale = new Vector3(width, 1, height);
+        //chunkObject.transform.localScale = new Vector3(width, 1, height);
     }
 
 
