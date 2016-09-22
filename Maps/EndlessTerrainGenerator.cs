@@ -162,7 +162,6 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
                 if(dist < LODThresholds[LODThresholds.Length - 1])
                 {
-
                     MapChunk newChunk = new MapChunk(chunkX, chunkY, chunkSize);
                     newChunk.mapChunkObject.transform.parent = this.GetComponent<Transform>();
                     TerrainChunks.Add(chunkCenter, newChunk);

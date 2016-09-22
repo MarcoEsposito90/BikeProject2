@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Threading;
 
 public class MapGenerator : MonoBehaviour {
 
@@ -22,10 +23,21 @@ public class MapGenerator : MonoBehaviour {
     [Range(1.0f,10.0f)]
     public float amplitudeDemultiplier;
 
+
+    private MapDisplay mapDisplayer;
     //public bool autoUpdate;
 
     //private int width;
     //private int height;
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- UNITY FUNCTIONS ---------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    void Start()
+    {
+        mapDisplayer = this.GetComponent<MapDisplay>();
+    }
 
 
     /* ----------------------------------------------------------------------------------------- */
@@ -44,7 +56,7 @@ public class MapGenerator : MonoBehaviour {
             frequencyMultiplier,
             amplitudeDemultiplier);
 
-        this.GetComponent<MapDisplay>().drawNoiseMap(noiseMap, mapChunk, LOD);
+        mapDisplayer.drawNoiseMap(noiseMap, mapChunk, LOD);
     }
 
 }

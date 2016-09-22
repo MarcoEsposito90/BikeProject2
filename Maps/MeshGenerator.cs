@@ -13,8 +13,6 @@ public static class MeshGenerator
         int width = noiseMap.GetLength(0);
         int height = noiseMap.GetLength(1);
 
-
-
         float topLeftX = -noiseMap.GetLength(0) / 2.0f;
         float topLeftZ = noiseMap.GetLength(1) / 2.0f;
 
