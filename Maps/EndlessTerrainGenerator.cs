@@ -49,6 +49,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             mapChunkObject = new GameObject("chunk (" + x  + "," + y + ")");
             mapChunkObject.AddComponent<MeshFilter>();
             mapChunkObject.AddComponent<MeshRenderer>();
+            mapChunkObject.AddComponent<MeshCollider>();
             mapChunkObject.transform.position = new Vector3(x * size, 0, y * size);
         }
 
@@ -201,7 +202,8 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         GameObject chunkObject = chunk.mapChunkObject;
 
         // setting mesh -----------------------------------------------------
-        chunkObject.GetComponent<MeshFilter>().mesh = chunkData.meshData.createMesh();
+        Mesh mesh = chunkData.meshData.createMesh();
+        chunkObject.GetComponent<MeshFilter>().mesh = mesh;
         Renderer textureRenderer = chunkObject.GetComponent<Renderer>();
         textureRenderer.sharedMaterial = new Material(terrainMaterial);
 
@@ -212,5 +214,9 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         texture.SetPixels(chunkData.colorMap);
         texture.Apply();
         textureRenderer.sharedMaterial.mainTexture = texture;
+
+        // setting collider -------------------------------------------------
+        chunkObject.GetComponent<MeshCollider>().sharedMesh = mesh;
+        
     }
 }
