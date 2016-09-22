@@ -43,8 +43,8 @@ public static class Noise {
                     float noiseValue = Mathf.PerlinNoise(sampleX, sampleY);
                     sampleValue += noiseValue / amplitudeFraction;
 
-                    sampleX = (x * frequencyMultipler + offsetX) / scale;
-                    sampleY = (y * frequencyMultipler - offsetY) / scale;
+                    sampleX = (x + offsetX) * frequencyMultipler / scale;
+                    sampleY = (y - offsetY) * frequencyMultipler / scale;
                     amplitudeFraction *= (float)amplitudeDemultiplier;
                 }
 
