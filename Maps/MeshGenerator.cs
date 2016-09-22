@@ -6,10 +6,12 @@ public static class MeshGenerator
 
     public static MeshData generateMesh
         (float[,] noiseMap,
-        AnimationCurve meshHeightCurve, 
+        AnimationCurve _meshHeightCurve, 
         float heightMultiplier, 
         int LOD)
     {
+
+        AnimationCurve meshHeightCurve = new AnimationCurve(_meshHeightCurve.keys);
         int width = noiseMap.GetLength(0);
         int height = noiseMap.GetLength(1);
 
