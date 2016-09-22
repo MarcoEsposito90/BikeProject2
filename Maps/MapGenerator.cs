@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using System.Threading;
+using System;
 
 public class MapGenerator : MonoBehaviour {
 
@@ -23,7 +24,7 @@ public class MapGenerator : MonoBehaviour {
     [Range(1.0f,10.0f)]
     public float amplitudeDemultiplier;
 
-
+    private Queue<ChunkCallbackData> resultsQueue;
     private MapDisplay mapDisplayer;
     //public bool autoUpdate;
 
@@ -37,26 +38,96 @@ public class MapGenerator : MonoBehaviour {
     void Start()
     {
         mapDisplayer = this.GetComponent<MapDisplay>();
+        resultsQueue = new Queue<ChunkCallbackData>();
     }
 
+
+    /* ----------------------------------------------------------------------------------------- */
+    void Update()
+    {
+        lock (resultsQueue)
+        {
+            if(resultsQueue.Count > 0)
+            {
+                for(int i = 0; i < resultsQueue.Count; i++)
+                {
+                    ChunkCallbackData callbackData = resultsQueue.Dequeue();
+                    callbackData.callback(callbackData.data);
+
+                    /*  IMPORTANT INFO -------------------------------------------------------------
+                        the results are dequeued here in the update function, in order
+                        to use them in the main thread. This is necessary, since it is not
+                        possible to use them in secondary threads (for example, you cannot create
+                        a mesh) 
+                    */
+                }
+            }
+        }
+    }
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public void GenerateMap(EndlessTerrainGenerator.MapChunk mapChunk, int LOD)
+    public void requestChunkData(int size, Vector2 chunkPosition, int LOD, Action<ChunkData> callback)
     {
-        float[,] noiseMap = Noise.GenerateNoiseMap(
-            mapChunk.size + 1,
-            mapChunk.size + 1, 
+        ThreadStart ts  = delegate { GenerateMap(size, chunkPosition, LOD, callback); };
+        Thread t = new Thread(ts);
+        t.Start();
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void GenerateMap(int size, Vector2 chunkPosition, int LOD, Action<ChunkData> callback)
+    {
+        float[,] heightMap = Noise.GenerateNoiseMap(
+            size + 1,
+            size + 1, 
             noiseScale,
-            mapChunk.position.x * mapChunk.size,
-            mapChunk.position.y * mapChunk.size,
+            chunkPosition.x * size,
+            chunkPosition.y * size,
             numberOfFrequencies,
             frequencyMultiplier,
             amplitudeDemultiplier);
 
-        mapDisplayer.drawNoiseMap(noiseMap, mapChunk, LOD);
+        ChunkData chunkData = mapDisplayer.getChunkData(heightMap, LOD);
+        chunkData.chunkPosition = chunkPosition;
+
+        lock (resultsQueue)
+        {
+            resultsQueue.Enqueue(new ChunkCallbackData(chunkData, callback));
+        }
     }
 
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- MY CLASSES --------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    public class ChunkData
+    {
+        public Vector2 chunkPosition;
+        public readonly MeshGenerator.MeshData meshData;
+        public readonly Color[] colorMap;
+
+        public ChunkData(MeshGenerator.MeshData meshData, Color[] colorMap)
+        {
+            this.meshData = meshData;
+            this.colorMap = colorMap;
+        }
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    public struct ChunkCallbackData
+    {
+        public readonly ChunkData data;
+        public readonly Action<ChunkData> callback;
+
+        public ChunkCallbackData(ChunkData data, Action<ChunkData> callback)
+        {
+            this.data = data;
+            this.callback = callback;
+        }
+    }
 }

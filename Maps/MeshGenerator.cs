@@ -4,7 +4,7 @@ using System.Collections;
 public static class MeshGenerator
 {
 
-    public static Mesh generateMesh
+    public static MeshData generateMesh
         (float[,] noiseMap,
         AnimationCurve meshHeightCurve, 
         float heightMultiplier, 
@@ -31,12 +31,11 @@ public static class MeshGenerator
                 meshData.vertices[vertexIndex++] = vertex;
             }
 
-        Debug.Log(x + "; " + y + "(" + LOD + "," + width + "," + height + "," + increment + ")");
-        return meshData.createMesh();
+        return meshData;
     }
 
 
-    public static Mesh generateMesh(int width, int height)
+    public static MeshData generateMesh(int width, int height)
     {
 
         float topLeftX = -width / 2.0f;
@@ -48,7 +47,7 @@ public static class MeshGenerator
         meshData.vertices[1] = new Vector3(topLeftX + width, 0, -topLeftZ);
         meshData.vertices[2] = new Vector3(topLeftX, 0, -topLeftZ + height);
         meshData.vertices[3] = new Vector3(topLeftX + width, 0, -topLeftZ + height);
-        return meshData.createMesh();
+        return meshData;
     }
 
     /* ------------------------------------------------------------------------------------------------- */

@@ -21,7 +21,7 @@ public class MapDisplay : MonoBehaviour {
 
     public float meshHeightMultiplier;
     public AnimationCurve meshHeightCurve;
-    public Material terrainMaterial;    
+      
 
     public TerrainType[] sections;
 
@@ -60,24 +60,26 @@ public class MapDisplay : MonoBehaviour {
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public void drawNoiseMap(float[,] map, EndlessTerrainGenerator.MapChunk mapChunk, int levelOfDetail)
+    public MapGenerator.ChunkData getChunkData(float[,] map, int levelOfDetail)
     {
         latestNoiseMap = map;
         int width = map.GetLength(0);
         int height = map.GetLength(0);
-        GameObject chunkObject = mapChunk.mapChunkObject;
+        //GameObject chunkObject = mapChunk.mapChunkObject;
 
-        Mesh newMesh = null;
+        MeshGenerator.MeshData newMesh = null;
         if (renderingMode == RenderingMode.Mesh)
             newMesh = MeshGenerator.generateMesh(map, meshHeightCurve, meshHeightMultiplier,levelOfDetail);
         else
             newMesh = MeshGenerator.generateMesh(width,height);
 
-        chunkObject.GetComponent<MeshFilter>().mesh = newMesh;
-        Texture2D texture = TextureGenerator.generateTexture(map, displayMode, sections);
-        Renderer textureRenderer = chunkObject.GetComponent<Renderer>();
-        textureRenderer.sharedMaterial = new Material(terrainMaterial);
-        textureRenderer.sharedMaterial.mainTexture = texture;
+        Color[] colorMap = TextureGenerator.generateColorMap(map, displayMode, sections);
+
+        return new MapGenerator.ChunkData(newMesh, colorMap);
+        //chunkObject.GetComponent<MeshFilter>().mesh = newMesh;
+        //Renderer textureRenderer = chunkObject.GetComponent<Renderer>();
+        //textureRenderer.sharedMaterial = new Material(terrainMaterial);
+        //textureRenderer.sharedMaterial.mainTexture = texture;
         //chunkObject.transform.localScale = new Vector3(width, 1, height);
     }
 

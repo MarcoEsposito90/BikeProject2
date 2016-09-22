@@ -3,12 +3,12 @@ using System.Collections;
 
 public static class TextureGenerator{
     
-    public static Texture2D generateTexture(float[,] map, MapDisplay.DisplayMode mode, MapDisplay.TerrainType[] sections)
+    public static Color[] generateColorMap(float[,] map, MapDisplay.DisplayMode mode, MapDisplay.TerrainType[] sections)
     {
         int width = map.GetLength(0);
         int height = map.GetLength(1);
 
-        Texture2D texture = new Texture2D(width, height);
+        //Texture2D texture = new Texture2D(width, height);
         Color[] colorMap = new Color[width * height];
         for (int y = 0; y < height; y++)
         {
@@ -18,11 +18,12 @@ public static class TextureGenerator{
             }
         }
 
+        return colorMap;
         //texture.filterMode = FilterMode.Point;
-        texture.wrapMode = TextureWrapMode.Clamp;
-        texture.SetPixels(colorMap);
-        texture.Apply();
-        return texture;
+        //texture.wrapMode = TextureWrapMode.Clamp;
+        //texture.SetPixels(colorMap);
+        //texture.Apply();
+        //return texture;
     }
 
 
