@@ -65,7 +65,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
     void Start()
     {
-        chunkSize = (chunkDimension * 32 + 1);
+        chunkSize = (chunkDimension * 32);
         viewerDistanceUpdate = chunkSize / (float)(viewerDistanceUpdateFrequency + 3);
         LODThresholds = new float[MapDisplay.NUMBER_OF_LODS];
 

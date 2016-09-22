@@ -13,6 +13,8 @@ public static class MeshGenerator
         int width = noiseMap.GetLength(0);
         int height = noiseMap.GetLength(1);
 
+
+
         float topLeftX = -noiseMap.GetLength(0) / 2.0f;
         float topLeftZ = noiseMap.GetLength(1) / 2.0f;
 
@@ -21,14 +23,17 @@ public static class MeshGenerator
         int vertexIndex = 0;
         int increment = (int)Mathf.Pow(2, LOD);
 
-        for (int x = 0; x < width; x += increment)
-            for (int y = 0; y < height; y += increment)
+        int x = 0;
+        int y = 0;
+        for (x = 0; x < width; x += increment)
+            for (y = 0; y < height; y += increment)
             {
                 float h = meshHeightCurve.Evaluate(noiseMap[x, y]) * heightMultiplier;
                 Vector3 vertex = new Vector3(topLeftX + x, h, topLeftZ - y);
                 meshData.vertices[vertexIndex++] = vertex;
             }
 
+        Debug.Log(x + "; " + y + "(" + LOD + "," + width + "," + height + "," + increment + ")");
         return meshData.createMesh();
     }
 
@@ -74,7 +79,7 @@ public static class MeshGenerator
         /* --------------- CONSTRUCTOR ----------------------------------------------------------------- */
         public MeshData(int width, int height, int LOD)
         {
-            int a = LOD == 0 ? 0 : 1;
+            int a = (LOD == 0 ? 0 : 1);
             this.width = width / (int)Mathf.Pow(2, LOD) + a;
             this.height = height / (int)Mathf.Pow(2, LOD) + a;
 
@@ -83,7 +88,7 @@ public static class MeshGenerator
             uvs = new Vector2[width * height];
 
             for (int y = 0; y < this.height; y++)
-                for (int x = 0; x < this.height; x++)
+                for (int x = 0; x < this.width; x++)
                 {
                     addTriangles(x, y);
                     generateUvs(x, y);

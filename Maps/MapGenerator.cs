@@ -35,8 +35,8 @@ public class MapGenerator : MonoBehaviour {
     public void GenerateMap(EndlessTerrainGenerator.MapChunk mapChunk, int LOD)
     {
         float[,] noiseMap = Noise.GenerateNoiseMap(
-            mapChunk.size,
-            mapChunk.size, 
+            mapChunk.size + 1,
+            mapChunk.size + 1, 
             noiseScale,
             mapChunk.position.x * mapChunk.size,
             mapChunk.position.y * mapChunk.size,

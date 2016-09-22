@@ -64,7 +64,7 @@ public class MapDisplay : MonoBehaviour {
     {
         latestNoiseMap = map;
         int width = map.GetLength(0);
-        int height = map.GetLength(1);
+        int height = map.GetLength(0);
         GameObject chunkObject = mapChunk.mapChunkObject;
 
         Mesh newMesh = null;
