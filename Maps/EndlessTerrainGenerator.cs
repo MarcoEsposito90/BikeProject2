@@ -141,7 +141,8 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
             chunk.mapChunkObject.GetComponent<MeshFilter>().mesh = chunk.meshes[LOD];
 
-            if(LOD == 0 && chunk.meshes[colliderAccuracy] != null)
+            chunk.mapChunkObject.GetComponent<MeshCollider>().enabled = (LOD == 0);
+            if (LOD == 0 && chunk.meshes[colliderAccuracy] != null)
                 chunk.mapChunkObject.GetComponent<MeshCollider>().sharedMesh = chunk.meshes[colliderAccuracy];
 
             chunk.currentLOD = LOD;
@@ -225,6 +226,14 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         Mesh mesh = chunkData.meshData.createMesh();
         chunk.meshes[chunkData.meshData.LOD] = mesh;
 
+        Mesh colliderMesh = null;
+        if (chunkData.colliderMeshData != null)
+        {
+            colliderMesh = chunkData.colliderMeshData.createMesh();
+            if (chunk.meshes[chunkData.colliderMeshData.LOD] == null)
+                chunk.meshes[chunkData.colliderMeshData.LOD] = colliderMesh;
+        }
+            
 
         /* ----------------------------------------------------------------- 
             means we came back to a previous LOD before the response of this
@@ -252,14 +261,9 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         textureRenderer.sharedMaterial.mainTexture = texture;
 
         // setting collider -------------------------------------------------
-        if(chunkData.colliderMeshData != null)
-        {
-            Mesh colliderMesh = chunkData.colliderMeshData.createMesh();
+        chunkObject.GetComponent<MeshCollider>().enabled = (colliderMesh != null);
+        if (colliderMesh != null)
             chunkObject.GetComponent<MeshCollider>().sharedMesh = colliderMesh;
-
-            if (chunk.meshes[chunkData.colliderMeshData.LOD] == null)
-                chunk.meshes[chunkData.colliderMeshData.LOD] = colliderMesh;
-        }
 
         chunk.currentLOD = chunkData.meshData.LOD;
     }
