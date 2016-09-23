@@ -61,6 +61,7 @@ public static class MeshGenerator
         public Vector3[] vertices;
         public int[] triangles;
         public Vector2[] uvs;
+        public int LOD;
 
         public int width;
         public int height;
@@ -78,6 +79,8 @@ public static class MeshGenerator
         /* --------------- CONSTRUCTOR ----------------------------------------------------------------- */
         public MeshData(int width, int height, int LOD)
         {
+            this.LOD = LOD;
+
             int a = (LOD == 0 ? 0 : 1);
             this.width = width / (int)Mathf.Pow(2, LOD) + a;
             this.height = height / (int)Mathf.Pow(2, LOD) + a;
