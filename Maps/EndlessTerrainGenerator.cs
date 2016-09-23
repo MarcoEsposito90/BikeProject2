@@ -13,6 +13,9 @@ public class EndlessTerrainGenerator : MonoBehaviour {
     public int accuracy;
     private float[] LODThresholds;
 
+    [Range(0, 2)]
+    public int colliderAccuracy;
+
     public Transform viewer;
     private Vector3 latestViewerRecordedPosition;
 
@@ -137,11 +140,22 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         {
             Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
             chunk.mapChunkObject.GetComponent<MeshFilter>().mesh = chunk.meshes[LOD];
+
+            if(LOD == 0 && chunk.meshes[colliderAccuracy] != null)
+                chunk.mapChunkObject.GetComponent<MeshCollider>().sharedMesh = chunk.meshes[colliderAccuracy];
+
             chunk.currentLOD = LOD;
             return;
         }
 
-        mapGenerator.requestChunkData(chunkSize, chunk.position, LOD, onChunkDataReceived);
+        bool colliderRequested = LOD == 0 ? true : false;
+        mapGenerator.requestChunkData
+            (chunkSize,
+            chunk.position, 
+            LOD, 
+            colliderRequested, 
+            colliderAccuracy,
+            onChunkDataReceived);
     }
 
 
@@ -182,7 +196,9 @@ public class EndlessTerrainGenerator : MonoBehaviour {
                     mapGenerator.requestChunkData(
                         chunkSize, 
                         newChunk.position,
-                        LODThresholds.Length - 1, 
+                        LODThresholds.Length - 1,
+                        false,
+                        -1,
                         onChunkDataReceived);
                 }
             }
@@ -236,7 +252,14 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         textureRenderer.sharedMaterial.mainTexture = texture;
 
         // setting collider -------------------------------------------------
-        //chunkObject.GetComponent<MeshCollider>().sharedMesh = mesh;
+        if(chunkData.colliderMeshData != null)
+        {
+            Mesh colliderMesh = chunkData.colliderMeshData.createMesh();
+            chunkObject.GetComponent<MeshCollider>().sharedMesh = colliderMesh;
+
+            if (chunk.meshes[chunkData.colliderMeshData.LOD] == null)
+                chunk.meshes[chunkData.colliderMeshData.LOD] = colliderMesh;
+        }
 
         chunk.currentLOD = chunkData.meshData.LOD;
     }

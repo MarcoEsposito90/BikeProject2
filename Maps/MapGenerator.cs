@@ -69,16 +69,32 @@ public class MapGenerator : MonoBehaviour {
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public void requestChunkData(int size, Vector2 chunkPosition, int LOD, Action<ChunkData> callback)
+    public void requestChunkData
+        (int size, 
+        Vector2 chunkPosition, 
+        int LOD, 
+        bool colliderRequested, 
+        int colliderAccuracy,
+        Action<ChunkData> callback)
     {
-        ThreadStart ts  = delegate { GenerateMap(size, chunkPosition, LOD, callback); };
+        ThreadStart ts  = delegate 
+        {
+            GenerateMap(size, chunkPosition, LOD, colliderRequested, colliderAccuracy, callback);
+        };
+
         Thread t = new Thread(ts);
         t.Start();
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
-    private void GenerateMap(int size, Vector2 chunkPosition, int LOD, Action<ChunkData> callback)
+    private void GenerateMap
+        (int size, 
+        Vector2 chunkPosition, 
+        int LOD, 
+        bool colliderRequested, 
+        int colliderAccuracy,
+        Action<ChunkData> callback)
     {
         float[,] heightMap = Noise.GenerateNoiseMap(
             size + 1,
@@ -90,7 +106,7 @@ public class MapGenerator : MonoBehaviour {
             frequencyMultiplier,
             amplitudeDemultiplier);
 
-        ChunkData chunkData = mapDisplayer.getChunkData(heightMap, LOD);
+        ChunkData chunkData = mapDisplayer.getChunkData(heightMap, LOD, colliderRequested, colliderAccuracy);
         chunkData.chunkPosition = chunkPosition;
 
         lock (resultsQueue)
@@ -108,12 +124,14 @@ public class MapGenerator : MonoBehaviour {
     {
         public Vector2 chunkPosition;
         public readonly MeshGenerator.MeshData meshData;
+        public readonly MeshGenerator.MeshData colliderMeshData;
         public readonly Color[] colorMap;
-
-        public ChunkData(MeshGenerator.MeshData meshData, Color[] colorMap)
+        
+        public ChunkData(MeshGenerator.MeshData meshData, MeshGenerator.MeshData colliderMeshData, Color[] colorMap)
         {
             this.meshData = meshData;
             this.colorMap = colorMap;
+            this.colliderMeshData = colliderMeshData;
         }
     }
 

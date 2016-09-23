@@ -7,7 +7,7 @@ public class MapDisplay : MonoBehaviour {
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    private const int NumberOfLODS = 5;
+    private const int NumberOfLods = 5;
     public static int NUMBER_OF_LODS = 5;
 
     public enum DisplayMode { GreyScale, Colour };
@@ -16,17 +16,13 @@ public class MapDisplay : MonoBehaviour {
     public enum RenderingMode { Flat, Mesh };
     public RenderingMode renderingMode;
 
-    //[Range(0, NumberOfLODS)]
-    //public int levelOfDetail;
+    
 
     public float meshHeightMultiplier;
     public AnimationCurve meshHeightCurve;
-      
 
     public TerrainType[] sections;
-
     public bool autoUpdate;
-
     private float[,] latestNoiseMap;
 
     /* ----------------------------------------------------------------------------------------- */
@@ -60,7 +56,12 @@ public class MapDisplay : MonoBehaviour {
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public MapGenerator.ChunkData getChunkData(float[,] map, int levelOfDetail)
+    public MapGenerator.ChunkData getChunkData
+        (float[,] map, 
+        int levelOfDetail, 
+        bool colliderRequested, 
+        int colliderAccuracy)
+
     {
         latestNoiseMap = map;
         int width = map.GetLength(0);
@@ -75,12 +76,17 @@ public class MapDisplay : MonoBehaviour {
 
         Color[] colorMap = TextureGenerator.generateColorMap(map, displayMode, sections);
 
-        return new MapGenerator.ChunkData(newMesh, colorMap);
-        //chunkObject.GetComponent<MeshFilter>().mesh = newMesh;
-        //Renderer textureRenderer = chunkObject.GetComponent<Renderer>();
-        //textureRenderer.sharedMaterial = new Material(terrainMaterial);
-        //textureRenderer.sharedMaterial.mainTexture = texture;
-        //chunkObject.transform.localScale = new Vector3(width, 1, height);
+        MeshGenerator.MeshData colliderMesh = null;
+        if (colliderRequested)
+        {
+            int colliderLOD = levelOfDetail + colliderAccuracy;
+            if (renderingMode == RenderingMode.Mesh)
+                colliderMesh = MeshGenerator.generateMesh(map, meshHeightCurve, meshHeightMultiplier, colliderLOD);
+            else
+                colliderMesh = MeshGenerator.generateMesh(width, height);
+        }
+
+        return new MapGenerator.ChunkData(newMesh, colliderMesh, colorMap);
     }
 
 
