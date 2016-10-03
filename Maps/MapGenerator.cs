@@ -106,7 +106,7 @@ public class MapGenerator : MonoBehaviour {
             frequencyMultiplier,
             amplitudeDemultiplier);
 
-        ChunkData chunkData = mapDisplayer.getChunkData(heightMap, LOD, colliderRequested, colliderAccuracy);
+        ChunkData chunkData = mapDisplayer.getChunkData(heightMap, chunkPosition, LOD, colliderRequested, colliderAccuracy);
         chunkData.chunkPosition = chunkPosition;
 
         lock (resultsQueue)

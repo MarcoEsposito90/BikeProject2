@@ -9,6 +9,7 @@ public class MapDisplay : MonoBehaviour {
 
     private const int NumberOfLods = 5;
     public static int NUMBER_OF_LODS = 5;
+    private RoadsGenerator roadsGenerator;
 
     public enum DisplayMode { GreyScale, Colour };
     public DisplayMode displayMode;
@@ -16,14 +17,15 @@ public class MapDisplay : MonoBehaviour {
     public enum RenderingMode { Flat, Mesh };
     public RenderingMode renderingMode;
 
-    
-
     public float meshHeightMultiplier;
     public AnimationCurve meshHeightCurve;
 
     public TerrainType[] sections;
-    public bool autoUpdate;
-    private float[,] latestNoiseMap;
+
+    
+
+    //public bool autoUpdate;
+    //private float[,] latestNoiseMap;
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- STRUCTURES --------------------------------------------------- */
@@ -46,6 +48,7 @@ public class MapDisplay : MonoBehaviour {
 
     void Start () {
 
+        roadsGenerator = this.GetComponent<RoadsGenerator>();
 	}
 	
 	void Update () {
@@ -57,16 +60,21 @@ public class MapDisplay : MonoBehaviour {
     /* ----------------------------------------------------------------------------------------- */
 
     public MapGenerator.ChunkData getChunkData
-        (float[,] map, 
+        (float[,] map,
+        Vector2 chunkPosition, 
         int levelOfDetail, 
         bool colliderRequested, 
         int colliderAccuracy)
 
     {
-        latestNoiseMap = map;
-        int width = map.GetLength(0);
-        int height = map.GetLength(0);
+        //latestNoiseMap = map;
         //GameObject chunkObject = mapChunk.mapChunkObject;
+
+        int width = map.GetLength(0);
+        int height = map.GetLength(1);
+
+        if (roadsGenerator != null)
+            roadsGenerator.generateRoads(map, chunkPosition);
 
         MeshGenerator.MeshData newMesh = null;
         if (renderingMode == RenderingMode.Mesh)

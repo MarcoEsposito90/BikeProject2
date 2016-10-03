@@ -224,6 +224,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
         // store the mesh inside the object --------------------------------
         Mesh mesh = chunkData.meshData.createMesh();
+        mesh.name = "mesh" + chunkData.chunkPosition.ToString();
         chunk.meshes[chunkData.meshData.LOD] = mesh;
 
         Mesh colliderMesh = null;
