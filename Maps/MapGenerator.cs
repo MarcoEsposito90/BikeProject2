@@ -109,7 +109,6 @@ public class MapGenerator : MonoBehaviour
 
         lock (resultsQueue)
         {
-            Debug.Log("enqueuing data for " + chunkPosition);
             resultsQueue.Enqueue(new ChunkCallbackData(chunkData, callback));
         }
     }

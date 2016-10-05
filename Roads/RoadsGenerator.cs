@@ -24,6 +24,7 @@ public class RoadsGenerator : MonoBehaviour
     private int chunkSize;
     private int quadrantWidth, quadrantHeight;
     private float seedX, seedY;
+    private System.Random random;
 
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- UNITY CALLBACKS ------------------------------------------------ */
@@ -39,9 +40,9 @@ public class RoadsGenerator : MonoBehaviour
         quadrantWidth = (int)(chunkSize / (float)roadsDensity);
         quadrantHeight = (int)(chunkSize / (float)roadsDensity);
 
-        System.Random r = new System.Random();
-        seedX = ((float)r.NextDouble()) * r.Next(100);
-        seedY = ((float)r.NextDouble()) * r.Next(100);
+        random = new System.Random();
+        seedX = ((float)random.NextDouble()) * random.Next(100);
+        seedY = ((float)random.NextDouble()) * random.Next(100);
     }
 
 
@@ -53,15 +54,20 @@ public class RoadsGenerator : MonoBehaviour
 
     public void generateRoads(float[,] map, Vector2 chunkPosition)
     {
-        Debug.Log("chunk " + chunkPosition + " asks for roads");
-        // 1) create adjacent chunks roads data
-        calculateControlPoints(chunkPosition);
+        lock (controlPoints)
+        {
+            Debug.Log("chunk " + chunkPosition + " acquired lock");
+            // 1) create adjacent chunks roads data
+            calculateControlPoints(chunkPosition);
 
-        // 2) calculate paths
-        List<CurveSegment> curves = calculatePaths(map, chunkPosition);
+            // 2) calculate paths
+            List<CurveSegment> curves = calculatePaths(map, chunkPosition);
 
-        // 3) map filtering 
-        modifyHeightMap(map, chunkPosition, curves);
+            // 3) map filtering 
+            modifyHeightMap(map, chunkPosition, curves);
+        }
+
+        
     }
 
 
@@ -93,7 +99,7 @@ public class RoadsGenerator : MonoBehaviour
                 int Y = Mathf.RoundToInt(randomY * (float)quadrantHeight + quadrantY * chunkSize);
 
                 /* ------ to be improved ---------------------- */
-                int randomAngle = new System.Random().Next(360);
+                float randomAngle = (float)random.NextDouble() * Mathf.PI * 2;
                 int tangentX = X + Mathf.RoundToInt((Mathf.Cos(randomAngle) * roadsCurveRay));
                 int tangentY = Y + Mathf.RoundToInt((Mathf.Sin(randomAngle) * roadsCurveRay));
                 /* ------ to be improved ---------------------- */
@@ -212,19 +218,28 @@ public class RoadsGenerator : MonoBehaviour
             {
                 Vector2 point = c.pointOnCurve(t);
 
-                int localX = (int)(point.x - (chunkPosition.x - 0.5f) * chunkSize);
-                int localY = (int)((chunkPosition.y + 0.5f) * chunkSize - point.y);
-
-                if (localX < 0 || localX >= map.GetLength(0)) continue;
-                if (localY < 0 || localY >= map.GetLength(1)) continue;
+                int localY = (int)(point.x - (chunkPosition.x - 0.5f) * chunkSize);
+                int localX = (int)((chunkPosition.y + 0.5f) * chunkSize - point.y);
+                //localY = map.GetLength(1) - localY;
+                localX = map.GetLength(0) - localX;
 
                 int startX = Mathf.Max(0, localX - roadsWidth);
                 int endX = Mathf.Min(map.GetLength(0) - 1, localX + roadsWidth);
                 int startY = Mathf.Max(0, localY - roadsWidth);
                 int endY = Mathf.Min(map.GetLength(1) - 1, localY + roadsWidth);
+
                 for (int j = startX; j <= endX; j++)
+                {
+                    if (j < 0 || j >= map.GetLength(0)) continue;
+
                     for (int k = startY; k <= endY; k++)
+                    {
+                        if (k < 0 || k >= map.GetLength(1)) continue;
                         map[j, k] = 0.5f;
+
+                    }
+                }
+                
             }
 
         }
@@ -288,6 +303,23 @@ public class RoadsGenerator : MonoBehaviour
 
         return result;
     }
+
+
+    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
+    /* ///-------------------------------------------------------------------------------------------/// */
+    /* ///----------------------------- DEBUG METHODS -----------------------------------------------/// */
+    /* ///-------------------------------------------------------------------------------------------/// */
+    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
+
+    public void printControlPoints()
+    {
+        foreach(Vector2 quadrant in controlPoints.Keys)
+        {
+            ControlPoint point = getControlPoint(quadrant);
+            Debug.Log("quadrant " + quadrant + "; cp = " + point.center + "; tangent = " + point.tangent);
+        }
+    }
+
 
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
     /* ///-------------------------------------------------------------------------------------------/// */

@@ -101,6 +101,8 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             latestViewerRecordedPosition = viewer.position;
         }
 
+        if (Input.GetKeyDown(KeyCode.P))
+            this.GetComponent<RoadsGenerator>().printControlPoints();
     }
 
 
