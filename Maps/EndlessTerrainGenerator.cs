@@ -138,7 +138,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
         if(chunk.meshes[LOD] != null)
         {
-            Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
+            //Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
             chunk.mapChunkObject.GetComponent<MeshFilter>().mesh = chunk.meshes[LOD];
 
             chunk.mapChunkObject.GetComponent<MeshCollider>().enabled = (LOD == 0);
@@ -212,7 +212,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
     public void onChunkDataReceived(MapGenerator.ChunkData chunkData)
     {
-        Debug.Log(chunkData.chunkPosition + " data received");
+        //Debug.Log(chunkData.chunkPosition + " data received");
         MapChunk chunk = null;
         TerrainChunks.TryGetValue(chunkData.chunkPosition, out chunk);
 
