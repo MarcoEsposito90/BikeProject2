@@ -67,8 +67,7 @@ public class MapDisplay : MonoBehaviour {
         int colliderAccuracy)
 
     {
-        //latestNoiseMap = map;
-        //GameObject chunkObject = mapChunk.mapChunkObject;
+        AnimationCurve meshHeightCurve = new AnimationCurve(this.meshHeightCurve.keys);
 
         int width = map.GetLength(0);
         int height = map.GetLength(1);

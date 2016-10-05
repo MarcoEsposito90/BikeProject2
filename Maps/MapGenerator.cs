@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System;
 
-public class MapGenerator : MonoBehaviour {
+public class MapGenerator : MonoBehaviour
+{
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
@@ -15,13 +16,13 @@ public class MapGenerator : MonoBehaviour {
     [Range(0.5f, 50.0f)]
     public float noiseScale;
 
-    [Range(1,8)]
+    [Range(1, 8)]
     public int numberOfFrequencies;
 
-    [Range(1.0f,10.0f)]
+    [Range(1.0f, 10.0f)]
     public float frequencyMultiplier;
 
-    [Range(1.0f,10.0f)]
+    [Range(1.0f, 10.0f)]
     public float amplitudeDemultiplier;
 
     private Queue<ChunkCallbackData> resultsQueue;
@@ -47,20 +48,17 @@ public class MapGenerator : MonoBehaviour {
     {
         lock (resultsQueue)
         {
-            if(resultsQueue.Count > 0)
+            for (int i = 0; i < resultsQueue.Count; i++)
             {
-                for(int i = 0; i < resultsQueue.Count; i++)
-                {
-                    ChunkCallbackData callbackData = resultsQueue.Dequeue();
-                    callbackData.callback(callbackData.data);
+                ChunkCallbackData callbackData = resultsQueue.Dequeue();
+                callbackData.callback(callbackData.data);
 
-                    /*  IMPORTANT INFO -------------------------------------------------------------
-                        the results are dequeued here in the update function, in order
-                        to use them in the main thread. This is necessary, since it is not
-                        possible to use them in secondary threads (for example, you cannot create
-                        a mesh) 
-                    */
-                }
+                /*  IMPORTANT INFO -------------------------------------------------------------
+                    the results are dequeued here in the update function, in order
+                    to use them in the main thread. This is necessary, since it is not
+                    possible to use them in secondary threads (for example, you cannot create
+                    a mesh) 
+                */
             }
         }
     }
@@ -70,17 +68,17 @@ public class MapGenerator : MonoBehaviour {
     /* ----------------------------------------------------------------------------------------- */
 
     public void requestChunkData
-        (int size, 
-        Vector2 chunkPosition, 
-        int LOD, 
-        bool colliderRequested, 
+        (int size,
+        Vector2 chunkPosition,
+        int LOD,
+        bool colliderRequested,
         int colliderAccuracy,
         Action<ChunkData> callback)
     {
-        ThreadStart ts  = delegate 
-        {
-            GenerateMap(size, chunkPosition, LOD, colliderRequested, colliderAccuracy, callback);
-        };
+        ThreadStart ts = delegate
+       {
+           GenerateMap(size, chunkPosition, LOD, colliderRequested, colliderAccuracy, callback);
+       };
 
         Thread t = new Thread(ts);
         t.Start();
@@ -89,16 +87,16 @@ public class MapGenerator : MonoBehaviour {
 
     /* ----------------------------------------------------------------------------------------- */
     private void GenerateMap
-        (int size, 
-        Vector2 chunkPosition, 
-        int LOD, 
-        bool colliderRequested, 
+        (int size,
+        Vector2 chunkPosition,
+        int LOD,
+        bool colliderRequested,
         int colliderAccuracy,
         Action<ChunkData> callback)
     {
         float[,] heightMap = Noise.GenerateNoiseMap(
             size + 1,
-            size + 1, 
+            size + 1,
             noiseScale,
             chunkPosition.x * size,
             chunkPosition.y * size,
@@ -111,6 +109,7 @@ public class MapGenerator : MonoBehaviour {
 
         lock (resultsQueue)
         {
+            Debug.Log("enqueuing data for " + chunkPosition);
             resultsQueue.Enqueue(new ChunkCallbackData(chunkData, callback));
         }
     }
@@ -126,7 +125,7 @@ public class MapGenerator : MonoBehaviour {
         public readonly MeshGenerator.MeshData meshData;
         public readonly MeshGenerator.MeshData colliderMeshData;
         public readonly Color[] colorMap;
-        
+
         public ChunkData(MeshGenerator.MeshData meshData, MeshGenerator.MeshData colliderMeshData, Color[] colorMap)
         {
             this.meshData = meshData;

@@ -164,7 +164,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
     }
 
 
-    // updates a single chunk to the specified LOD --------------------------------------------------
+    // creates chunks --------------------------------------------------------------
     public void createNewChunks()
     {
         Vector3 position = viewer.position;
@@ -216,7 +216,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
     public void onChunkDataReceived(MapGenerator.ChunkData chunkData)
     {
-        Debug.Log(chunkData.chunkPosition + " data received");
+        //Debug.Log(chunkData.chunkPosition + " data received");
         MapChunk chunk = null;
         TerrainChunks.TryGetValue(chunkData.chunkPosition, out chunk);
 
@@ -238,7 +238,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             if (chunk.meshes[chunkData.colliderMeshData.LOD] == null)
                 chunk.meshes[chunkData.colliderMeshData.LOD] = colliderMesh;
         }
-            
+
 
         /* ----------------------------------------------------------------- 
             means we came back to a previous LOD before the response of this
@@ -247,8 +247,11 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             any setting
         */
 
-        if (chunk.latestLODRequest != chunkData.meshData.LOD)
-            return;
+        //if (chunk.latestLODRequest != chunkData.meshData.LOD)
+        //{
+        //    Debug.Log("chunk " + chunk.position + " not updated due to deceased request");
+        //    return;
+        //}
 
 
         // setting mesh -----------------------------------------------------
