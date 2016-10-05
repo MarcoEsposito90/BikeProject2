@@ -7,7 +7,11 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
     [Range(1, 7)]
     public int chunkDimension;
-    private int chunkSize;
+    public int chunkSize
+    {
+        get;
+        private set;
+    }
 
     [Range(1,3)]
     public int accuracy;

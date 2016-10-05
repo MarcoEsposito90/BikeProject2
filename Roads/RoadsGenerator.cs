@@ -19,8 +19,12 @@ public class RoadsGenerator : MonoBehaviour
     [Range(2, 8)]
     public int roadsDensity;
 
-    private Dictionary<Vector2, RoadsData> chunkRoadsData;
+    //private Dictionary<Vector2, RoadsData> chunkRoadsData;
 
+    private Dictionary<Vector2, ControlPoint> controlPoints;
+    private Dictionary<CurveSegmentId, CurveSegment> curveSegments;
+    private int chunkSize;
+    private int quadrantWidth, quadrantHeight;
 
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- UNITY CALLBACKS ------------------------------------------------ */
@@ -28,7 +32,13 @@ public class RoadsGenerator : MonoBehaviour
 
     void Start()
     {
-        this.chunkRoadsData = new Dictionary<Vector2, RoadsData>();
+        //this.chunkRoadsData = new Dictionary<Vector2, RoadsData>();
+        this.controlPoints = new Dictionary<Vector2, ControlPoint>();
+        this.curveSegments = new Dictionary<CurveSegmentId, CurveSegment>();
+
+        chunkSize = this.GetComponent<EndlessTerrainGenerator>().chunkSize;
+        quadrantWidth = (int)(chunkSize / (float)roadsDensity);
+        quadrantHeight = (int)(chunkSize / (float)roadsDensity);
     }
 
     /* ------------------------------------------------------------------------------------------------- */
@@ -42,28 +52,13 @@ public class RoadsGenerator : MonoBehaviour
         int chunkX = (int)chunkPosition.x;
         int chunkY = (int)chunkPosition.y;
 
-        for(int i = chunkX - 1; i <= chunkX + 1; i++)
-            for(int j = chunkY - 1; j <= chunkY + 1; j++)
-                if(!chunkRoadsData.ContainsKey(new Vector2(i, j)))
-                {
-                    Vector2 pos = new Vector2(i, j);
-                    RoadsData d = new RoadsData
-                        (pos, 
-                        roadsDensity, 
-                        roadsCurveRay, 
-                        map.GetLength(0), 
-                        map.GetLength(1));
+        for(int j = -1; j <= roadsDensity; j++)
+        {
+            for(int i = -1; i <= roadsDensity; i++)
+            {
 
-                    chunkRoadsData.Add(pos, d);
-                }
-
-        if (!displayRoads)
-            return;
-
-        // 1) modify height map ---------------------------------------
-        RoadsData data = null;
-        chunkRoadsData.TryGetValue(chunkPosition, out data);
-        modifyHeightMap(map, data);
+            }
+        }
     }
 
     
@@ -245,7 +240,17 @@ public class RoadsGenerator : MonoBehaviour
         }
     }
 
+    public struct CurveSegmentId
+    {
+        ControlPoint start;
+        ControlPoint end;
 
+        public CurveSegmentId(ControlPoint start, ControlPoint end)
+        {
+            this.start = start;
+            this.end = end;
+        }
+    }
 
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- BEZIER COMPUTATION --------------------------------------------- */
