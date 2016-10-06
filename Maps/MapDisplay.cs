@@ -61,7 +61,7 @@ public class MapDisplay : MonoBehaviour {
 
     public MapGenerator.ChunkData getChunkData
         (float[,] map,
-        Vector2 chunkPosition, 
+        MapChunk chunk, 
         int levelOfDetail, 
         bool colliderRequested, 
         int colliderAccuracy)
@@ -73,7 +73,7 @@ public class MapDisplay : MonoBehaviour {
         int height = map.GetLength(1);
 
         if (roadsGenerator != null)
-            roadsGenerator.generateRoads(map, chunkPosition);
+            roadsGenerator.generateRoads(map, chunk);
 
         MeshGenerator.MeshData newMesh = null;
         if (renderingMode == RenderingMode.Mesh)

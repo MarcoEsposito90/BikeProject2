@@ -68,8 +68,7 @@ public class MapGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
 
     public void requestChunkData
-        (int size,
-        Vector2 chunkPosition,
+        (MapChunk chunk,
         int LOD,
         bool colliderRequested,
         int colliderAccuracy,
@@ -77,7 +76,7 @@ public class MapGenerator : MonoBehaviour
     {
         ThreadStart ts = delegate
        {
-           GenerateMap(size, chunkPosition, LOD, colliderRequested, colliderAccuracy, callback);
+           GenerateMap(chunk, LOD, colliderRequested, colliderAccuracy, callback);
        };
 
         Thread t = new Thread(ts);
@@ -87,25 +86,24 @@ public class MapGenerator : MonoBehaviour
 
     /* ----------------------------------------------------------------------------------------- */
     private void GenerateMap
-        (int size,
-        Vector2 chunkPosition,
+        (MapChunk chunk,
         int LOD,
         bool colliderRequested,
         int colliderAccuracy,
         Action<ChunkData> callback)
     {
         float[,] heightMap = Noise.GenerateNoiseMap(
-            size + 1,
-            size + 1,
+            chunk.size + 1,
+            chunk.size + 1,
             noiseScale,
-            chunkPosition.x * size,
-            chunkPosition.y * size,
+            chunk.position.x * chunk.size,
+            chunk.position.y * chunk.size,
             numberOfFrequencies,
             frequencyMultiplier,
             amplitudeDemultiplier);
 
-        ChunkData chunkData = mapDisplayer.getChunkData(heightMap, chunkPosition, LOD, colliderRequested, colliderAccuracy);
-        chunkData.chunkPosition = chunkPosition;
+        ChunkData chunkData = mapDisplayer.getChunkData(heightMap, chunk, LOD, colliderRequested, colliderAccuracy);
+        chunkData.chunkPosition = chunk.position;
 
         lock (resultsQueue)
         {

@@ -7,11 +7,15 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
     [Range(1, 7)]
     public int chunkDimension;
-    public int chunkSize
+    public static int chunkSize
     {
         get;
         private set;
     }
+
+    [Range(2, 8)]
+    public int subdivisions;
+
 
     [Range(1,3)]
     public int accuracy;
@@ -32,56 +36,24 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
     private Dictionary<Vector2,MapChunk> TerrainChunks;
     private MapGenerator mapGenerator;
+    public static float seedX, seedY;
 
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- MY CLASSES --------------------------------------------------- */
-    /* ----------------------------------------------------------------------------------------- */
-
-    public class MapChunk
-    {
-        public Vector2 position;
-        public int size;
-        public GameObject mapChunkObject;
-        public Bounds bounds;
-        public int currentLOD;
-        public int latestLODRequest;
-        public bool isVisible;
-        public Mesh[] meshes;
-
-        public MapChunk(int x, int y, int size)
-        {
-            this.position = new Vector2(x, y);
-            this.size = size;
-            currentLOD = -1;
-            latestLODRequest = -1;
-            isVisible = true;
-            bounds = new Bounds(new Vector3(x*size, 0, y*size), new Vector3(size,size, size));
-            meshes = new Mesh[MapDisplay.NUMBER_OF_LODS];
-
-            mapChunkObject = new GameObject("chunk (" + x  + "," + y + ")");
-            mapChunkObject.AddComponent<MeshFilter>();
-            mapChunkObject.AddComponent<MeshRenderer>();
-            mapChunkObject.AddComponent<MeshCollider>();
-            mapChunkObject.transform.position = new Vector3(x * size, 0, y * size);
-        }
-
-        public void setVisible(bool visibility)
-        {
-            if (isVisible == visibility)
-                return;
-
-            isVisible = visibility;
-            mapChunkObject.SetActive(visibility);
-        }
-    }
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- UNITY CALLBACKS ---------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    void Start()
+    #region UNITY
+
+    void Awake()
     {
         initialize();
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    void Start()
+    {
 
         viewer.position = new Vector3(0, viewer.position.y, 0);
         createNewChunks();
@@ -105,10 +77,13 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             this.GetComponent<RoadsGenerator>().printControlPoints();
     }
 
+    #endregion
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- CHUNK UPDATING ----------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
+
+    #region CHUNK_UPDATING
 
     // checks the list of chunks for updates ------------------------------------------------------
     public void updateChunks()
@@ -144,7 +119,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
         if(chunk.meshes[LOD] != null)
         {
-            Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
+            //Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
             chunk.mapChunkObject.GetComponent<MeshFilter>().mesh = chunk.meshes[LOD];
 
             chunk.mapChunkObject.GetComponent<MeshCollider>().enabled = (LOD == 0);
@@ -157,8 +132,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
         bool colliderRequested = LOD == 0 ? true : false;
         mapGenerator.requestChunkData
-            (chunkSize,
-            chunk.position, 
+            (chunk, 
             LOD, 
             colliderRequested, 
             colliderAccuracy,
@@ -195,14 +169,13 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
                 if(dist < LODThresholds[LODThresholds.Length - 1])
                 {
-                    MapChunk newChunk = new MapChunk(chunkX, chunkY, chunkSize);
+                    MapChunk newChunk = new MapChunk(chunkX, chunkY, chunkSize, subdivisions);
                     newChunk.mapChunkObject.transform.parent = this.GetComponent<Transform>();
                     TerrainChunks.Add(chunkCenter, newChunk);
                     newChunk.currentLOD = LODThresholds.Length - 1;
 
-                    mapGenerator.requestChunkData(
-                        chunkSize, 
-                        newChunk.position,
+                    mapGenerator.requestChunkData
+                        (newChunk,
                         LODThresholds.Length - 1,
                         false,
                         -1,
@@ -211,7 +184,9 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             }
     }
 
-    
+    #endregion
+
+
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- MAP DRAWING -------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
@@ -280,7 +255,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
 
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- MAP DRAWING -------------------------------------------------- */
+    /* -------------------------- UTILITY ------------------------------------------------------ */
     /* ----------------------------------------------------------------------------------------- */
 
     public void initialize()
@@ -293,5 +268,9 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
         for (int i = 0; i < LODThresholds.Length; i++)
             LODThresholds[i] = (chunkSize / 2.0f + i * chunkSize) * accuracy / 2.0f;
+
+        System.Random random = new System.Random();
+        seedX = ((float)random.NextDouble()) * random.Next(100);
+        seedY = ((float)random.NextDouble()) * random.Next(100);
     }
 }

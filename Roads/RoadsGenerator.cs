@@ -8,6 +8,8 @@ public class RoadsGenerator : MonoBehaviour
     /* -------------------------------- ATTRIBUTES ----------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
 
+    #region ATTRIBUTES
+
     public bool displayRoads;
 
     [Range(0, 100)]
@@ -19,24 +21,27 @@ public class RoadsGenerator : MonoBehaviour
     [Range(2, 8)]
     public int roadsDensity;
 
-    private Dictionary<Vector2, ControlPoint> controlPoints;
-    private Dictionary<CurveSegmentId, CurveSegment> curveSegments;
+    private Dictionary<Vector2, Quadrant> quadrants;
+    private Dictionary<CurveSegmentId, BezierCurve> curveSegments;
     private int chunkSize;
     private int quadrantWidth, quadrantHeight;
     private float seedX, seedY;
     private System.Random random;
 
+    #endregion
+
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- UNITY CALLBACKS ------------------------------------------------ */
     /* ------------------------------------------------------------------------------------------------- */
 
+    #region UNITY
+
     void Start()
     {
-        //this.chunkRoadsData = new Dictionary<Vector2, RoadsData>();
-        this.controlPoints = new Dictionary<Vector2, ControlPoint>();
-        this.curveSegments = new Dictionary<CurveSegmentId, CurveSegment>();
+        this.quadrants = new Dictionary<Vector2, Quadrant>();
+        this.curveSegments = new Dictionary<CurveSegmentId, BezierCurve>();
 
-        chunkSize = this.GetComponent<EndlessTerrainGenerator>().chunkSize;
+        chunkSize = EndlessTerrainGenerator.chunkSize;
         quadrantWidth = (int)(chunkSize / (float)roadsDensity);
         quadrantHeight = (int)(chunkSize / (float)roadsDensity);
 
@@ -46,28 +51,30 @@ public class RoadsGenerator : MonoBehaviour
     }
 
 
+    #endregion
+
+
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
     /* ///-------------------------------------------------------------------------------------------/// */
     /* ///----------------------------- METHODS -----------------------------------------------------/// */
     /* ///-------------------------------------------------------------------------------------------/// */
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
 
-    public void generateRoads(float[,] map, Vector2 chunkPosition)
+    #region METHODS
+
+    public void generateRoads(float[,] map, MapChunk chunk)
     {
-        lock (controlPoints)
+        lock (quadrants)
         {
-            //Debug.Log("chunk " + chunkPosition + " acquired lock");
             // 1) create adjacent chunks roads data
-            calculateControlPoints(chunkPosition);
+            //Dictionary<Vector2, ControlPoint> localPoints = calculateControlPoints(chunkPosition);
 
             // 2) calculate paths
-            List<CurveSegment> curves = calculatePaths(map, chunkPosition);
+            //List<BezierCurve> curves = Path.calculatePaths(localPoints,chunkPosition,roadsDensity);
 
             // 3) map filtering 
-            modifyHeightMap(map, chunkPosition, curves);
+            //modifyHeightMap(map, chunkPosition, curves);
         }
-
-        
     }
 
 
@@ -75,133 +82,144 @@ public class RoadsGenerator : MonoBehaviour
     /* -------------------------------- CONTROL POINTS ------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
 
-    private void calculateControlPoints(Vector2 chunkPosition)
-    {
-        for (int j = -1; j <= roadsDensity; j++)
-        {
-            for (int i = -1; i <= roadsDensity; i++)
-            {
-                // 1) compute normalized coordinates of quadrant -------------
-                float quadrantX = (chunkPosition.x - 0.5f + (1.0f / (float)roadsDensity) * i);
-                float quadrantY = (chunkPosition.y - 0.5f + (1.0f / (float)roadsDensity) * j);
-                Vector2 quadrantCoordinates = new Vector2(quadrantX, quadrantY);
+    #region CONTROL_POINTS
 
-                if (controlPointExists(quadrantCoordinates))
-                    continue;
+    //private Dictionary<Vector2, ControlPoint> calculateControlPoints(Vector2 chunkPosition)
+    //{
+    //    Dictionary<Vector2, ControlPoint> localPoints = new Dictionary<Vector2, ControlPoint>();
 
-                // 2) get perlin value relative to coordinates ----------------
-                float randomX = Mathf.PerlinNoise(quadrantX + seedX, quadrantY + seedX);
-                float randomY = Mathf.PerlinNoise(quadrantX + seedY, quadrantY + seedY);
+    //    for (int j = -1; j <= roadsDensity; j++)
+    //    {
+    //        for (int i = -1; i <= roadsDensity; i++)
+    //        {
+    //            // 1) compute normalized coordinates of quadrant -------------
+    //            float quadrantX = (chunkPosition.x - 0.5f + (1.0f / (float)roadsDensity) * i);
+    //            float quadrantY = (chunkPosition.y - 0.5f + (1.0f / (float)roadsDensity) * j);
+    //            Vector2 quadrantCoordinates = new Vector2(quadrantX, quadrantY);
+
+    //            if (quadrantExists(quadrantCoordinates))
+    //            {
+    //                localPoints.Add(quadrantCoordinates, getQuadrant(quadrantCoordinates).roadsControlPoint);
+    //                continue;
+    //            }
+
+    //            // 2) get perlin value relative to coordinates ----------------
+    //            float randomX = Mathf.PerlinNoise(quadrantX + seedX, quadrantY + seedX);
+    //            float randomY = Mathf.PerlinNoise(quadrantX + seedY, quadrantY + seedY);
+
+    //            // 3) compute absolute coordinates of point in space ----------
+    //            int X = Mathf.RoundToInt(randomX * (float)quadrantWidth + quadrantX * chunkSize);
+    //            int Y = Mathf.RoundToInt(randomY * (float)quadrantHeight + quadrantY * chunkSize);
+
+    //            // 4) create point and add it to map --------------------------
+    //            Vector2 center = new Vector2(X, Y);
+    //            ControlPoint point = new ControlPoint(center, ControlPoint.Type.Center, new Vector2(i, j), quadrantCoordinates);
+
+    //            Quadrant q = new Quadrant(new Vector2(i, j), quadrantCoordinates);
+    //            q.roadsControlPoint = point;
+    //            addQuadrant(quadrantCoordinates, q);
+    //            localPoints.Add(quadrantCoordinates, point);
+    //        }
+    //    }
+
+    //    return localPoints;
+    //}
+
+    #endregion  // CONTROL_POINTS    
+
+    #endregion  // METHODS
 
 
-                // 3) compute absolute coordinates of point in space ----------
-                int X = Mathf.RoundToInt(randomX * (float)quadrantWidth + quadrantX * chunkSize);
-                int Y = Mathf.RoundToInt(randomY * (float)quadrantHeight + quadrantY * chunkSize);
-
-                /* ------ to be improved ---------------------- */
-                float randomAngle = (float)random.NextDouble() * Mathf.PI * 2;
-                int tangentX = X + Mathf.RoundToInt((Mathf.Cos(randomAngle) * roadsCurveRay));
-                int tangentY = Y + Mathf.RoundToInt((Mathf.Sin(randomAngle) * roadsCurveRay));
-                /* ------ to be improved ---------------------- */
-
-                // 4) create point and add it to map --------------------------
-                Vector2 center = new Vector2(X, Y);
-                Vector2 tangent = new Vector2(tangentX, tangentY);
-                ControlPoint point = new ControlPoint(center, tangent);
-                addControlPoint(quadrantCoordinates, point);
-            }
-        }
-    }
 
 
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- CURVE SEGMENTS ------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
 
-    private List<CurveSegment> calculatePaths(float[,] map, Vector2 chunkPosition)
-    {
-        List<CurveSegment> localCurves = new List<CurveSegment>();
+    //private List<BezierCurve> calculatePaths(float[,] map, Vector2 chunkPosition)
+    //{
+    //    List<BezierCurve> localCurves = new List<BezierCurve>();
 
-        for (int j = -1; j < roadsDensity; j++)
-        {
-            for (int i = -1; i < roadsDensity; i++)
-            {
-                // 1) compute normalized coordinates of quadrant -------------
-                float quadrantX = (chunkPosition.x - 0.5f + (1.0f / (float)roadsDensity) * i);
-                float quadrantY = (chunkPosition.y - 0.5f + (1.0f / (float)roadsDensity) * j);
-                Vector2 quadrantCoordinates = new Vector2(quadrantX, quadrantY);
+    //    for (int j = -1; j < roadsDensity; j++)
+    //    {
+    //        for (int i = -1; i < roadsDensity; i++)
+    //        {
+    //            // 1) compute normalized coordinates of quadrant -------------
+    //            float quadrantX = (chunkPosition.x - 0.5f + (1.0f / (float)roadsDensity) * i);
+    //            float quadrantY = (chunkPosition.y - 0.5f + (1.0f / (float)roadsDensity) * j);
+    //            Vector2 quadrantCoordinates = new Vector2(quadrantX, quadrantY);
 
-                if (!controlPointExists(quadrantCoordinates))
-                {
-                    Debug.Log("ERROR: requested control point wasn't created!");
-                    continue;
-                }
+    //            if (!controlPointExists(quadrantCoordinates))
+    //            {
+    //                Debug.Log("ERROR: requested control point wasn't created!");
+    //                continue;
+    //            }
 
-                // 2) create links --------------------------------------------
-                List<CurveSegment> quadrantCurves = linkControlPoint(quadrantCoordinates);
-                foreach (CurveSegment c in quadrantCurves)
-                    if (!localCurves.Contains(c))
-                        localCurves.Add(c);
-            }
-        }
+    //            // 2) create links --------------------------------------------
+    //            List<BezierCurve> quadrantCurves = linkControlPoint(quadrantCoordinates);
+    //            foreach (BezierCurve c in quadrantCurves)
+    //                if (!localCurves.Contains(c))
+    //                    localCurves.Add(c);
+    //        }
+    //    }
 
-        return localCurves;
-    }
-
-
-    /* ------------------------------------------------------------------------------------------------- */
-    private List<CurveSegment> linkControlPoint(Vector2 quadrantCoordinates)
-    {
-        // 1) initialize list -------------------------------------------------------
-        List<CurveSegment> pointCurves = new List<CurveSegment>();
-
-        // 2) get control point of this quadrant ------------------------------------
-        float quadrantX = quadrantCoordinates.x;
-        float quadrantY = quadrantCoordinates.y;
-
-        ControlPoint point = getControlPoint(quadrantCoordinates);
-
-        // 3) create curve from this to right control point -------------------------
-        float rightQuadrantX = quadrantX + (1.0f / roadsDensity);
-        Vector2 rightQuadrant = new Vector2(rightQuadrantX, quadrantY);
-        ControlPoint right = getControlPoint(rightQuadrant);
-
-        if (right != null)
-            pointCurves.Add(createLink(point, right));
-        else
-            Debug.Log("right missing for quadrant " + quadrantX + "," + quadrantY);
-
-        // 4) create curve from this to top control point ---------------------------
-        float topQuadrantY = quadrantY + (1.0f / roadsDensity);
-        Vector2 topQuadrant = new Vector2(quadrantX, topQuadrantY);
-        ControlPoint top = getControlPoint(topQuadrant);
-
-        if (top != null)
-            pointCurves.Add(createLink(point, top));
-        else
-            Debug.Log("top missing for quadrant " + quadrantX + "," + quadrantY);
-
-        return pointCurves;
-    }
+    //    return localCurves;
+    //}
 
 
-    /* ------------------------------------------------------------------------------------------------- */
-    public CurveSegment createLink(ControlPoint p1, ControlPoint p2)
-    {
-        CurveSegment segment = null;
+    ///* ------------------------------------------------------------------------------------------------- */
+    //private List<BezierCurve> linkControlPoint(Vector2 quadrantCoordinates)
+    //{
+    //    // 1) initialize list -------------------------------------------------------
+    //    List<BezierCurve> pointCurves = new List<BezierCurve>();
 
-        CurveSegmentId id = new CurveSegmentId(p1, p2);
-        if (!curveSegmentExists(id))
-        {
-            segment = new CurveSegment(p1, p2);
-            addCurveSegment(id, segment);
-        }
+    //    // 2) get control point of this quadrant ------------------------------------
+    //    float quadrantX = quadrantCoordinates.x;
+    //    float quadrantY = quadrantCoordinates.y;
 
-        if (segment == null)
-            segment = getCurveSegment(id);
+    //    ControlPoint point = getControlPoint(quadrantCoordinates);
 
-        return segment;
-    }
+    //    // 3) create curve from this to right control point -------------------------
+    //    float rightQuadrantX = quadrantX + (1.0f / roadsDensity);
+    //    Vector2 rightQuadrant = new Vector2(rightQuadrantX, quadrantY);
+    //    ControlPoint right = getControlPoint(rightQuadrant);
+
+    //    if (right != null)
+    //        pointCurves.Add(createLink(point, right));
+    //    else
+    //        Debug.Log("right missing for quadrant " + quadrantX + "," + quadrantY);
+
+    //    // 4) create curve from this to top control point ---------------------------
+    //    float topQuadrantY = quadrantY + (1.0f / roadsDensity);
+    //    Vector2 topQuadrant = new Vector2(quadrantX, topQuadrantY);
+    //    ControlPoint top = getControlPoint(topQuadrant);
+
+    //    if (top != null)
+    //        pointCurves.Add(createLink(point, top));
+    //    else
+    //        Debug.Log("top missing for quadrant " + quadrantX + "," + quadrantY);
+
+    //    return pointCurves;
+    //}
+
+
+    ///* ------------------------------------------------------------------------------------------------- */
+    //public BezierCurve createLink(ControlPoint p1, ControlPoint p2)
+    //{
+    //    BezierCurve segment = null;
+
+    //    CurveSegmentId id = new CurveSegmentId(p1, p2);
+    //    if (!curveSegmentExists(id))
+    //    {
+    //        segment = new BezierCurve(p1, p1, p2, p2);
+    //        addCurveSegment(id, segment);
+    //    }
+
+    //    if (segment == null)
+    //        segment = getCurveSegment(id);
+
+    //    return segment;
+    //}
 
 
 
@@ -209,10 +227,10 @@ public class RoadsGenerator : MonoBehaviour
     /* -------------------------------- MAP FILTERING -------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
 
-    private void modifyHeightMap(float[,] map, Vector2 chunkPosition, List<CurveSegment> curves)
+    private void modifyHeightMap(float[,] map, Vector2 chunkPosition, List<BezierCurve> curves)
     {
 
-        foreach (CurveSegment c in curves)
+        foreach (BezierCurve c in curves)
         {
             for (float t = 0.0f; t <= 1.0f; t += 0.01f)
             {
@@ -239,7 +257,7 @@ public class RoadsGenerator : MonoBehaviour
 
                     }
                 }
-                
+
             }
 
         }
@@ -248,48 +266,47 @@ public class RoadsGenerator : MonoBehaviour
 
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
     /* ///-------------------------------------------------------------------------------------------/// */
-    /* ///----------------------------- THREAD-SAFE METHODS -----------------------------------------/// */
+    /* ///----------------------------- UTILITY METHODS ---------------------------------------------/// */
     /* ///-------------------------------------------------------------------------------------------/// */
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
 
-    private void addControlPoint(Vector2 quadrantPosition, ControlPoint p)
+    #region UTILITY
+
+    private void addQuadrant(Vector2 quadrantPosition, Quadrant q)
     {
-        //lock (controlPoints)
-            if (!controlPoints.ContainsKey(quadrantPosition))
-                controlPoints.Add(quadrantPosition, p);
+        if (!quadrants.ContainsKey(quadrantPosition))
+            quadrants.Add(quadrantPosition, q);
 
     }
 
-    private ControlPoint getControlPoint(Vector2 quadrantPosition)
+    private Quadrant getQuadrant(Vector2 quadrantPosition)
     {
-        ControlPoint result = null;
-        //lock (controlPoints)
-            controlPoints.TryGetValue(quadrantPosition, out result);
+        Quadrant result = null;
+        quadrants.TryGetValue(quadrantPosition, out result);
 
         return result;
     }
 
-    private bool controlPointExists(Vector2 quadrantPosition)
+    private bool quadrantExists(Vector2 quadrantPosition)
     {
         bool result = false;
-        //lock (controlPoints)
-            result = controlPoints.ContainsKey(quadrantPosition);
+        result = quadrants.ContainsKey(quadrantPosition);
 
         return result;
     }
 
-    private void addCurveSegment(CurveSegmentId id, CurveSegment segment)
+
+    /* ------------------------------------------------------------------------------------------------- */
+    private void addCurveSegment(CurveSegmentId id, BezierCurve segment)
     {
-        //lock (curveSegments)
-            if (!curveSegments.ContainsKey(id))
-                curveSegments.Add(id, segment);
+        if (!curveSegments.ContainsKey(id))
+            curveSegments.Add(id, segment);
     }
 
-    private CurveSegment getCurveSegment(CurveSegmentId id)
+    private BezierCurve getCurveSegment(CurveSegmentId id)
     {
-        CurveSegment segment = null;
-        //lock (curveSegments)
-            curveSegments.TryGetValue(id, out segment);
+        BezierCurve segment = null;
+        curveSegments.TryGetValue(id, out segment);
 
         return segment;
     }
@@ -298,11 +315,13 @@ public class RoadsGenerator : MonoBehaviour
     private bool curveSegmentExists(CurveSegmentId id)
     {
         bool result = false;
-        //lock (curveSegments)
-            result = curveSegments.ContainsKey(id);
+        result = curveSegments.ContainsKey(id);
 
         return result;
     }
+
+    #endregion
+
 
 
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
@@ -311,14 +330,17 @@ public class RoadsGenerator : MonoBehaviour
     /* ///-------------------------------------------------------------------------------------------/// */
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
 
+    #region DEBUG
+
     public void printControlPoints()
     {
-        foreach(Vector2 quadrant in controlPoints.Keys)
-        {
-            ControlPoint point = getControlPoint(quadrant);
-            Debug.Log("quadrant " + quadrant + "; cp = " + point.center + "; tangent = " + point.tangent);
-        }
+        foreach (Quadrant quadrant in quadrants.Values)
+            Debug.Log("quadrant " + quadrant + "; cp = " + quadrant.position);
     }
+    
+    
+    #endregion
+
 
 
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
@@ -326,65 +348,6 @@ public class RoadsGenerator : MonoBehaviour
     /* ///----------------------------- SUBCLASSES --------------------------------------------------/// */
     /* ///-------------------------------------------------------------------------------------------/// */
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
-
-
-    /* ------------------------------------------------------------------------------------------------- */
-    /* -------------------------------- CONTROL POINT -------------------------------------------------- */
-    /* ------------------------------------------------------------------------------------------------- */
-    public class ControlPoint
-    {
-        public Vector2 center;
-        public Vector2 tangent;
-
-        public ControlPoint(Vector2 center, Vector2 tangent)
-        {
-            this.center = center;
-            this.tangent = tangent;
-        }
-    }
-
-
-
-    /* ------------------------------------------------------------------------------------------------- */
-    /* -------------------------------- CURVE SEGMENT -------------------------------------------------- */
-    /* ------------------------------------------------------------------------------------------------- */
-    public class CurveSegment
-    {
-        public ControlPoint start;
-        public ControlPoint end;
-        public float ax, bx, cx, ay, by, cy;
-
-        public CurveSegment(ControlPoint start, ControlPoint end)
-        {
-            this.start = start;
-            this.end = end;
-            computeBezierCoefficients();
-        }
-
-        /* ---------------------------------------------------------------- */
-        public void computeBezierCoefficients()
-        {
-            cx = 3.0f * (start.tangent.x - start.center.x);
-            cy = 3.0f * (start.tangent.y - start.center.y);
-
-            bx = 3.0f * (end.tangent.x - start.tangent.x) - cx;
-            by = 3.0f * (end.tangent.y - start.tangent.y) - cy;
-
-            ax = end.center.x - start.center.x - cx - bx;
-            ay = end.center.y - start.center.y - cy - by;
-        }
-
-        /* ---------------------------------------------------------------- */
-        public Vector2 pointOnCurve(float t)
-        {
-            if (t < 0) t = 0;
-            if (t > 1) t = 1;
-
-            float x = ax * Mathf.Pow(t, 3) + bx * Mathf.Pow(t, 2) + cx * t + start.center.x;
-            float y = ay * Mathf.Pow(t, 3) + by * Mathf.Pow(t, 2) + cy * t + start.center.y;
-            return new Vector2(x, y);
-        }
-    }
 
     public struct CurveSegmentId
     {
@@ -397,9 +360,5 @@ public class RoadsGenerator : MonoBehaviour
             this.end = end;
         }
     }
-
-    /* ------------------------------------------------------------------------------------------------- */
-    /* -------------------------------- BEZIER COMPUTATION --------------------------------------------- */
-    /* ------------------------------------------------------------------------------------------------- */
 
 }
