@@ -13,7 +13,7 @@ public class MapGenerator : MonoBehaviour
     //[Range(1,7)]
     //public int chunkDimension;  
 
-    [Range(0.5f, 50.0f)]
+    [Range(10.0f, 5000.0f)]
     public float noiseScale;
 
     [Range(1, 8)]

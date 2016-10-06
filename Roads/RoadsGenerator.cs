@@ -56,7 +56,7 @@ public class RoadsGenerator : MonoBehaviour
     {
         lock (controlPoints)
         {
-            Debug.Log("chunk " + chunkPosition + " acquired lock");
+            //Debug.Log("chunk " + chunkPosition + " acquired lock");
             // 1) create adjacent chunks roads data
             calculateControlPoints(chunkPosition);
 
@@ -218,10 +218,10 @@ public class RoadsGenerator : MonoBehaviour
             {
                 Vector2 point = c.pointOnCurve(t);
 
-                int localY = (int)(point.x - (chunkPosition.x - 0.5f) * chunkSize);
-                int localX = (int)((chunkPosition.y + 0.5f) * chunkSize - point.y);
+                int localX = (int)(point.x - (chunkPosition.x - 0.5f) * chunkSize);
+                int localY = (int)((chunkPosition.y + 0.5f) * chunkSize - point.y);
                 //localY = map.GetLength(1) - localY;
-                localX = map.GetLength(0) - localX;
+                //localX = map.GetLength(0) - localX;
 
                 int startX = Mathf.Max(0, localX - roadsWidth);
                 int endX = Mathf.Min(map.GetLength(0) - 1, localX + roadsWidth);

@@ -40,15 +40,15 @@ public static class MeshGenerator
     public static MeshData generateMesh(int width, int height)
     {
 
-        float topLeftX = -width / 2.0f;
+        float topLeftX = - width / 2.0f;
         float topLeftZ = height / 2.0f;
 
         MeshData meshData = new MeshData(2, 2, 0);
 
-        meshData.vertices[0] = new Vector3(topLeftX, 0, -topLeftZ);
-        meshData.vertices[1] = new Vector3(topLeftX + width, 0, -topLeftZ);
-        meshData.vertices[2] = new Vector3(topLeftX, 0, -topLeftZ + height);
-        meshData.vertices[3] = new Vector3(topLeftX + width, 0, -topLeftZ + height);
+        meshData.vertices[0] = new Vector3(topLeftX, 0, topLeftZ);
+        meshData.vertices[1] = new Vector3(topLeftX, 0, topLeftZ - height);
+        meshData.vertices[2] = new Vector3(topLeftX + width, 0, topLeftZ);
+        meshData.vertices[3] = new Vector3(topLeftX + width, 0, topLeftZ - height);
         return meshData;
     }
 
