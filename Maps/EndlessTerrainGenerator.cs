@@ -16,7 +16,6 @@ public class EndlessTerrainGenerator : MonoBehaviour {
     [Range(2, 8)]
     public int subdivisions;
 
-
     [Range(1,3)]
     public int accuracy;
     private float[] LODThresholds;
@@ -32,7 +31,6 @@ public class EndlessTerrainGenerator : MonoBehaviour {
     private float viewerDistanceUpdate;
 
     public Material terrainMaterial;
-    public bool autoUpdate;
 
     private Dictionary<Vector2,MapChunk> TerrainChunks;
     private MapGenerator mapGenerator;
@@ -73,8 +71,6 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             latestViewerRecordedPosition = viewer.position;
         }
 
-        if (Input.GetKeyDown(KeyCode.P))
-            this.GetComponent<RoadsGenerator>().printControlPoints();
     }
 
     #endregion

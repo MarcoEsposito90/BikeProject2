@@ -49,6 +49,8 @@ public class MapDisplay : MonoBehaviour {
     void Start () {
 
         roadsGenerator = this.GetComponent<RoadsGenerator>();
+        if (roadsGenerator == null)
+            Debug.Log("editor won't generate roads");
 	}
 	
 	void Update () {
@@ -67,12 +69,15 @@ public class MapDisplay : MonoBehaviour {
         int colliderAccuracy)
 
     {
+
+        //Debug.Log("chunk " + chunk.position + " started computation");
+
         AnimationCurve meshHeightCurve = new AnimationCurve(this.meshHeightCurve.keys);
 
         int width = map.GetLength(0);
         int height = map.GetLength(1);
 
-        if (roadsGenerator != null)
+        if (roadsGenerator != null && !chunk.roadsComputed)
             roadsGenerator.generateRoads(map, chunk);
 
         MeshGenerator.MeshData newMesh = null;

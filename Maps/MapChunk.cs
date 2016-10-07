@@ -64,7 +64,12 @@ public class MapChunk{
         private set;
     }
 
+    public float[,] heightMap = null;
+
     public Dictionary<Vector2, Quadrant> quadrants;
+
+    public bool roadsComputed;
+    public bool mapComputed;
 
     #endregion
 
@@ -82,6 +87,8 @@ public class MapChunk{
         currentLOD = -1;
         latestLODRequest = -1;
         isVisible = true;
+        roadsComputed = false;
+        mapComputed = false;
         bounds = new Bounds(new Vector3(x * size, 0, y * size), new Vector3(size, size, size));
         meshes = new Mesh[MapDisplay.NUMBER_OF_LODS];
 
@@ -91,6 +98,7 @@ public class MapChunk{
         mapChunkObject.AddComponent<MeshCollider>();
         mapChunkObject.transform.position = new Vector3(x * size, 0, y * size);
 
+        quadrants = new Dictionary<Vector2, Quadrant>();
         createQuadrants();
     }
 

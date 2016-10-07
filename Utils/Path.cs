@@ -2,20 +2,37 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class Path {
+public class Path
+{
 
-    private List<BezierCurve> segments;
-    private ControlPoint start;
-    private ControlPoint end;
+    #region ATTRIBUTES
+
+    public List<ControlPoint> points
+    {
+        get; private set;
+    }
+    public List<BezierCurve> curves
+    {
+        get; private set;
+    }
+
+    #endregion
 
     public Path()
     {
-        segments = new List<BezierCurve>();
+        points = new List<ControlPoint>();
+        curves = new List<BezierCurve>();
     }
 
-    public void addSegment(BezierCurve segment)
+    public void addControlPoint(ControlPoint point)
     {
-        segments.Add(segment);
+        points.Add(point);
+    }
+
+    public void createCurves()
+    {
+        for (int i = 0; i < points.Count - 1; i++)
+            curves.Add(new BezierCurve(points[i], points[i], points[i + 1], points[i + 1]));
     }
 
 
@@ -26,22 +43,73 @@ public class Path {
     #region STATIC_METHODS
 
 
-    public static List<BezierCurve> calculatePaths(Dictionary<Vector2,Quadrant> quadrants, Vector2 chunkPosition, int roadsDensity)
+    public static List<Path> calculatePaths(MapChunk chunk)
     {
-        List<BezierCurve> localCurves = new List<BezierCurve>();
-        
-        
+        List<Path> localPaths = new List<Path>();
 
-        
-        return localCurves;
+        Path path = new Path();
+        bool pathCompleted = false;
+
+        Quadrant next = chunk.quadrants[new Vector2(0, 0)];
+        path.addControlPoint(next.roadsControlPoint);
+
+        while (!pathCompleted)
+        {
+            next = findNearestNeighbor(next, chunk, path);
+
+            if (next == null)
+            {
+                pathCompleted = true;
+                break;
+            }
+
+            path.addControlPoint(next.roadsControlPoint);
+            next.roadsControlPoint.incrementPaths();
+        }
+
+        path.createCurves();
+        localPaths.Add(path);
+
+        return localPaths;
+    }
+
+    /* ------------------------------------------------------------------------------------------------- */
+    private static Quadrant findNearestNeighbor(Quadrant q, MapChunk chunk, Path path)
+    {
+        Quadrant neighbor = null;
+
+        int localX = (int)q.localPosition.x;
+        int localY = (int)q.localPosition.y;
+        ControlPoint point = q.roadsControlPoint;
+        float currentMinimumDistance = 1.5f * q.width;
+
+        for (int i = 0; i < chunk.subdivisions; i++)
+            for (int j = 0; j < chunk.subdivisions; j++)
+            {
+                if (i == localX && j == localY)
+                    continue;
+
+                Quadrant candidateQuadrant = chunk.quadrants[new Vector2(i, j)];
+                ControlPoint candidatePoint = candidateQuadrant.roadsControlPoint;
+
+                if (path.points.Contains(candidatePoint))
+                    continue;
+
+                float distance = Vector2.Distance(candidatePoint.position, point.position);
+
+                if (distance < currentMinimumDistance)
+                    neighbor = candidateQuadrant;
+            }
+
+        return neighbor;
     }
 
 
     /* ------------------------------------------------------------------------------------------------- */
     private static bool isMissingLinks(List<ControlPoint> points)
     {
-        
-        foreach(ControlPoint p in points)
+
+        foreach (ControlPoint p in points)
         {
             if (p.NumberOfPaths == 0)
                 return true;

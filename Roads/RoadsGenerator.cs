@@ -10,22 +10,13 @@ public class RoadsGenerator : MonoBehaviour
 
     #region ATTRIBUTES
 
-    public bool displayRoads;
-
     [Range(0, 100)]
     public int roadsCurveRay;
 
     [Range(1, 10)]
     public int roadsWidth;
 
-    [Range(2, 8)]
-    public int roadsDensity;
-
-    private Dictionary<Vector2, Quadrant> quadrants;
     private Dictionary<CurveSegmentId, BezierCurve> curveSegments;
-    private int chunkSize;
-    private int quadrantWidth, quadrantHeight;
-    private float seedX, seedY;
     private System.Random random;
 
     #endregion
@@ -38,16 +29,8 @@ public class RoadsGenerator : MonoBehaviour
 
     void Start()
     {
-        this.quadrants = new Dictionary<Vector2, Quadrant>();
         this.curveSegments = new Dictionary<CurveSegmentId, BezierCurve>();
-
-        chunkSize = EndlessTerrainGenerator.chunkSize;
-        quadrantWidth = (int)(chunkSize / (float)roadsDensity);
-        quadrantHeight = (int)(chunkSize / (float)roadsDensity);
-
         random = new System.Random();
-        seedX = ((float)random.NextDouble()) * random.Next(100);
-        seedY = ((float)random.NextDouble()) * random.Next(100);
     }
 
 
@@ -64,68 +47,19 @@ public class RoadsGenerator : MonoBehaviour
 
     public void generateRoads(float[,] map, MapChunk chunk)
     {
-        lock (quadrants)
-        {
-            // 1) create adjacent chunks roads data
-            //Dictionary<Vector2, ControlPoint> localPoints = calculateControlPoints(chunkPosition);
+        chunk.roadsComputed = true;
 
-            // 2) calculate paths
-            //List<BezierCurve> curves = Path.calculatePaths(localPoints,chunkPosition,roadsDensity);
+        // 1) calculate paths
+        List<Path> paths = Path.calculatePaths(chunk);
 
-            // 3) map filtering 
-            //modifyHeightMap(map, chunkPosition, curves);
-        }
+        // 3) map filtering 
+        modifyHeightMap(map, chunk, paths);
     }
 
 
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- CONTROL POINTS ------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
-
-    #region CONTROL_POINTS
-
-    //private Dictionary<Vector2, ControlPoint> calculateControlPoints(Vector2 chunkPosition)
-    //{
-    //    Dictionary<Vector2, ControlPoint> localPoints = new Dictionary<Vector2, ControlPoint>();
-
-    //    for (int j = -1; j <= roadsDensity; j++)
-    //    {
-    //        for (int i = -1; i <= roadsDensity; i++)
-    //        {
-    //            // 1) compute normalized coordinates of quadrant -------------
-    //            float quadrantX = (chunkPosition.x - 0.5f + (1.0f / (float)roadsDensity) * i);
-    //            float quadrantY = (chunkPosition.y - 0.5f + (1.0f / (float)roadsDensity) * j);
-    //            Vector2 quadrantCoordinates = new Vector2(quadrantX, quadrantY);
-
-    //            if (quadrantExists(quadrantCoordinates))
-    //            {
-    //                localPoints.Add(quadrantCoordinates, getQuadrant(quadrantCoordinates).roadsControlPoint);
-    //                continue;
-    //            }
-
-    //            // 2) get perlin value relative to coordinates ----------------
-    //            float randomX = Mathf.PerlinNoise(quadrantX + seedX, quadrantY + seedX);
-    //            float randomY = Mathf.PerlinNoise(quadrantX + seedY, quadrantY + seedY);
-
-    //            // 3) compute absolute coordinates of point in space ----------
-    //            int X = Mathf.RoundToInt(randomX * (float)quadrantWidth + quadrantX * chunkSize);
-    //            int Y = Mathf.RoundToInt(randomY * (float)quadrantHeight + quadrantY * chunkSize);
-
-    //            // 4) create point and add it to map --------------------------
-    //            Vector2 center = new Vector2(X, Y);
-    //            ControlPoint point = new ControlPoint(center, ControlPoint.Type.Center, new Vector2(i, j), quadrantCoordinates);
-
-    //            Quadrant q = new Quadrant(new Vector2(i, j), quadrantCoordinates);
-    //            q.roadsControlPoint = point;
-    //            addQuadrant(quadrantCoordinates, q);
-    //            localPoints.Add(quadrantCoordinates, point);
-    //        }
-    //    }
-
-    //    return localPoints;
-    //}
-
-    #endregion  // CONTROL_POINTS    
 
     #endregion  // METHODS
 
@@ -227,40 +161,43 @@ public class RoadsGenerator : MonoBehaviour
     /* -------------------------------- MAP FILTERING -------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
 
-    private void modifyHeightMap(float[,] map, Vector2 chunkPosition, List<BezierCurve> curves)
+    private void modifyHeightMap(float[,] map, MapChunk chunk, List<Path> paths)
     {
 
-        foreach (BezierCurve c in curves)
+        foreach (Path p in paths)
         {
-            for (float t = 0.0f; t <= 1.0f; t += 0.01f)
+            foreach (BezierCurve c in p.curves)
             {
-                Vector2 point = c.pointOnCurve(t);
-
-                int localX = (int)(point.x - (chunkPosition.x - 0.5f) * chunkSize);
-                int localY = (int)((chunkPosition.y + 0.5f) * chunkSize - point.y);
-                //localY = map.GetLength(1) - localY;
-                //localX = map.GetLength(0) - localX;
-
-                int startX = Mathf.Max(0, localX - roadsWidth);
-                int endX = Mathf.Min(map.GetLength(0) - 1, localX + roadsWidth);
-                int startY = Mathf.Max(0, localY - roadsWidth);
-                int endY = Mathf.Min(map.GetLength(1) - 1, localY + roadsWidth);
-
-                for (int j = startX; j <= endX; j++)
+                for (float t = 0.0f; t <= 1.0f; t += 0.01f)
                 {
-                    if (j < 0 || j >= map.GetLength(0)) continue;
+                    Vector2 point = c.pointOnCurve(t);
 
-                    for (int k = startY; k <= endY; k++)
+                    int localX = (int)(point.x - (chunk.position.x - 0.5f) * chunk.size);
+                    int localY = (int)((chunk.position.y + 0.5f) * chunk.size - point.y);
+                    //localY = map.GetLength(1) - localY;
+                    //localX = map.GetLength(0) - localX;
+
+                    int startX = Mathf.Max(0, localX - roadsWidth);
+                    int endX = Mathf.Min(map.GetLength(0) - 1, localX + roadsWidth);
+                    int startY = Mathf.Max(0, localY - roadsWidth);
+                    int endY = Mathf.Min(map.GetLength(1) - 1, localY + roadsWidth);
+
+                    for (int j = startX; j <= endX; j++)
                     {
-                        if (k < 0 || k >= map.GetLength(1)) continue;
-                        map[j, k] = 0.5f;
+                        if (j < 0 || j >= map.GetLength(0)) continue;
 
+                        for (int k = startY; k <= endY; k++)
+                        {
+                            if (k < 0 || k >= map.GetLength(1)) continue;
+                            map[j, k] = 0.5f;
+
+                        }
                     }
+
                 }
-
             }
-
         }
+
     }
 
 
@@ -272,28 +209,28 @@ public class RoadsGenerator : MonoBehaviour
 
     #region UTILITY
 
-    private void addQuadrant(Vector2 quadrantPosition, Quadrant q)
-    {
-        if (!quadrants.ContainsKey(quadrantPosition))
-            quadrants.Add(quadrantPosition, q);
+    //private void addQuadrant(Vector2 quadrantPosition, Quadrant q)
+    //{
+    //    if (!quadrants.ContainsKey(quadrantPosition))
+    //        quadrants.Add(quadrantPosition, q);
 
-    }
+    //}
 
-    private Quadrant getQuadrant(Vector2 quadrantPosition)
-    {
-        Quadrant result = null;
-        quadrants.TryGetValue(quadrantPosition, out result);
+    //private Quadrant getQuadrant(Vector2 quadrantPosition)
+    //{
+    //    Quadrant result = null;
+    //    quadrants.TryGetValue(quadrantPosition, out result);
 
-        return result;
-    }
+    //    return result;
+    //}
 
-    private bool quadrantExists(Vector2 quadrantPosition)
-    {
-        bool result = false;
-        result = quadrants.ContainsKey(quadrantPosition);
+    //private bool quadrantExists(Vector2 quadrantPosition)
+    //{
+    //    bool result = false;
+    //    result = quadrants.ContainsKey(quadrantPosition);
 
-        return result;
-    }
+    //    return result;
+    //}
 
 
     /* ------------------------------------------------------------------------------------------------- */
@@ -332,13 +269,13 @@ public class RoadsGenerator : MonoBehaviour
 
     #region DEBUG
 
-    public void printControlPoints()
-    {
-        foreach (Quadrant quadrant in quadrants.Values)
-            Debug.Log("quadrant " + quadrant + "; cp = " + quadrant.position);
-    }
-    
-    
+    //public void printControlPoints()
+    //{
+    //    foreach (Quadrant quadrant in quadrants.Values)
+    //        Debug.Log("quadrant " + quadrant + "; cp = " + quadrant.position);
+    //}
+
+
     #endregion
 
 
