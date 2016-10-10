@@ -16,6 +16,9 @@ public class MapGenerator : MonoBehaviour
     [Range(10.0f, 5000.0f)]
     public float noiseScale;
 
+    [Range(0, 1000)]
+    public int seed;
+
     [Range(1, 8)]
     public int numberOfFrequencies;
 
@@ -27,6 +30,8 @@ public class MapGenerator : MonoBehaviour
 
     private Queue<ChunkCallbackData> resultsQueue;
     private MapDisplay mapDisplayer;
+    private System.Random random;
+    private float offsetX, offsetY;
     //public bool autoUpdate;
 
     //private int width;
@@ -40,6 +45,11 @@ public class MapGenerator : MonoBehaviour
     {
         mapDisplayer = this.GetComponent<MapDisplay>();
         resultsQueue = new Queue<ChunkCallbackData>();
+        random = new System.Random(seed);
+
+        int multiplier = random.Next(1000, 10000);
+        offsetX = (float) random.NextDouble() * multiplier;
+        offsetY = (float) random.NextDouble() * multiplier;
     }
 
 
@@ -92,17 +102,24 @@ public class MapGenerator : MonoBehaviour
         int colliderAccuracy,
         Action<ChunkData> callback)
     {
-        float[,] heightMap = Noise.GenerateNoiseMap(
+
+        if (!chunk.mapComputed)
+        {
+            chunk.mapComputed = true;
+            float[,] heightMap = Noise.GenerateNoiseMap(
             chunk.size + 1,
             chunk.size + 1,
             noiseScale,
-            chunk.position.x * chunk.size,
-            chunk.position.y * chunk.size,
+            chunk.position.x * chunk.size + offsetX,
+            chunk.position.y * chunk.size + offsetY,
             numberOfFrequencies,
             frequencyMultiplier,
             amplitudeDemultiplier);
 
-        ChunkData chunkData = mapDisplayer.getChunkData(heightMap, chunk, LOD, colliderRequested, colliderAccuracy);
+            chunk.heightMap = heightMap;
+        }
+
+        ChunkData chunkData = mapDisplayer.getChunkData(chunk.heightMap, chunk, LOD, colliderRequested, colliderAccuracy);
         chunkData.chunkPosition = chunk.position;
 
         lock (resultsQueue)

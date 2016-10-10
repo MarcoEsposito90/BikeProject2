@@ -11,13 +11,15 @@ public class RoadsGenerator : MonoBehaviour
     #region ATTRIBUTES
 
     [Range(0, 100)]
-    public int roadsCurveRay;
+    public int sinuosity;
 
-    [Range(1, 10)]
+    [Range(0, 10)]
     public int roadsWidth;
 
-    private Dictionary<CurveSegmentId, BezierCurve> curveSegments;
-    private System.Random random;
+    [Range(1.0f, 2.0f)]
+    public float segmentMaximumLength;
+
+    private Graph<Vector2, ControlPoint> controlPointsGraph;
 
     #endregion
 
@@ -27,10 +29,9 @@ public class RoadsGenerator : MonoBehaviour
 
     #region UNITY
 
-    void Start()
+    void Awake()
     {
-        this.curveSegments = new Dictionary<CurveSegmentId, BezierCurve>();
-        random = new System.Random();
+        controlPointsGraph = new Graph<Vector2, ControlPoint>();
     }
 
 
@@ -47,113 +48,75 @@ public class RoadsGenerator : MonoBehaviour
 
     public void generateRoads(float[,] map, MapChunk chunk)
     {
+        bool debug = chunk.position.Equals(new Vector2(0, 0));
+
+        if (debug)
+            Debug.Log("generate roads started for " + chunk.position);
+
         chunk.roadsComputed = true;
+        int maximumLinks = 3;
 
-        // 1) calculate paths
-        List<Path> paths = Path.calculatePaths(chunk);
+        List<Graph<Vector2, ControlPoint>.GraphItem> graphItems = new List<Graph<Vector2, ControlPoint>.GraphItem>();
 
-        // 3) map filtering 
-        modifyHeightMap(map, chunk, paths);
+        foreach (Quadrant q in chunk.quadrants.Values)
+        {
+            if (debug)
+                Debug.Log("     quadrant " + q.position + " started");
+
+            Dictionary<Vector2, ControlPoint> pointsToLink = new Dictionary<Vector2, ControlPoint>();
+            List<ControlPoint> neighborPoints = q.getNeighbors();
+
+            int links = 0;
+
+            for (int i = 0; i < neighborPoints.Count; i++)
+            {
+                ControlPoint cp = neighborPoints[i];
+
+                if (debug)
+                    Debug.Log("         neighbor " + cp.position);
+
+                pointsToLink.Add(cp.position, cp);
+                links++;
+
+                if (links == maximumLinks)
+                    break;
+            }
+
+            if (debug)
+                foreach (ControlPoint cp in pointsToLink.Values)
+                    Debug.Log("must link to " + cp.position);
+
+
+            Graph<Vector2, ControlPoint>.GraphItem item = controlPointsGraph.addItem(q.roadsControlPoint.position,
+                                                                                        q.roadsControlPoint,
+                                                                                        pointsToLink);
+
+            graphItems.Add(item);
+        }
+
+        if (debug)
+        {
+            Debug.Log("links: " + graphItems.Count);
+            for (int i = 0; i < graphItems.Count; i++)
+            {
+                Debug.Log("     " + graphItems[i].item.position);
+                Debug.Log("linked to: ");
+                foreach (Graph<Vector2, ControlPoint>.GraphItem gi in graphItems[i].links)
+                    Debug.Log(gi.item.position);
+            }
+        }
+            
+
+
+        //// 1) calculate paths
+        //List<Path> paths = Path.calculatePaths(chunk, segmentMaximumLength, sinuosity);
+
+        //// 3) map filtering 
+        //modifyHeightMap(map, chunk, paths);
     }
-
-
-    /* ------------------------------------------------------------------------------------------------- */
-    /* -------------------------------- CONTROL POINTS ------------------------------------------------- */
-    /* ------------------------------------------------------------------------------------------------- */
 
     #endregion  // METHODS
 
-
-
-
-    /* ------------------------------------------------------------------------------------------------- */
-    /* -------------------------------- CURVE SEGMENTS ------------------------------------------------- */
-    /* ------------------------------------------------------------------------------------------------- */
-
-    //private List<BezierCurve> calculatePaths(float[,] map, Vector2 chunkPosition)
-    //{
-    //    List<BezierCurve> localCurves = new List<BezierCurve>();
-
-    //    for (int j = -1; j < roadsDensity; j++)
-    //    {
-    //        for (int i = -1; i < roadsDensity; i++)
-    //        {
-    //            // 1) compute normalized coordinates of quadrant -------------
-    //            float quadrantX = (chunkPosition.x - 0.5f + (1.0f / (float)roadsDensity) * i);
-    //            float quadrantY = (chunkPosition.y - 0.5f + (1.0f / (float)roadsDensity) * j);
-    //            Vector2 quadrantCoordinates = new Vector2(quadrantX, quadrantY);
-
-    //            if (!controlPointExists(quadrantCoordinates))
-    //            {
-    //                Debug.Log("ERROR: requested control point wasn't created!");
-    //                continue;
-    //            }
-
-    //            // 2) create links --------------------------------------------
-    //            List<BezierCurve> quadrantCurves = linkControlPoint(quadrantCoordinates);
-    //            foreach (BezierCurve c in quadrantCurves)
-    //                if (!localCurves.Contains(c))
-    //                    localCurves.Add(c);
-    //        }
-    //    }
-
-    //    return localCurves;
-    //}
-
-
-    ///* ------------------------------------------------------------------------------------------------- */
-    //private List<BezierCurve> linkControlPoint(Vector2 quadrantCoordinates)
-    //{
-    //    // 1) initialize list -------------------------------------------------------
-    //    List<BezierCurve> pointCurves = new List<BezierCurve>();
-
-    //    // 2) get control point of this quadrant ------------------------------------
-    //    float quadrantX = quadrantCoordinates.x;
-    //    float quadrantY = quadrantCoordinates.y;
-
-    //    ControlPoint point = getControlPoint(quadrantCoordinates);
-
-    //    // 3) create curve from this to right control point -------------------------
-    //    float rightQuadrantX = quadrantX + (1.0f / roadsDensity);
-    //    Vector2 rightQuadrant = new Vector2(rightQuadrantX, quadrantY);
-    //    ControlPoint right = getControlPoint(rightQuadrant);
-
-    //    if (right != null)
-    //        pointCurves.Add(createLink(point, right));
-    //    else
-    //        Debug.Log("right missing for quadrant " + quadrantX + "," + quadrantY);
-
-    //    // 4) create curve from this to top control point ---------------------------
-    //    float topQuadrantY = quadrantY + (1.0f / roadsDensity);
-    //    Vector2 topQuadrant = new Vector2(quadrantX, topQuadrantY);
-    //    ControlPoint top = getControlPoint(topQuadrant);
-
-    //    if (top != null)
-    //        pointCurves.Add(createLink(point, top));
-    //    else
-    //        Debug.Log("top missing for quadrant " + quadrantX + "," + quadrantY);
-
-    //    return pointCurves;
-    //}
-
-
-    ///* ------------------------------------------------------------------------------------------------- */
-    //public BezierCurve createLink(ControlPoint p1, ControlPoint p2)
-    //{
-    //    BezierCurve segment = null;
-
-    //    CurveSegmentId id = new CurveSegmentId(p1, p2);
-    //    if (!curveSegmentExists(id))
-    //    {
-    //        segment = new BezierCurve(p1, p1, p2, p2);
-    //        addCurveSegment(id, segment);
-    //    }
-
-    //    if (segment == null)
-    //        segment = getCurveSegment(id);
-
-    //    return segment;
-    //}
 
 
 
@@ -199,85 +162,6 @@ public class RoadsGenerator : MonoBehaviour
         }
 
     }
-
-
-    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
-    /* ///-------------------------------------------------------------------------------------------/// */
-    /* ///----------------------------- UTILITY METHODS ---------------------------------------------/// */
-    /* ///-------------------------------------------------------------------------------------------/// */
-    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
-
-    #region UTILITY
-
-    //private void addQuadrant(Vector2 quadrantPosition, Quadrant q)
-    //{
-    //    if (!quadrants.ContainsKey(quadrantPosition))
-    //        quadrants.Add(quadrantPosition, q);
-
-    //}
-
-    //private Quadrant getQuadrant(Vector2 quadrantPosition)
-    //{
-    //    Quadrant result = null;
-    //    quadrants.TryGetValue(quadrantPosition, out result);
-
-    //    return result;
-    //}
-
-    //private bool quadrantExists(Vector2 quadrantPosition)
-    //{
-    //    bool result = false;
-    //    result = quadrants.ContainsKey(quadrantPosition);
-
-    //    return result;
-    //}
-
-
-    /* ------------------------------------------------------------------------------------------------- */
-    private void addCurveSegment(CurveSegmentId id, BezierCurve segment)
-    {
-        if (!curveSegments.ContainsKey(id))
-            curveSegments.Add(id, segment);
-    }
-
-    private BezierCurve getCurveSegment(CurveSegmentId id)
-    {
-        BezierCurve segment = null;
-        curveSegments.TryGetValue(id, out segment);
-
-        return segment;
-    }
-
-
-    private bool curveSegmentExists(CurveSegmentId id)
-    {
-        bool result = false;
-        result = curveSegments.ContainsKey(id);
-
-        return result;
-    }
-
-    #endregion
-
-
-
-    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
-    /* ///-------------------------------------------------------------------------------------------/// */
-    /* ///----------------------------- DEBUG METHODS -----------------------------------------------/// */
-    /* ///-------------------------------------------------------------------------------------------/// */
-    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
-
-    #region DEBUG
-
-    //public void printControlPoints()
-    //{
-    //    foreach (Quadrant quadrant in quadrants.Values)
-    //        Debug.Log("quadrant " + quadrant + "; cp = " + quadrant.position);
-    //}
-
-
-    #endregion
-
 
 
     /* ///////////////////////////////////////////////////////////////////////////////////////////////// */

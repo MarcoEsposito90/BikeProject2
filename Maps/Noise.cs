@@ -14,7 +14,7 @@ public static class Noise {
         float amplitudeDemultiplier)
     {
 
-        // initialization and chacks --------------------------------------------------
+        // initialization and checks --------------------------------------------------
         float[,] noiseMap = new float[mapWidth, mapHeight];
 
         if (scale <= 0)
@@ -33,8 +33,8 @@ public static class Noise {
             for(int x = 0; x < mapWidth; x++)
             {
                 float sampleValue = 0.0f;
-                float sampleX = (x -mapWidth/2.0f + offsetX) / scale;
-                float sampleY = (y -mapHeight/2.0f - offsetY) / scale;
+                float sampleX = (x + offsetX) / scale;
+                float sampleY = (y - offsetY) / scale;
 
                 float amplitudeFraction = 1.0f;
 

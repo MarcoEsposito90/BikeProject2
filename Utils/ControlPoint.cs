@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 
-public class ControlPoint{
+public class ControlPoint {
 
     public enum Type { Center, Tangent };
 
@@ -25,25 +26,7 @@ public class ControlPoint{
         private set;
     }
 
-    public Vector2 localQuadrantPosition
-    {
-        get;
-        private set;
-    }
-
-    public Vector2 quadrantPosition
-    {
-        get;
-        private set;
-    }
-
     public int NumberOfPaths
-    {
-        get;
-        private set;
-    }
-
-    public Quadrant parent
     {
         get;
         private set;
@@ -56,13 +39,11 @@ public class ControlPoint{
     /* -------------------------------- CONSTRUCTOR ---------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
 
-    public ControlPoint(Vector2 position, Type type, Vector2 localQuadrantPosition, Vector2 quadrantPosition, Quadrant parent)
+    public ControlPoint(Vector2 position, Type type)
     {
         this.position = position;
         this.type = type;
-        this.localQuadrantPosition = localQuadrantPosition;
-        this.quadrantPosition = quadrantPosition;
-        this.parent = parent;
+        this.NumberOfPaths = 0;
     }
 
 
@@ -74,4 +55,5 @@ public class ControlPoint{
     {
         NumberOfPaths++;
     }
+    
 }

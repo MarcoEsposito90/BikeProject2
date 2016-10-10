@@ -13,7 +13,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         private set;
     }
 
-    [Range(2, 8)]
+    [Range(1, 8)]
     public int subdivisions;
 
     [Range(1,3)]
