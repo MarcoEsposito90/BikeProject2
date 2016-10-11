@@ -13,6 +13,11 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         private set;
     }
 
+    private static int scaledChunkSize;
+
+    [Range(1, 10)]
+    public int scale;
+
     [Range(1, 8)]
     public int subdivisions;
 
@@ -145,27 +150,27 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         float startY = position.z - LODThresholds[LODThresholds.Length - 1];
         float endY = position.z + LODThresholds[LODThresholds.Length - 1];
 
-        for(float x = startX; x <= endX; x += chunkSize)
-            for(float y = startY; y <= endY; y += chunkSize)
+        for(float x = startX; x <= endX; x += scaledChunkSize)
+            for(float y = startY; y <= endY; y += scaledChunkSize)
             {
-                int chunkX = Mathf.RoundToInt(x / (float)chunkSize + 0.1f);
-                int chunkY = Mathf.RoundToInt(y / (float)chunkSize + 0.1f);
+                int chunkX = Mathf.RoundToInt(x / (float)scaledChunkSize + 0.1f);
+                int chunkY = Mathf.RoundToInt(y / (float)scaledChunkSize + 0.1f);
 
                 Vector2 chunkCenter = new Vector2(chunkX, chunkY);
                 if (TerrainChunks.ContainsKey(chunkCenter))
                     continue;
 
-                float realChunkX = chunkX * chunkSize;
-                float realChunkY = chunkY * chunkSize;
+                float realChunkX = chunkX * scaledChunkSize;
+                float realChunkY = chunkY * scaledChunkSize;
 
                 Vector3 center = new Vector3(realChunkX, 0, realChunkY);
-                Vector3 sizes = new Vector3(chunkSize, chunkSize, chunkSize);
+                Vector3 sizes = new Vector3(scaledChunkSize, scaledChunkSize, scaledChunkSize);
                 Bounds b = new Bounds(center, sizes);
                 float dist = Mathf.Sqrt(b.SqrDistance(position));
 
                 if(dist < LODThresholds[LODThresholds.Length - 1])
                 {
-                    MapChunk newChunk = new MapChunk(chunkX, chunkY, chunkSize, subdivisions);
+                    MapChunk newChunk = new MapChunk(chunkX, chunkY, chunkSize, scale, subdivisions);
                     newChunk.mapChunkObject.transform.parent = this.GetComponent<Transform>();
                     TerrainChunks.Add(chunkCenter, newChunk);
                     newChunk.currentLOD = LODThresholds.Length - 1;
@@ -246,6 +251,9 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         if (colliderMesh != null)
             chunkObject.GetComponent<MeshCollider>().sharedMesh = colliderMesh;
 
+        // scaling -----------------------------------------------------------
+        chunkObject.transform.localScale = new Vector3(scale, scale, scale);
+
         chunk.currentLOD = chunkData.meshData.LOD;
     }
 
@@ -260,10 +268,11 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         TerrainChunks = new Dictionary<Vector2, MapChunk>();
         LODThresholds = new float[MapDisplay.NUMBER_OF_LODS];
         chunkSize = (chunkDimension * 32);
-        viewerDistanceUpdate = chunkSize / (float)(viewerDistanceUpdateFrequency + 3);
+        scaledChunkSize = chunkSize * scale;
+        viewerDistanceUpdate = scaledChunkSize / (float)(viewerDistanceUpdateFrequency + 3);
 
         for (int i = 0; i < LODThresholds.Length; i++)
-            LODThresholds[i] = (chunkSize / 2.0f + i * chunkSize) * accuracy / 2.0f;
+            LODThresholds[i] = (scaledChunkSize / 2.0f + i * scaledChunkSize) * accuracy / 2.0f;
 
         System.Random random = new System.Random();
         seedX = ((float)random.NextDouble()) * random.Next(100);

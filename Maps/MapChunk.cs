@@ -2,7 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class MapChunk{
+public class MapChunk
+{
 
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- ATTRIBUTES ----------------------------------------------------- */
@@ -17,6 +18,12 @@ public class MapChunk{
     }
 
     public int size
+    {
+        get;
+        private set;
+    }
+
+    public int scale
     {
         get;
         private set;
@@ -79,24 +86,28 @@ public class MapChunk{
 
     #region CONSTRUCTORS 
 
-    public MapChunk(int x, int y, int size, int subdivisions)
+    public MapChunk(int x, int y, int size, int scale, int subdivisions)
     {
         this.position = new Vector2(x, y);
         this.size = size;
+        this.scale = scale;
         this.subdivisions = subdivisions;
         currentLOD = -1;
         latestLODRequest = -1;
         isVisible = true;
         roadsComputed = false;
         mapComputed = false;
-        bounds = new Bounds(new Vector3(x * size, 0, y * size), new Vector3(size, size, size));
+        bounds = new Bounds(
+            new Vector3(x * size * scale, 0, y * size * scale), 
+            new Vector3(size * scale, size * scale, size * scale));
+
         meshes = new Mesh[MapDisplay.NUMBER_OF_LODS];
 
         mapChunkObject = new GameObject("chunk (" + x + "," + y + ")");
         mapChunkObject.AddComponent<MeshFilter>();
         mapChunkObject.AddComponent<MeshRenderer>();
         mapChunkObject.AddComponent<MeshCollider>();
-        mapChunkObject.transform.position = new Vector3(x * size, 0, y * size);
+        mapChunkObject.transform.position = new Vector3(x * size * scale, 0, y * size * scale);
 
         quadrants = new Dictionary<Vector2, Quadrant>();
         createQuadrants();
@@ -138,7 +149,7 @@ public class MapChunk{
                 Vector2 localCoordinates = new Vector2(i, j);
 
                 // 1) create quadrant and add it to list ---------------------
-                Quadrant q = new Quadrant(new Vector2(i, j), quadrantCoordinates, quadrantWidth, quadrantHeight, this);
+                Quadrant q = new Quadrant(new Vector2(i, j), quadrantCoordinates, quadrantWidth, quadrantHeight, this.subdivisions);
                 quadrants.Add(localCoordinates, q);
             }
         }

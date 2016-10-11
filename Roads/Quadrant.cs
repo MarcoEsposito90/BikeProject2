@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 
 public class Quadrant
 {
@@ -11,6 +12,8 @@ public class Quadrant
 
     #region ATTRIBUTES
 
+    public enum Neighborhood { Quad, Octo };
+
     public int width
     {
         get;
@@ -18,6 +21,12 @@ public class Quadrant
     }
 
     public int height
+    {
+        get;
+        private set;
+    }
+
+    public int subdivisions
     {
         get;
         private set;
@@ -41,12 +50,6 @@ public class Quadrant
         set;
     }
 
-    public MapChunk parent
-    {
-        get;
-        private set;
-    }
-
     #endregion
 
 
@@ -56,13 +59,13 @@ public class Quadrant
 
     #region CONTRUCTORS
 
-    public Quadrant(Vector2 localPosition, Vector2 position, int width, int height, MapChunk parent)
+    public Quadrant(Vector2 localPosition, Vector2 position, int width, int height, int subdivisions)
     {
         this.localPosition = localPosition;
         this.position = position;
         this.width = width;
         this.height = height;
-        this.parent = parent;
+        this.subdivisions = subdivisions;
 
         computeControlPoint();
     }
@@ -97,39 +100,50 @@ public class Quadrant
 
 
     /* ------------------------------------------------------------------------------------------------- */
-    public List<ControlPoint> getNeighbors()
+    public List<ControlPoint> getNeighborsPoints(Neighborhood neighborhood)
     {
         // returns the list of neighbors, ordered by growing distance
-
         List<ControlPoint> neighbors = new List<ControlPoint>();
+
+        foreach (Quadrant q in this.getNeighbors(neighborhood))
+        {
+            float currentDistance = Vector2.Distance(q.roadsControlPoint.position, roadsControlPoint.position);
+
+            neighbors.Add(q.roadsControlPoint);
+            neighbors.Sort(new ControlPoint.NearestPointComparer(roadsControlPoint));
+        }
+
+        return neighbors;
+    }
+
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public List<Quadrant> getNeighbors(Neighborhood neighborhood)
+    {
+        List<Quadrant> quadrants = new List<Quadrant>();
 
         for (int i = -1; i <= 1; i++)
             for (int j = -1; j <= 1; j++)
             {
                 if (i == 0 && j == 0) continue;
 
-                float quadrantX = (position.x + (1.0f / (float)parent.subdivisions) * i);
-                float quadrantY = (position.y + (1.0f / (float)parent.subdivisions) * j);
+                bool isCorner = (i == -1 && j == -1) ||
+                                (i == 1 && j == 1) ||
+                                (i == -1 && j == 1) ||
+                                (i == 1 && j == -1);
+
+                if (isCorner && neighborhood.Equals(Neighborhood.Quad))
+                    continue;
+
+                float quadrantX = (position.x + (1.0f / (float)subdivisions) * i);
+                float quadrantY = (position.y + (1.0f / (float)subdivisions) * j);
                 Vector2 neighborQuadrantPos = new Vector2(quadrantX, quadrantY);
 
-                ControlPoint cp = Quadrant.computeControlPoint(neighborQuadrantPos, width, height);
-                float currentDistance = Vector2.Distance(cp.position, roadsControlPoint.position);
-
-                if (neighbors.Count == 0)
-                    neighbors.Add(cp);
-                else
-                    for (int k = 0; k < neighbors.Count; k++)
-                    {
-                        float distance = Vector2.Distance(neighbors[k].position, roadsControlPoint.position);
-                        if(currentDistance < distance)
-                        {
-                            neighbors.Insert(k, cp);
-                            break;
-                        }
-                    }
+                Quadrant neighbor = new Quadrant(Vector2.zero, neighborQuadrantPos, width, height, subdivisions);
+                quadrants.Add(neighbor);
             }
 
-        return neighbors;
+        return quadrants;
     }
 
 
@@ -153,5 +167,11 @@ public class Quadrant
         return new ControlPoint(center, ControlPoint.Type.Center);
     }
 
+
+
+
     #endregion
+
+
+    
 }
