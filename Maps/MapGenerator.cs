@@ -22,16 +22,26 @@ public class MapGenerator : MonoBehaviour
     [Range(1, 8)]
     public int numberOfFrequencies;
 
-    [Range(1.0f, 10.0f)]
+    [Range(1.0f, 30.0f)]
     public float frequencyMultiplier;
 
-    [Range(1.0f, 10.0f)]
+    [Range(1.0f, 100.0f)]
     public float amplitudeDemultiplier;
 
     private Queue<ChunkCallbackData> resultsQueue;
     private MapDisplay mapDisplayer;
     private System.Random random;
-    private float offsetX, offsetY;
+
+    public float offsetX
+    {
+        get; private set;
+    }
+
+    public float offsetY
+    {
+        get;
+        private set;
+    }
     //public bool autoUpdate;
 
     //private int width;
@@ -110,8 +120,8 @@ public class MapGenerator : MonoBehaviour
             chunk.size + 1,
             chunk.size + 1,
             noiseScale,
-            chunk.position.x * chunk.size + offsetX,
-            chunk.position.y * chunk.size + offsetY,
+            (chunk.position.x - 0.5f) * chunk.size + offsetX,
+            (chunk.position.y + 0.5f) * chunk.size + offsetY,
             numberOfFrequencies,
             frequencyMultiplier,
             amplitudeDemultiplier);

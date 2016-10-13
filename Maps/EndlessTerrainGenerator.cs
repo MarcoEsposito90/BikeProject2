@@ -225,11 +225,11 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             any setting
         */
 
-        //if (chunk.latestLODRequest != chunkData.meshData.LOD)
-        //{
-        //    Debug.Log("chunk " + chunk.position + " not updated due to deceased request");
-        //    return;
-        //}
+        if (chunk.latestLODRequest != chunkData.meshData.LOD)
+        {
+            Debug.Log("chunk " + chunk.position + " not updated due to deceased request");
+            return;
+        }
 
 
         // setting mesh -----------------------------------------------------

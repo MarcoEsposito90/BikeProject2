@@ -18,13 +18,20 @@ public class RoadsGenerator : MonoBehaviour
     [Range(0, 10)]
     public int roadsWidth;
 
-    [Range(2, 5)]
-    public int maxLinks;
+    [Range(10, 50)]
+    public int roadsFlattening;
 
     [Range(1.0f, 2.0f)]
     public float maximumSegmentLength;
 
+    [Range(0.0f, 0.5f)]
+    public float minimumRoadsHeight;
+
+    [Range(0.5f, 1.0f)]
+    public float maximumRoadsHeight;
+
     private Graph<Vector2, ControlPoint> controlPointsGraph;
+    private MapGenerator mapGenerator;
     private bool debug;
     #endregion
 
@@ -37,6 +44,7 @@ public class RoadsGenerator : MonoBehaviour
     void Awake()
     {
         controlPointsGraph = new Graph<Vector2, ControlPoint>();
+        mapGenerator = this.GetComponent<MapGenerator>();
     }
 
 
@@ -53,6 +61,20 @@ public class RoadsGenerator : MonoBehaviour
 
     public void generateRoads(float[,] map, MapChunk chunk)
     {
+        //ControlPoint temp = chunk.quadrants[new Vector2(0, 0)].roadsControlPoint;
+        //int localX = (int)(temp.position.x - (chunk.position.x - 0.5f) * chunk.size);
+        //int localY = (int)((chunk.position.y + 0.5f) * chunk.size - temp.position.y);
+        //float perlinValue = Noise.getNoiseValue(mapGenerator.noiseScale,
+        //                                            temp.position.x + mapGenerator.offsetX,
+        //                                            temp.position.y + mapGenerator.offsetY,
+        //                                            mapGenerator.numberOfFrequencies,
+        //                                            mapGenerator.frequencyMultiplier,
+        //                                            mapGenerator.amplitudeDemultiplier);
+
+        //float mapValue = map[localX, localY];
+        //Debug.Log(  "perlin = " + perlinValue + 
+        //            "; map = " + map[localX,localY]);
+
 
         // 1) expand the graph -----------------------------------------------------------------------
         debug = chunk.position.Equals(new Vector2(0, 0));
@@ -65,9 +87,30 @@ public class RoadsGenerator : MonoBehaviour
         {
             Graph<Vector2, ControlPoint>.GraphItem gi = graphItems[i];
 
+            float noiseValue = Noise.getNoiseValue(mapGenerator.noiseScale,
+                                    gi.item.position.x + mapGenerator.offsetX,
+                                    gi.item.position.y + mapGenerator.offsetY,
+                                    mapGenerator.numberOfFrequencies,
+                                    mapGenerator.frequencyMultiplier,
+                                    mapGenerator.amplitudeDemultiplier);
+
+            if (noiseValue >= maximumRoadsHeight || noiseValue <= minimumRoadsHeight)
+                continue;
+
             for (int j = 0; j < gi.links.Count; j++)
             {
                 Graph<Vector2, ControlPoint>.GraphItem gj = gi.links[j];
+
+                noiseValue = Noise.getNoiseValue(mapGenerator.noiseScale,
+                                gj.item.position.x + mapGenerator.offsetX,
+                                gj.item.position.y + mapGenerator.offsetY,
+                                mapGenerator.numberOfFrequencies,
+                                mapGenerator.frequencyMultiplier,
+                                mapGenerator.amplitudeDemultiplier);
+
+                if (noiseValue <= minimumRoadsHeight || noiseValue >= maximumRoadsHeight)
+                    continue;
+
                 ControlPoint startTangent = computeTangent(gi, gj);
                 ControlPoint endTangent = computeTangent(gj, gi);
                 BezierCurve c = new BezierCurve(gi.item, startTangent, gj.item, endTangent);
@@ -143,8 +186,8 @@ public class RoadsGenerator : MonoBehaviour
 
         Vector2 meanTangent = new Vector2(averageX, averageY);
         Vector2 tangentPosition = meanTangent + graphItem.item.position;
-        float angle = Mathf.Atan2(averageY,averageX);
-        
+        float angle = Mathf.Atan2(averageY, averageX);
+
         float distanceFromTangent = Vector2.Distance(exclude.item.position, tangentPosition);
         float distanceFromPoint = Vector2.Distance(exclude.item.position, graphItem.item.position);
 
@@ -170,36 +213,8 @@ public class RoadsGenerator : MonoBehaviour
     {
 
         foreach (BezierCurve c in curves)
-        {
-            for (float t = 0.0f; t <= 1.0f; t += 0.01f)
-            {
-                Vector2 point = c.pointOnCurve(t);
-
-                int localX = (int)(point.x - (chunk.position.x - 0.5f) * chunk.size);
-                int localY = (int)((chunk.position.y + 0.5f) * chunk.size - point.y);
-                //localY = map.GetLength(1) - localY;
-                //localX = map.GetLength(0) - localX;
-
-                int startX = Mathf.Max(0, localX - roadsWidth);
-                int endX = Mathf.Min(map.GetLength(0) - 1, localX + roadsWidth);
-                int startY = Mathf.Max(0, localY - roadsWidth);
-                int endY = Mathf.Min(map.GetLength(1) - 1, localY + roadsWidth);
-
-                for (int j = startX; j <= endX; j++)
-                {
-                    if (j < 0 || j >= map.GetLength(0)) continue;
-
-                    for (int k = startY; k <= endY; k++)
-                    {
-                        if (k < 0 || k >= map.GetLength(1)) continue;
-                        map[j, k] = 0.5f;
-
-                    }
-                }
-
-            }
-        }
-
+            MapProcessing.medianFilter(map, chunk, c, roadsWidth, roadsFlattening, mapGenerator);
+        
     }
 
     #endregion
