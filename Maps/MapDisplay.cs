@@ -115,7 +115,7 @@ public class MapDisplay : MonoBehaviour
         else
             newMesh = MeshGenerator.generateMesh(width, height);
 
-        Color[] colorMap = TextureGenerator.generateColorMap(map, displayMode, sections, chunk.textureSize);
+        Color[] colorMap = TextureGenerator.generateColorMap(map, displayMode, sections, levelOfDetail, chunk.textureSize);
 
         MeshGenerator.MeshData colliderMesh = null;
         if (colliderRequested)

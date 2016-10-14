@@ -33,17 +33,19 @@ public class EndlessTerrainGenerator : MonoBehaviour
     [Range(0, 2)]
     public int colliderAccuracy;
 
-    [Range(1, 10)]
+    [Range(1, 50)]
     public int textureSize;
 
     public Transform viewer;
     private Vector3 latestViewerRecordedPosition;
 
-    [Range(1, 10)]
+    [Range(1, 20)]
     public int viewerDistanceUpdateFrequency;
     private float viewerDistanceUpdate;
 
     public Material terrainMaterial;
+
+    public bool singleChunk;
 
     private Dictionary<Vector2, MapChunk> TerrainChunks;
     private MapGenerator mapGenerator;
@@ -67,23 +69,32 @@ public class EndlessTerrainGenerator : MonoBehaviour
     {
 
         viewer.position = new Vector3(0, viewer.position.y, 0);
-        createNewChunks();
-        updateChunks();
+
+        if (singleChunk)
+            createSingleChunk(0, 0);
+        else
+        {
+            createNewChunks();
+            updateChunks();
+        }
+        
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
-        float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
-
-        if (distance >= viewerDistanceUpdate)
+        if (!singleChunk)
         {
-            createNewChunks();
-            updateChunks();
-            latestViewerRecordedPosition = viewer.position;
-        }
+            float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
 
+            if (distance >= viewerDistanceUpdate)
+            {
+                createNewChunks();
+                updateChunks();
+                latestViewerRecordedPosition = viewer.position;
+            }
+        }
     }
 
     #endregion
@@ -93,6 +104,23 @@ public class EndlessTerrainGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
 
     #region CHUNK_UPDATING
+
+    public void createSingleChunk(int x, int y)
+    {
+        Vector2 position = new Vector2(x, y);
+        MapChunk newChunk = new MapChunk(x, y, chunkSize, scale, subdivisions, textureSize);
+        newChunk.mapChunkObject.transform.parent = this.GetComponent<Transform>();
+        TerrainChunks.Add(position, newChunk);
+        newChunk.currentLOD = LODThresholds.Length - 1;
+
+        mapGenerator.requestChunkData
+            (newChunk,
+            0,
+            false,
+            -1,
+            onChunkDataReceived);
+    }
+
 
     // checks the list of chunks for updates ------------------------------------------------------
     public void updateChunks()
@@ -119,7 +147,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
             // check if the object should be removed ---------
             if (!visible && dist >= removeThreshold)
             {
-                Debug.Log("must destroy chunk " + chunk.position);
+                //Debug.Log("must destroy chunk " + chunk.position);
                 Destroy(chunk.mapChunkObject);
                 toBeRemoved.Add(chunk.position);
             }
@@ -131,7 +159,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
         foreach (Vector2 pos in toBeRemoved)
         {
             TerrainChunks.Remove(pos);
-            Debug.Log("TerrainChunks = " + TerrainChunks.Count);
+            //Debug.Log("TerrainChunks = " + TerrainChunks.Count);
         }
     }
 
@@ -251,11 +279,11 @@ public class EndlessTerrainGenerator : MonoBehaviour
             any setting
         */
 
-        //if (chunk.latestLODRequest != chunkData.meshData.LOD)
-        //{
-        //    //Debug.Log("chunk " + chunk.position + " not updated due to deceased request");
-        //    return;
-        //}
+        if (chunk.latestLODRequest != chunkData.meshData.LOD)
+        {
+            //Debug.Log("chunk " + chunk.position + " not updated due to deceased request");
+            return;
+        }
 
 
         // setting mesh -----------------------------------------------------
@@ -265,7 +293,8 @@ public class EndlessTerrainGenerator : MonoBehaviour
         textureRenderer.sharedMaterial = new Material(terrainMaterial);
 
         // setting texture --------------------------------------------------
-        int texSize = (chunkSize + 1) * textureSize;
+        int texSize = Mathf.RoundToInt(((chunkSize + 1) * textureSize) / (float) (chunkData.meshData.LOD + 1));
+        Debug.Log("texSize = " + texSize);
         Texture2D texture = new Texture2D(texSize, texSize);
         texture.filterMode = FilterMode.Point;
         texture.wrapMode = TextureWrapMode.Clamp;

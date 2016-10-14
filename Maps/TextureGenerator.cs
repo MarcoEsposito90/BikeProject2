@@ -9,10 +9,15 @@ public static class TextureGenerator
         float[,] map,
         MapDisplay.DisplayMode mode,
         MapDisplay.Section[] sections,
+        int LOD,
         int textureSize)
     {
-        int width = map.GetLength(0) * textureSize;
-        int height = map.GetLength(1) * textureSize;
+
+        int width = Mathf.RoundToInt(map.GetLength(0) * textureSize / (float)(LOD + 1));
+        int height = Mathf.RoundToInt(map.GetLength(1) * textureSize / (float)(LOD + 1));
+
+        if (debug)
+            Debug.Log("texture is " + width + "x" + height);
 
         bool localDebug = debug;
         if (debug) debug = false;
@@ -67,8 +72,10 @@ public static class TextureGenerator
             // --------------------------------------------------------------------
             case MapDisplay.DisplayMode.Textured:
 
-                int mapX = (int)((float)x / (float)textureSize);
-                int mapY = (int)((float)y / (float)textureSize);
+                int mapX = Mathf.FloorToInt(x / (float)textureSize);
+                int mapY = Mathf.FloorToInt(y / (float)textureSize);
+                //if (debug)
+                //    Debug.Log("map = " + mapX + "," + mapY);
                 int textureWidth = map.GetLength(0) * textureSize;
                 int textureHeight = map.GetLength(1) * textureSize;
                 //Debug.Log("texture: " + textureWidth + "," + textureHeight);
@@ -81,15 +88,15 @@ public static class TextureGenerator
 
                     if (map[mapX, mapY] < sections[i].height)
                     {
-                        int u = Mathf.RoundToInt((((float)x / (float)textureWidth) * (float)imageWidth));
-                        int v = Mathf.RoundToInt((((float)y / (float)textureHeight) * (float)imageHeight));
+                        int u = Mathf.FloorToInt(((x / (float)textureWidth) * (float)imageWidth) * tiles) % imageWidth;
+                        int v = Mathf.FloorToInt(((y / (float)textureHeight) * (float)imageHeight) * tiles) % imageHeight;
 
                         //if (debug)
                         //    Debug.Log("xy =  " + x + "," + y + "; uv = " + u + "," + v);
                         return sections[i].colorMap[u, v];
                     }
                 }
-                    
+
 
                 return Color.black;
             // --------------------------------------------------------------------
