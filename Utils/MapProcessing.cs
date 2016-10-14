@@ -41,9 +41,6 @@ public static class MapProcessing
                                 float x = (chunk.position.x - 0.5f) * chunk.size + mapGenerator.offsetX + m;
                                 float y = (chunk.position.y + 0.5f) * chunk.size + mapGenerator.offsetY - n;
 
-                                //if (debug)
-                                //    Debug.Log("pixel: " + m + "," + n + "; position = " + x + "," + y);
-
                                 newValue += Noise.getNoiseValue(mapGenerator.noiseScale,
                                                                     x,
                                                                     y,

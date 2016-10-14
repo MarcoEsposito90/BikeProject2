@@ -53,6 +53,12 @@ public class MapChunk
         set;
     }
 
+    public int textureSize
+    {
+        get;
+        private set;
+    }
+
     public int latestLODRequest
     {
         get;
@@ -86,7 +92,7 @@ public class MapChunk
 
     #region CONSTRUCTORS 
 
-    public MapChunk(int x, int y, int size, int scale, int subdivisions)
+    public MapChunk(int x, int y, int size, int scale, int subdivisions, int textureSize)
     {
         this.position = new Vector2(x, y);
         this.size = size;
@@ -96,6 +102,7 @@ public class MapChunk
         latestLODRequest = -1;
         isVisible = true;
         roadsComputed = false;
+        this.textureSize = textureSize;
         mapComputed = false;
         bounds = new Bounds(
             new Vector3(x * size * scale, 0, y * size * scale), 

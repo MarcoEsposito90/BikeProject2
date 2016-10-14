@@ -2,7 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class EndlessTerrainGenerator : MonoBehaviour {
+public class EndlessTerrainGenerator : MonoBehaviour
+{
 
 
     [Range(1, 7)]
@@ -21,23 +22,30 @@ public class EndlessTerrainGenerator : MonoBehaviour {
     [Range(1, 8)]
     public int subdivisions;
 
-    [Range(1,3)]
+    [Range(1, 3)]
     public int accuracy;
     private float[] LODThresholds;
+
+    [Range(1, 3)]
+    public int keepUnvisible;
+    private float removeThreshold;
 
     [Range(0, 2)]
     public int colliderAccuracy;
 
+    [Range(1, 10)]
+    public int textureSize;
+
     public Transform viewer;
     private Vector3 latestViewerRecordedPosition;
 
-    [Range(1,10)]
+    [Range(1, 10)]
     public int viewerDistanceUpdateFrequency;
     private float viewerDistanceUpdate;
 
     public Material terrainMaterial;
 
-    private Dictionary<Vector2,MapChunk> TerrainChunks;
+    private Dictionary<Vector2, MapChunk> TerrainChunks;
     private MapGenerator mapGenerator;
     public static float seedX, seedY;
 
@@ -63,7 +71,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         updateChunks();
     }
 
-   
+
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
@@ -89,12 +97,15 @@ public class EndlessTerrainGenerator : MonoBehaviour {
     // checks the list of chunks for updates ------------------------------------------------------
     public void updateChunks()
     {
+        List<Vector2> toBeRemoved = new List<Vector2>();
+
         foreach (MapChunk chunk in TerrainChunks.Values)
         {
             float dist = chunk.bounds.SqrDistance(new Vector3(viewer.position.x, 0, viewer.position.z));
             dist = Mathf.Sqrt(dist);
             bool visible = false;
 
+            // check which is the correct load ---------------
             for (int i = 0; i < LODThresholds.Length; i++)
             {
                 if (dist < LODThresholds[i])
@@ -105,7 +116,22 @@ public class EndlessTerrainGenerator : MonoBehaviour {
                 }
             }
 
-            chunk.setVisible(visible);
+            // check if the object should be removed ---------
+            if (!visible && dist >= removeThreshold)
+            {
+                Debug.Log("must destroy chunk " + chunk.position);
+                Destroy(chunk.mapChunkObject);
+                toBeRemoved.Add(chunk.position);
+            }
+            else
+                chunk.setVisible(visible);
+        }
+
+        // delete chunk references from map --------------
+        foreach (Vector2 pos in toBeRemoved)
+        {
+            TerrainChunks.Remove(pos);
+            Debug.Log("TerrainChunks = " + TerrainChunks.Count);
         }
     }
 
@@ -118,7 +144,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
         chunk.latestLODRequest = LOD;
 
-        if(chunk.meshes[LOD] != null)
+        if (chunk.meshes[LOD] != null)
         {
             //Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
             chunk.mapChunkObject.GetComponent<MeshFilter>().mesh = chunk.meshes[LOD];
@@ -133,9 +159,9 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
         bool colliderRequested = LOD == 0 ? true : false;
         mapGenerator.requestChunkData
-            (chunk, 
-            LOD, 
-            colliderRequested, 
+            (chunk,
+            LOD,
+            colliderRequested,
             colliderAccuracy,
             onChunkDataReceived);
     }
@@ -150,8 +176,8 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         float startY = position.z - LODThresholds[LODThresholds.Length - 1];
         float endY = position.z + LODThresholds[LODThresholds.Length - 1];
 
-        for(float x = startX; x <= endX; x += scaledChunkSize)
-            for(float y = startY; y <= endY; y += scaledChunkSize)
+        for (float x = startX; x <= endX; x += scaledChunkSize)
+            for (float y = startY; y <= endY; y += scaledChunkSize)
             {
                 int chunkX = Mathf.RoundToInt(x / (float)scaledChunkSize + 0.1f);
                 int chunkY = Mathf.RoundToInt(y / (float)scaledChunkSize + 0.1f);
@@ -168,9 +194,9 @@ public class EndlessTerrainGenerator : MonoBehaviour {
                 Bounds b = new Bounds(center, sizes);
                 float dist = Mathf.Sqrt(b.SqrDistance(position));
 
-                if(dist < LODThresholds[LODThresholds.Length - 1])
+                if (dist < LODThresholds[LODThresholds.Length - 1])
                 {
-                    MapChunk newChunk = new MapChunk(chunkX, chunkY, chunkSize, scale, subdivisions);
+                    MapChunk newChunk = new MapChunk(chunkX, chunkY, chunkSize, scale, subdivisions, textureSize);
                     newChunk.mapChunkObject.transform.parent = this.GetComponent<Transform>();
                     TerrainChunks.Add(chunkCenter, newChunk);
                     newChunk.currentLOD = LODThresholds.Length - 1;
@@ -198,7 +224,7 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         MapChunk chunk = null;
         TerrainChunks.TryGetValue(chunkData.chunkPosition, out chunk);
 
-        if(chunk == null)
+        if (chunk == null)
         {
             Debug.Log("ATTENTION! trying to set data on null chunk");
             return;
@@ -225,11 +251,11 @@ public class EndlessTerrainGenerator : MonoBehaviour {
             any setting
         */
 
-        if (chunk.latestLODRequest != chunkData.meshData.LOD)
-        {
-            Debug.Log("chunk " + chunk.position + " not updated due to deceased request");
-            return;
-        }
+        //if (chunk.latestLODRequest != chunkData.meshData.LOD)
+        //{
+        //    //Debug.Log("chunk " + chunk.position + " not updated due to deceased request");
+        //    return;
+        //}
 
 
         // setting mesh -----------------------------------------------------
@@ -239,7 +265,8 @@ public class EndlessTerrainGenerator : MonoBehaviour {
         textureRenderer.sharedMaterial = new Material(terrainMaterial);
 
         // setting texture --------------------------------------------------
-        Texture2D texture = new Texture2D(chunkSize + 1, chunkSize + 1);
+        int texSize = (chunkSize + 1) * textureSize;
+        Texture2D texture = new Texture2D(texSize, texSize);
         texture.filterMode = FilterMode.Point;
         texture.wrapMode = TextureWrapMode.Clamp;
         texture.SetPixels(chunkData.colorMap);
@@ -273,6 +300,8 @@ public class EndlessTerrainGenerator : MonoBehaviour {
 
         for (int i = 0; i < LODThresholds.Length; i++)
             LODThresholds[i] = (scaledChunkSize / 2.0f + i * scaledChunkSize) * accuracy / 2.0f;
+
+        removeThreshold = LODThresholds[LODThresholds.Length - 1] * keepUnvisible;
 
         System.Random random = new System.Random();
         seedX = ((float)random.NextDouble()) * random.Next(100);

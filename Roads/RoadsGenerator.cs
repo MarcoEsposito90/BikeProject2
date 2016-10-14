@@ -30,6 +30,9 @@ public class RoadsGenerator : MonoBehaviour
     [Range(0.5f, 1.0f)]
     public float maximumRoadsHeight;
 
+    public Color roadsColor;
+    public Texture2D roadsTexture;
+
     private Graph<Vector2, ControlPoint> controlPointsGraph;
     private MapGenerator mapGenerator;
     private bool debug;

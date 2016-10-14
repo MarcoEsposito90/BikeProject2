@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class MapDisplay : MonoBehaviour {
+public class MapDisplay : MonoBehaviour
+{
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
@@ -11,18 +12,20 @@ public class MapDisplay : MonoBehaviour {
     public static int NUMBER_OF_LODS = 5;
     private RoadsGenerator roadsGenerator;
 
-    public enum DisplayMode { GreyScale, Colour };
+    public enum DisplayMode { GreyScale, Colour, Textured };
     public DisplayMode displayMode;
 
     public enum RenderingMode { Flat, Mesh };
     public RenderingMode renderingMode;
 
+    
+
     public float meshHeightMultiplier;
     public AnimationCurve meshHeightCurve;
 
-    public TerrainType[] sections;
+    public Section[] sections;
 
-    
+
 
     //public bool autoUpdate;
     //private float[,] latestNoiseMap;
@@ -32,30 +35,57 @@ public class MapDisplay : MonoBehaviour {
     /* ----------------------------------------------------------------------------------------- */
 
     [System.Serializable]
-    public struct TerrainType
+    public class Section
     {
+        [SerializeField]
         public string name;
 
-        [Range(0.0f, 2.0f)]
+        [SerializeField, Range(0.0f, 2.0f)]
         public float height;
+
+        [SerializeField]
         public Color color;
 
+        [SerializeField, Range(1,20)]
+        public int tiles;
+
+        [SerializeField]
+        public Texture2D texture;
+
+        [SerializeField]
+        public Color[,] colorMap { get; private set; }
+
+        public void generateColorMap()
+        {
+            colorMap = new Color[texture.width, texture.height];
+            for (int i = 0; i < texture.width; i++)
+                for (int j = 0; j < texture.height; j++)
+                    colorMap[i, j] = texture.GetPixel(i, j);
+        }
     }
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- UNITY -------------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    void Start () {
+    void Awake()
+    {
+        foreach (Section s in sections)
+            s.generateColorMap();
+    }
+
+    void Start()
+    {
 
         roadsGenerator = this.GetComponent<RoadsGenerator>();
         if (roadsGenerator == null)
             Debug.Log("editor won't generate roads");
-	}
-	
-	void Update () {
-	
-	}
+    }
+
+    void Update()
+    {
+
+    }
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
@@ -63,14 +93,13 @@ public class MapDisplay : MonoBehaviour {
 
     public MapGenerator.ChunkData getChunkData
         (float[,] map,
-        MapChunk chunk, 
-        int levelOfDetail, 
-        bool colliderRequested, 
+        MapChunk chunk,
+        int levelOfDetail,
+        bool colliderRequested,
         int colliderAccuracy)
 
     {
 
-        //Debug.Log("chunk " + chunk.position + " started computation");
 
         AnimationCurve meshHeightCurve = new AnimationCurve(this.meshHeightCurve.keys);
 
@@ -82,11 +111,11 @@ public class MapDisplay : MonoBehaviour {
 
         MeshGenerator.MeshData newMesh = null;
         if (renderingMode == RenderingMode.Mesh)
-            newMesh = MeshGenerator.generateMesh(map, meshHeightCurve, meshHeightMultiplier,levelOfDetail);
+            newMesh = MeshGenerator.generateMesh(map, meshHeightCurve, meshHeightMultiplier, levelOfDetail);
         else
-            newMesh = MeshGenerator.generateMesh(width,height);
+            newMesh = MeshGenerator.generateMesh(width, height);
 
-        Color[] colorMap = TextureGenerator.generateColorMap(map, displayMode, sections);
+        Color[] colorMap = TextureGenerator.generateColorMap(map, displayMode, sections, chunk.textureSize);
 
         MeshGenerator.MeshData colliderMesh = null;
         if (colliderRequested)
