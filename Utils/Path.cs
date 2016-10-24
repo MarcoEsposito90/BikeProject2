@@ -115,7 +115,7 @@ public class Path
 
     #region PATH_COMPUTING
 
-    public static List<Path> calculatePaths(MapChunk chunk, float segmentMaximumLength, float sinuosity)
+    public static List<Path> calculatePaths(MapSector chunk, float segmentMaximumLength, float sinuosity)
     {
         List<Path> localPaths = new List<Path>();
         Quadrant next = null;
@@ -152,7 +152,7 @@ public class Path
 
 
     /* ------------------------------------------------------------------------------------------------- */
-    private static void linkWithExternal(MapChunk chunk, List<Path> paths, float segmentMaximumLength)
+    private static void linkWithExternal(MapSector chunk, List<Path> paths, float segmentMaximumLength)
     {
         bool debug = chunk.position.Equals(Vector2.zero);
 
@@ -229,7 +229,7 @@ public class Path
     #region UTILITIES
 
     /* ------------------------------------------------------------------------------------------------- */
-    private static Quadrant findNearestNeighbor(Quadrant q, MapChunk chunk, Path path, float segmentMaximumLength)
+    private static Quadrant findNearestNeighbor(Quadrant q, MapSector chunk, Path path, float segmentMaximumLength)
     {
         Quadrant neighbor = null;
 
@@ -262,7 +262,7 @@ public class Path
 
 
     /* ------------------------------------------------------------------------------------------------- */
-    private static Quadrant isMissingLinks(MapChunk chunk)
+    private static Quadrant isMissingLinks(MapSector chunk)
     {
 
         foreach (Quadrant q in chunk.quadrants.Values)

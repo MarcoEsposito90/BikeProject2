@@ -28,8 +28,8 @@ public class MapGenerator : MonoBehaviour
     [Range(1.0f, 100.0f)]
     public float amplitudeDemultiplier;
 
-    private Queue<ChunkCallbackData> resultsQueue;
-    private MapDisplay mapDisplayer;
+    private Queue<SectorCallbackData> resultsQueue;
+    public MapDisplay mapDisplayer;
     private System.Random random;
 
     public float offsetX
@@ -53,8 +53,7 @@ public class MapGenerator : MonoBehaviour
 
     void Start()
     {
-        mapDisplayer = this.GetComponent<MapDisplay>();
-        resultsQueue = new Queue<ChunkCallbackData>();
+        resultsQueue = new Queue<SectorCallbackData>();
         random = new System.Random(seed);
 
         int multiplier = random.Next(1000, 10000);
@@ -70,7 +69,7 @@ public class MapGenerator : MonoBehaviour
         {
             for (int i = 0; i < resultsQueue.Count; i++)
             {
-                ChunkCallbackData callbackData = resultsQueue.Dequeue();
+                SectorCallbackData callbackData = resultsQueue.Dequeue();
                 callbackData.callback(callbackData.data);
 
                 /*  IMPORTANT INFO -------------------------------------------------------------
@@ -87,16 +86,16 @@ public class MapGenerator : MonoBehaviour
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public void requestChunkData
-        (MapChunk chunk,
+    public void requestSectorData
+        (MapSector sector,
         int LOD,
         bool colliderRequested,
         int colliderAccuracy,
-        Action<ChunkData> callback)
+        Action<MapSector.SectorData> callback)
     {
         ThreadStart ts = delegate
        {
-           GenerateMap(chunk, LOD, colliderRequested, colliderAccuracy, callback);
+           GenerateMap(sector, LOD, colliderRequested, colliderAccuracy, callback);
        };
 
         Thread t = new Thread(ts);
@@ -106,11 +105,11 @@ public class MapGenerator : MonoBehaviour
 
     /* ----------------------------------------------------------------------------------------- */
     private void GenerateMap
-        (MapChunk chunk,
+        (MapSector chunk,
         int LOD,
         bool colliderRequested,
         int colliderAccuracy,
-        Action<ChunkData> callback)
+        Action<MapSector.SectorData> callback)
     {
 
         if (!chunk.mapComputed)
@@ -129,12 +128,12 @@ public class MapGenerator : MonoBehaviour
             chunk.heightMap = heightMap;
         }
 
-        ChunkData chunkData = mapDisplayer.getChunkData(chunk.heightMap, chunk, LOD, colliderRequested, colliderAccuracy);
-        chunkData.chunkPosition = chunk.position;
+        MapSector.SectorData chunkData = mapDisplayer.getSectorData(chunk.heightMap, chunk, LOD, colliderRequested, colliderAccuracy);
+        chunkData.sectorPosition = chunk.position;
 
         lock (resultsQueue)
         {
-            resultsQueue.Enqueue(new ChunkCallbackData(chunkData, callback));
+            resultsQueue.Enqueue(new SectorCallbackData(chunkData, callback));
         }
     }
 
@@ -143,29 +142,14 @@ public class MapGenerator : MonoBehaviour
     /* -------------------------- MY CLASSES --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public class ChunkData
-    {
-        public Vector2 chunkPosition;
-        public readonly MeshGenerator.MeshData meshData;
-        public readonly MeshGenerator.MeshData colliderMeshData;
-        public readonly Color[] colorMap;
-
-        public ChunkData(MeshGenerator.MeshData meshData, MeshGenerator.MeshData colliderMeshData, Color[] colorMap)
-        {
-            this.meshData = meshData;
-            this.colorMap = colorMap;
-            this.colliderMeshData = colliderMeshData;
-        }
-    }
-
 
     /* ----------------------------------------------------------------------------------------- */
-    public struct ChunkCallbackData
+    public struct SectorCallbackData
     {
-        public readonly ChunkData data;
-        public readonly Action<ChunkData> callback;
+        public readonly MapSector.SectorData data;
+        public readonly Action<MapSector.SectorData> callback;
 
-        public ChunkCallbackData(ChunkData data, Action<ChunkData> callback)
+        public SectorCallbackData(MapSector.SectorData data, Action<MapSector.SectorData> callback)
         {
             this.data = data;
             this.callback = callback;

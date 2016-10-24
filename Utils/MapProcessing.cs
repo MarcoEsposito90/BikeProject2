@@ -4,8 +4,8 @@ using System.Collections.Generic;
 
 public static class MapProcessing
 {
-
-    public static void medianFilter(float[,] map, MapChunk chunk, BezierCurve curve, int curveWidth, int kernelSize, MapGenerator mapGenerator)
+    /* ------------------------------------------------------------------------------------------------- */
+    public static void medianFilter(float[,] map, MapSector chunk, BezierCurve curve, int curveWidth, int kernelSize, MapGenerator mapGenerator)
     {
         bool debug = chunk.position.Equals(new Vector2(0, 0));
 
@@ -60,7 +60,12 @@ public static class MapProcessing
             }
 
         }
+    }
 
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public static void applyColor(Color[] colorMap, BezierCurve curve, int curveWidth)
+    {
 
     }
 

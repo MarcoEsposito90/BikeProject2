@@ -8,25 +8,20 @@ public class MapDisplay : MonoBehaviour
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    private const int NumberOfLods = 5;
-    public static int NUMBER_OF_LODS = 5;
-    private RoadsGenerator roadsGenerator;
+    [Range(2,10)]
+    public int NumberOfLods;
 
-    public enum DisplayMode { GreyScale, Colour, Textured };
-    public DisplayMode displayMode;
+    //public enum DisplayMode { GreyScale, Colour, Textured };
+    //public DisplayMode displayMode;
 
     public enum RenderingMode { Flat, Mesh };
     public RenderingMode renderingMode;
 
-    
-
     public float meshHeightMultiplier;
     public AnimationCurve meshHeightCurve;
+    public RoadsGenerator roadsGenerator;
 
-    public Section[] sections;
-
-
-
+    //public Section[] sections;
     //public bool autoUpdate;
     //private float[,] latestNoiseMap;
 
@@ -46,7 +41,7 @@ public class MapDisplay : MonoBehaviour
         [SerializeField]
         public Color color;
 
-        [SerializeField, Range(1,20)]
+        [SerializeField, Range(1, 20)]
         public int tiles;
 
         [SerializeField]
@@ -68,54 +63,50 @@ public class MapDisplay : MonoBehaviour
     /* -------------------------- UNITY -------------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    void Awake()
-    {
-        foreach (Section s in sections)
-            s.generateColorMap();
-    }
+    //void Awake()
+    //{
+    //    //foreach (Section s in sections)
+    //    //    s.generateColorMap();
+    //}
 
     void Start()
     {
-
-        roadsGenerator = this.GetComponent<RoadsGenerator>();
         if (roadsGenerator == null)
             Debug.Log("editor won't generate roads");
     }
 
-    void Update()
-    {
+    //void Update()
+    //{
 
-    }
+    //}
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public MapGenerator.ChunkData getChunkData
+    public MapSector.SectorData getSectorData
         (float[,] map,
-        MapChunk chunk,
+        MapSector sector,
         int levelOfDetail,
         bool colliderRequested,
         int colliderAccuracy)
 
     {
-
-
         AnimationCurve meshHeightCurve = new AnimationCurve(this.meshHeightCurve.keys);
 
         int width = map.GetLength(0);
         int height = map.GetLength(1);
 
-        if (roadsGenerator != null && !chunk.roadsComputed)
-            roadsGenerator.generateRoads(map, chunk);
+        Color[] colorMap = TextureGenerator.generateColorHeightMap(map);
+
+        if (roadsGenerator != null && !sector.roadsComputed)
+            roadsGenerator.generateRoads(map, sector);
 
         MeshGenerator.MeshData newMesh = null;
         if (renderingMode == RenderingMode.Mesh)
             newMesh = MeshGenerator.generateMesh(map, meshHeightCurve, meshHeightMultiplier, levelOfDetail);
         else
             newMesh = MeshGenerator.generateMesh(width, height);
-
-        Color[] colorMap = TextureGenerator.generateColorMap(map, displayMode, sections, levelOfDetail, chunk.textureSize);
 
         MeshGenerator.MeshData colliderMesh = null;
         if (colliderRequested)
@@ -127,15 +118,7 @@ public class MapDisplay : MonoBehaviour
                 colliderMesh = MeshGenerator.generateMesh(width, height);
         }
 
-        return new MapGenerator.ChunkData(newMesh, colliderMesh, colorMap);
+        return new MapSector.SectorData(levelOfDetail, newMesh, colliderMesh, colorMap);
     }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    //public void drawNoiseMap( mapObject)
-    //{
-    //    if (latestNoiseMap != null)
-    //        drawNoiseMap(latestNoiseMap, mapObject);
-    //}
 
 }

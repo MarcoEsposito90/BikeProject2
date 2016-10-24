@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class MapChunk
+public class MapSector
 {
 
     /* ------------------------------------------------------------------------------------------------- */
@@ -35,7 +35,13 @@ public class MapChunk
         private set;
     }
 
-    public GameObject mapChunkObject
+    public int numberOfLods
+    {
+        get;
+        private set;
+    }
+
+    public GameObject prefabObject
     {
         get;
         private set;
@@ -51,12 +57,6 @@ public class MapChunk
     {
         get;
         set;
-    }
-
-    public int textureSize
-    {
-        get;
-        private set;
     }
 
     public int latestLODRequest
@@ -92,29 +92,26 @@ public class MapChunk
 
     #region CONSTRUCTORS 
 
-    public MapChunk(int x, int y, int size, int scale, int subdivisions, int textureSize)
+    public MapSector(int x, int y, int size, int scale, int subdivisions, int numberOfLods, GameObject prefabObject)
     {
         this.position = new Vector2(x, y);
         this.size = size;
         this.scale = scale;
         this.subdivisions = subdivisions;
+        this.numberOfLods = numberOfLods;
         currentLOD = -1;
         latestLODRequest = -1;
         isVisible = true;
         roadsComputed = false;
-        this.textureSize = textureSize;
+
         mapComputed = false;
         bounds = new Bounds(
-            new Vector3(x * size * scale, 0, y * size * scale), 
-            new Vector3(size * scale, size * scale, size * scale));
+            new Vector3(x * size * scale, 0, y * size * scale),
+            new Vector3(size * scale, size * scale * 10, size * scale));
 
-        meshes = new Mesh[MapDisplay.NUMBER_OF_LODS];
-
-        mapChunkObject = new GameObject("chunk (" + x + "," + y + ")");
-        mapChunkObject.AddComponent<MeshFilter>();
-        mapChunkObject.AddComponent<MeshRenderer>();
-        mapChunkObject.AddComponent<MeshCollider>();
-        mapChunkObject.transform.position = new Vector3(x * size * scale, 0, y * size * scale);
+        meshes = new Mesh[numberOfLods];
+        this.prefabObject = prefabObject;
+        setPrefabObject(x, y);
 
         quadrants = new Dictionary<Vector2, Quadrant>();
         createQuadrants();
@@ -129,16 +126,44 @@ public class MapChunk
 
     #region METHODS
 
+    /* ------------------------------------------------------------------------------------------------- */
+    private void setPrefabObject(int x, int y)
+    {
+        //prefabObject.AddComponent<MeshFilter>();
+        //prefabObject.AddComponent<MeshRenderer>();
+        //prefabObject.AddComponent<MeshCollider>();
+        prefabObject.name = "sector (" + x + "," + y + ")";
+        prefabObject.transform.position = new Vector3(x * size * scale, 0, y * size * scale);
+        prefabObject.SetActive(true);
+    }
+
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public void resetPrefabObject()
+    {
+        prefabObject.GetComponent<MeshFilter>().mesh = null;
+        prefabObject.GetComponent<Renderer>().sharedMaterial.mainTexture = null;
+        prefabObject.GetComponent<MeshCollider>().sharedMesh = null;
+
+        prefabObject.transform.position = Vector3.zero;
+        prefabObject.name = "sector (available)";
+        prefabObject.transform.localScale = Vector3.one;
+        prefabObject.SetActive(false);
+        this.prefabObject = null;
+    }
+
+    /* ------------------------------------------------------------------------------------------------- */
     public void setVisible(bool visibility)
     {
         if (isVisible == visibility)
             return;
 
         isVisible = visibility;
-        mapChunkObject.SetActive(visibility);
+        prefabObject.SetActive(visibility);
     }
 
 
+    /* ------------------------------------------------------------------------------------------------- */
     public void createQuadrants()
     {
         int quadrantWidth = (int)(size / (float)subdivisions);
@@ -162,6 +187,32 @@ public class MapChunk
         }
     }
 
+
+    #endregion
+
+
+    /* ------------------------------------------------------------------------------------------------- */
+    /* -------------------------------- SUBCLASSES ----------------------------------------------------- */
+    /* ------------------------------------------------------------------------------------------------- */
+
+    #region SUBCLASSES
+
+    public class SectorData
+    {
+        public Vector2 sectorPosition;
+        public readonly int LOD;
+        public readonly MeshGenerator.MeshData meshData;
+        public readonly MeshGenerator.MeshData colliderMeshData;
+        public readonly Color[] colorMap;
+
+        public SectorData(int LOD, MeshGenerator.MeshData meshData, MeshGenerator.MeshData colliderMeshData, Color[] colorMap)
+        {
+            this.meshData = meshData;
+            this.colorMap = colorMap;
+            this.colliderMeshData = colliderMeshData;
+            this.LOD = LOD;
+        }
+    }
 
     #endregion
 }

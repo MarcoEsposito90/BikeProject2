@@ -83,7 +83,7 @@ public class Quadrant
     {
         float seedX = EndlessTerrainGenerator.seedX;
         float seedY = EndlessTerrainGenerator.seedY;
-        int size = EndlessTerrainGenerator.chunkSize;
+        int size = EndlessTerrainGenerator.sectorSize;
 
         // 2) get perlin value relative to coordinates ----------------
         float randomX = Mathf.PerlinNoise(position.x + seedX, position.y + seedX);
@@ -152,7 +152,7 @@ public class Quadrant
     {
         float seedX = EndlessTerrainGenerator.seedX;
         float seedY = EndlessTerrainGenerator.seedY;
-        int size = EndlessTerrainGenerator.chunkSize;
+        int size = EndlessTerrainGenerator.sectorSize;
 
         // 2) get perlin value relative to coordinates ----------------
         float randomX = Mathf.PerlinNoise(position.x + seedX, position.y + seedX);

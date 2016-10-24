@@ -62,22 +62,8 @@ public class RoadsGenerator : MonoBehaviour
 
     #region METHODS
 
-    public void generateRoads(float[,] map, MapChunk chunk)
+    public void generateRoads(float[,] map, MapSector chunk)
     {
-        //ControlPoint temp = chunk.quadrants[new Vector2(0, 0)].roadsControlPoint;
-        //int localX = (int)(temp.position.x - (chunk.position.x - 0.5f) * chunk.size);
-        //int localY = (int)((chunk.position.y + 0.5f) * chunk.size - temp.position.y);
-        //float perlinValue = Noise.getNoiseValue(mapGenerator.noiseScale,
-        //                                            temp.position.x + mapGenerator.offsetX,
-        //                                            temp.position.y + mapGenerator.offsetY,
-        //                                            mapGenerator.numberOfFrequencies,
-        //                                            mapGenerator.frequencyMultiplier,
-        //                                            mapGenerator.amplitudeDemultiplier);
-
-        //float mapValue = map[localX, localY];
-        //Debug.Log(  "perlin = " + perlinValue + 
-        //            "; map = " + map[localX,localY]);
-
 
         // 1) expand the graph -----------------------------------------------------------------------
         debug = chunk.position.Equals(new Vector2(0, 0));
@@ -134,7 +120,7 @@ public class RoadsGenerator : MonoBehaviour
 
     #region ROADS
 
-    private List<Graph<Vector2, ControlPoint>.GraphItem> getGraphRoadsNodes(MapChunk chunk)
+    private List<Graph<Vector2, ControlPoint>.GraphItem> getGraphRoadsNodes(MapSector chunk)
     {
         List<Graph<Vector2, ControlPoint>.GraphItem> graphItems = new List<Graph<Vector2, ControlPoint>.GraphItem>();
         float maxLength = maximumSegmentLength * (chunk.size / (float)chunk.subdivisions);
@@ -212,7 +198,7 @@ public class RoadsGenerator : MonoBehaviour
 
     #region MAP_FILTERING
 
-    private void modifyHeightMap(float[,] map, MapChunk chunk, List<BezierCurve> curves)
+    private void modifyHeightMap(float[,] map, MapSector chunk, List<BezierCurve> curves)
     {
 
         foreach (BezierCurve c in curves)
