@@ -78,6 +78,7 @@ public class MapSector
     }
 
     public float[,] heightMap = null;
+    public float[,] alphaMap = null;
 
     public Dictionary<Vector2, Quadrant> quadrants;
 
@@ -111,7 +112,7 @@ public class MapSector
 
         meshes = new Mesh[numberOfLods];
         this.prefabObject = prefabObject;
-        setPrefabObject(x, y);
+        initializePrefabObject(x, y);
 
         quadrants = new Dictionary<Vector2, Quadrant>();
         createQuadrants();
@@ -127,7 +128,7 @@ public class MapSector
     #region METHODS
 
     /* ------------------------------------------------------------------------------------------------- */
-    private void setPrefabObject(int x, int y)
+    private void initializePrefabObject(int x, int y)
     {
         //prefabObject.AddComponent<MeshFilter>();
         //prefabObject.AddComponent<MeshRenderer>();
@@ -135,15 +136,40 @@ public class MapSector
         prefabObject.name = "sector (" + x + "," + y + ")";
         prefabObject.transform.position = new Vector3(x * size * scale, 0, y * size * scale);
         prefabObject.SetActive(true);
+        prefabObject.GetComponent<MeshCollider>().enabled = false;
+    }
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public void setPrefabObject(Mesh collider, Mesh mesh, Color[] heightMap, List<Color[]> alphaMaps)
+    {
+
+        SubMeshHandler handler = prefabObject.GetComponent<SubMeshHandler>();
+        updateMeshes(collider, mesh);
+        handler.setHeightMap(heightMap, size + 1);
+
+        for (int i = 0; i < alphaMaps.Count; i++)
+            handler.setAlphaTexture(alphaMaps[i], size + 1, i);
+    }
+
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public void updateMeshes(Mesh collider, Mesh mesh)
+    {
+        if (collider != null)
+            Debug.Log("updating meshes for " + position + "; collider " + collider);
+        SubMeshHandler handler = prefabObject.GetComponent<SubMeshHandler>();
+        handler.setMeshes(collider, mesh);
     }
 
 
     /* ------------------------------------------------------------------------------------------------- */
     public void resetPrefabObject()
     {
-        prefabObject.GetComponent<MeshFilter>().mesh = null;
-        prefabObject.GetComponent<Renderer>().sharedMaterial.mainTexture = null;
-        prefabObject.GetComponent<MeshCollider>().sharedMesh = null;
+        //prefabObject.GetComponent<MeshFilter>().mesh = null;
+        //prefabObject.GetComponent<Renderer>().sharedMaterial.mainTexture = null;
+        //prefabObject.GetComponent<MeshCollider>().sharedMesh = null;
+        //prefabObject.GetComponent<MeshCollider>().enabled = false;
+        prefabObject.GetComponent<SubMeshHandler>().reset();
 
         prefabObject.transform.position = Vector3.zero;
         prefabObject.name = "sector (available)";
@@ -204,11 +230,15 @@ public class MapSector
         public readonly MeshGenerator.MeshData meshData;
         public readonly MeshGenerator.MeshData colliderMeshData;
         public readonly Color[] colorMap;
+        public readonly Color[] alphaMap;
+        public readonly Color[] roadsMap;
 
-        public SectorData(int LOD, MeshGenerator.MeshData meshData, MeshGenerator.MeshData colliderMeshData, Color[] colorMap)
+        public SectorData(int LOD, MeshGenerator.MeshData meshData, MeshGenerator.MeshData colliderMeshData, Color[] colorMap, Color[] roadsMap, Color[] alphaMap)
         {
             this.meshData = meshData;
+            this.roadsMap = roadsMap;
             this.colorMap = colorMap;
+            this.alphaMap = alphaMap;
             this.colliderMeshData = colliderMeshData;
             this.LOD = LOD;
         }

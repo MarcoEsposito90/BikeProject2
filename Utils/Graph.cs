@@ -16,7 +16,6 @@ public class Graph<Key, Type>
 
     public Graph()
     {
-        Debug.Log("constructor called");
         nodes = new Dictionary<Key, GraphItem>();
         synchVariable = new object();
     }

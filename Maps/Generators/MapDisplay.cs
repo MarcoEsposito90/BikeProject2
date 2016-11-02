@@ -85,8 +85,7 @@ public class MapDisplay : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
 
     public MapSector.SectorData getSectorData
-        (float[,] map,
-        MapSector sector,
+        (MapSector sector,
         int levelOfDetail,
         bool colliderRequested,
         int colliderAccuracy)
@@ -94,17 +93,22 @@ public class MapDisplay : MonoBehaviour
     {
         AnimationCurve meshHeightCurve = new AnimationCurve(this.meshHeightCurve.keys);
 
-        int width = map.GetLength(0);
-        int height = map.GetLength(1);
+        float[,] heightMap = sector.heightMap;
+        float[,] alphaMap = sector.alphaMap;
 
-        Color[] colorMap = TextureGenerator.generateColorHeightMap(map);
+        int width = heightMap.GetLength(0);
+        int height = heightMap.GetLength(1);
 
-        if (roadsGenerator != null && !sector.roadsComputed)
-            roadsGenerator.generateRoads(map, sector);
+        Color[] colorMap = TextureGenerator.generateColorHeightMap(heightMap);
+        Color[] ColorAlphaMap = TextureGenerator.generateColorHeightMap(alphaMap);
+
+        Color[] roadsMap = null;
+        if (roadsGenerator != null)
+            roadsMap = roadsGenerator.generateRoads(heightMap, sector);
 
         MeshGenerator.MeshData newMesh = null;
         if (renderingMode == RenderingMode.Mesh)
-            newMesh = MeshGenerator.generateMesh(map, meshHeightCurve, meshHeightMultiplier, levelOfDetail);
+            newMesh = MeshGenerator.generateMesh(heightMap, meshHeightCurve, meshHeightMultiplier, levelOfDetail);
         else
             newMesh = MeshGenerator.generateMesh(width, height);
 
@@ -113,12 +117,12 @@ public class MapDisplay : MonoBehaviour
         {
             int colliderLOD = levelOfDetail + colliderAccuracy;
             if (renderingMode == RenderingMode.Mesh)
-                colliderMesh = MeshGenerator.generateMesh(map, meshHeightCurve, meshHeightMultiplier, colliderLOD);
+                colliderMesh = MeshGenerator.generateMesh(heightMap, meshHeightCurve, meshHeightMultiplier, colliderLOD);
             else
                 colliderMesh = MeshGenerator.generateMesh(width, height);
         }
 
-        return new MapSector.SectorData(levelOfDetail, newMesh, colliderMesh, colorMap);
+        return new MapSector.SectorData(levelOfDetail, newMesh, colliderMesh, colorMap, roadsMap, ColorAlphaMap);
     }
 
 }

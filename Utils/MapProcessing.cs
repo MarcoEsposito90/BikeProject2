@@ -62,11 +62,6 @@ public static class MapProcessing
         }
     }
 
-
-    /* ------------------------------------------------------------------------------------------------- */
-    public static void applyColor(Color[] colorMap, BezierCurve curve, int curveWidth)
-    {
-
-    }
+    
 
 }

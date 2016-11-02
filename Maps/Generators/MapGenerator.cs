@@ -28,6 +28,9 @@ public class MapGenerator : MonoBehaviour
     [Range(1.0f, 100.0f)]
     public float amplitudeDemultiplier;
 
+    [Range(1.0f, 10.0f)]
+    public float alphaScale;
+
     private Queue<SectorCallbackData> resultsQueue;
     public MapDisplay mapDisplayer;
     private System.Random random;
@@ -38,6 +41,17 @@ public class MapGenerator : MonoBehaviour
     }
 
     public float offsetY
+    {
+        get;
+        private set;
+    }
+
+    public float alphaOffsetX
+    {
+        get; private set;
+    }
+
+    public float alphaOffsetY
     {
         get;
         private set;
@@ -57,8 +71,10 @@ public class MapGenerator : MonoBehaviour
         random = new System.Random(seed);
 
         int multiplier = random.Next(1000, 10000);
-        offsetX = (float) random.NextDouble() * multiplier;
-        offsetY = (float) random.NextDouble() * multiplier;
+        offsetX = (float)random.NextDouble() * multiplier;
+        offsetY = (float)random.NextDouble() * multiplier;
+        alphaOffsetX = (float)random.NextDouble() * multiplier;
+        alphaOffsetY = (float)random.NextDouble() * multiplier;
     }
 
 
@@ -105,31 +121,43 @@ public class MapGenerator : MonoBehaviour
 
     /* ----------------------------------------------------------------------------------------- */
     private void GenerateMap
-        (MapSector chunk,
+        (MapSector sector,
         int LOD,
         bool colliderRequested,
         int colliderAccuracy,
         Action<MapSector.SectorData> callback)
     {
 
-        if (!chunk.mapComputed)
+        if (!sector.mapComputed)
         {
-            chunk.mapComputed = true;
+            sector.mapComputed = true;
             float[,] heightMap = Noise.GenerateNoiseMap(
-            chunk.size + 1,
-            chunk.size + 1,
+            sector.size + 1,
+            sector.size + 1,
             noiseScale,
-            (chunk.position.x - 0.5f) * chunk.size + offsetX,
-            (chunk.position.y + 0.5f) * chunk.size + offsetY,
+            (sector.position.x - 0.5f) * sector.size + offsetX,
+            (sector.position.y + 0.5f) * sector.size + offsetY,
             numberOfFrequencies,
             frequencyMultiplier,
             amplitudeDemultiplier);
 
-            chunk.heightMap = heightMap;
+            float[,] alphaMap = Noise.GenerateNoiseMap(
+                sector.size + 1,
+                sector.size + 1,
+                noiseScale / alphaScale,
+                (sector.position.x - 0.5f) * sector.size + alphaOffsetX,
+                (sector.position.y + 0.5f) * sector.size + alphaOffsetY,
+                numberOfFrequencies,
+                frequencyMultiplier,
+                amplitudeDemultiplier);
+
+            sector.heightMap = heightMap;
+            sector.alphaMap = alphaMap;
+            sector.mapComputed = true;
         }
 
-        MapSector.SectorData chunkData = mapDisplayer.getSectorData(chunk.heightMap, chunk, LOD, colliderRequested, colliderAccuracy);
-        chunkData.sectorPosition = chunk.position;
+        MapSector.SectorData chunkData = mapDisplayer.getSectorData(sector, LOD, colliderRequested, colliderAccuracy);
+        chunkData.sectorPosition = sector.position;
 
         lock (resultsQueue)
         {

@@ -198,29 +198,34 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
 
     // updates a single chunk to the specified LOD --------------------------------------------------
-    private void updateSector(MapSector chunk, int LOD)
+    private void updateSector(MapSector sector, int LOD)
     {
-        if (chunk.latestLODRequest == LOD)
+        if (sector.latestLODRequest == LOD)
             return;
 
-        chunk.latestLODRequest = LOD;
+        sector.latestLODRequest = LOD;
 
-        if (chunk.meshes[LOD] != null)
+        if (sector.meshes[LOD] != null)
         {
             //Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
-            chunk.prefabObject.GetComponent<MeshFilter>().mesh = chunk.meshes[LOD];
+            //sector.prefabObject.GetComponent<MeshFilter>().mesh = sector.meshes[LOD];
 
-            chunk.prefabObject.GetComponent<MeshCollider>().enabled = (LOD == 0);
-            if (LOD == 0 && chunk.meshes[colliderAccuracy] != null)
-                chunk.prefabObject.GetComponent<MeshCollider>().sharedMesh = chunk.meshes[colliderAccuracy];
+            //sector.prefabObject.GetComponent<MeshCollider>().enabled = (LOD == 0);
+            //if (LOD == 0 && sector.meshes[colliderAccuracy] != null)
+            //    sector.prefabObject.GetComponent<MeshCollider>().sharedMesh = sector.meshes[colliderAccuracy];
 
-            chunk.currentLOD = LOD;
+            Mesh collider = null;
+            if (LOD == 0 && sector.meshes[colliderAccuracy] != null)
+                collider = sector.meshes[colliderAccuracy];
+
+            sector.updateMeshes(collider, sector.meshes[LOD]);
+            sector.currentLOD = LOD;
             return;
         }
 
         bool colliderRequested = LOD == 0 ? true : false;
         mapGenerator.requestSectorData
-            (chunk,
+            (sector,
             LOD,
             colliderRequested,
             colliderAccuracy,
@@ -306,33 +311,17 @@ public class EndlessTerrainGenerator : MonoBehaviour
             return;
         }
 
-
-        // setting mesh -----------------------------------------------------
-        sector.prefabObject.GetComponent<MeshFilter>().mesh = mesh;
-
-        // setting texture --------------------------------------------------
-        Renderer textureRenderer = sector.prefabObject.GetComponent<Renderer>();
-        textureRenderer.sharedMaterial = new Material(terrainMaterial);
-        Texture2D heightMapTexture = new Texture2D(sector.size + 1, sector.size + 1);
-        heightMapTexture.SetPixels(sectorData.colorMap);
-        heightMapTexture.wrapMode = TextureWrapMode.Clamp;
-
-        textureRenderer.sharedMaterial.SetTexture("_HeightMap", heightMapTexture);
-
-        // setting collider -------------------------------------------------
-        sector.prefabObject.GetComponent<MeshCollider>().enabled = (colliderMesh != null);
-        if (colliderMesh != null)
-            sector.prefabObject.GetComponent<MeshCollider>().sharedMesh = colliderMesh;
+        List<Color[]> alphaMaps = new List<Color[]>();
+        alphaMaps.Add(sectorData.alphaMap);
+        alphaMaps.Add(sectorData.alphaMap);
+        sector.setPrefabObject(colliderMesh, mesh, sectorData.colorMap, alphaMaps);
 
         // scaling -----------------------------------------------------------
         sector.prefabObject.transform.localScale = new Vector3(scale, scale, scale);
         sector.currentLOD = sectorData.meshData.LOD;
     }
 
-
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- UTILITY ------------------------------------------------------ */
-    /* ----------------------------------------------------------------------------------------- */
+   
 
     
 }

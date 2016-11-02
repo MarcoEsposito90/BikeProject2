@@ -30,9 +30,6 @@ public class RoadsGenerator : MonoBehaviour
     [Range(0.5f, 1.0f)]
     public float maximumRoadsHeight;
 
-    public Color roadsColor;
-    public Texture2D roadsTexture;
-
     private Graph<Vector2, ControlPoint> controlPointsGraph;
     private MapGenerator mapGenerator;
     private bool debug;
@@ -62,13 +59,13 @@ public class RoadsGenerator : MonoBehaviour
 
     #region METHODS
 
-    public void generateRoads(float[,] map, MapSector chunk)
+    public Color[] generateRoads(float[,] map, MapSector sector)
     {
 
         // 1) expand the graph -----------------------------------------------------------------------
-        debug = chunk.position.Equals(new Vector2(0, 0));
-        chunk.roadsComputed = true;
-        List<Graph<Vector2, ControlPoint>.GraphItem> graphItems = getGraphRoadsNodes(chunk);
+        debug = sector.position.Equals(new Vector2(0, 0));
+        sector.roadsComputed = true;
+        List<Graph<Vector2, ControlPoint>.GraphItem> graphItems = getGraphRoadsNodes(sector);
 
         // 2) compute the curves ---------------------------------------------------------------------
         List<BezierCurve> curves = new List<BezierCurve>();
@@ -108,7 +105,11 @@ public class RoadsGenerator : MonoBehaviour
         }
 
         // 3) map filtering 
-        modifyHeightMap(map, chunk, curves);
+        //modifyHeightMap(map, sector, curves);
+        float[,] roadsMap = generateRoadsMap(map.GetLength(0), map.GetLength(1), sector, curves);
+        Color[] roadsColorMap = TextureGenerator.generateColorHeightMap(roadsMap);
+        //Debug.Log("roadsColorMap for " + sector.position + ": " + roadsColorMap.Length);
+        return roadsColorMap;
     }
 
     #endregion  // METHODS
@@ -196,7 +197,7 @@ public class RoadsGenerator : MonoBehaviour
     /* -------------------------------- MAP FILTERING -------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
 
-    #region MAP_FILTERING
+    #region ROADS_MAP
 
     private void modifyHeightMap(float[,] map, MapSector chunk, List<BezierCurve> curves)
     {
@@ -204,6 +205,46 @@ public class RoadsGenerator : MonoBehaviour
         foreach (BezierCurve c in curves)
             MapProcessing.medianFilter(map, chunk, c, roadsWidth, roadsFlattening, mapGenerator);
         
+    }
+
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public float[,] generateRoadsMap(int width, int height, MapSector sector, List<BezierCurve> curves)
+    {
+        float[,] roadsMap = new float[width, height];
+
+        for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
+                roadsMap[x, y] = 0;
+
+        foreach (BezierCurve curve in curves)
+        {
+            for (float t = 0.0f; t <= 1.0f; t += 0.01f)
+            {
+                Vector2 point = curve.pointOnCurve(t);
+
+                int localX = (int)(point.x - (sector.position.x - 0.5f) * sector.size);
+                int localY = (int)((sector.position.y + 0.5f) * sector.size - point.y);
+
+                int startX = Mathf.Max(0, localX - roadsWidth);
+                int endX = Mathf.Min(width - 1, localX + roadsWidth);
+                int startY = Mathf.Max(0, localY - roadsWidth);
+                int endY = Mathf.Min(height - 1, localY + roadsWidth);
+
+                for (int j = startX; j <= endX; j++)
+                {
+                    for (int k = startY; k <= endY; k++)
+                    {
+                        if (j < 0 || j >= width) continue;
+                        if (k < 0 || k >= height) continue;
+                        roadsMap[j, k] = 1.0f;
+                    }
+                }
+            }
+        }
+
+        //Debug.Log("finished roads mapping for " + sector.position);
+        return roadsMap;
     }
 
     #endregion
@@ -226,4 +267,7 @@ public class RoadsGenerator : MonoBehaviour
         }
     }
 
+
+
+    
 }
