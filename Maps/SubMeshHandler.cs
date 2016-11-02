@@ -56,10 +56,6 @@ public class SubMeshHandler : MonoBehaviour {
         if (hasHeightMap)
             return;
 
-        //for (int y = 0; y < textureSize; y++)
-        //    for (int x = 0; x < textureSize; x++)
-        //        heightMapTexture.SetPixel(x, y, heightMap[y * textureSize + x]);
-
         this.texturesSize = textureSize;
         Texture2D heightMapTexture = new Texture2D(texturesSize, texturesSize);
         heightMapTexture.wrapMode = TextureWrapMode.Clamp;
@@ -73,7 +69,7 @@ public class SubMeshHandler : MonoBehaviour {
             children[i].GetComponent<Renderer>().material = mat;
             mat.SetTexture("_HeightMap", heightMapTexture);
 
-            Texture2D alphaMapTexture = new Texture2D(textureSize, textureSize);
+            Texture2D alphaMapTexture = new Texture2D(texturesSize, texturesSize);
             alphaMapTexture.SetPixels(alphaMaps[i]);
             alphaMapTexture.wrapMode = TextureWrapMode.Clamp;
             alphaMapTexture.Apply();
@@ -85,34 +81,13 @@ public class SubMeshHandler : MonoBehaviour {
 
 
     /* ------------------------------------------------------------------------------------------- */
-    //public void setAlphaTextures(List<Color[]> alphaMaps, int textureSize)
-    //{
-    //    if (index > children.Length)
-    //    {
-    //        Debug.Log("ERROR! trying to set textures on unknown child (SubMeshHandler.setSubTexture)");
-    //        return;
-    //    }
-
-    //    Material mat = children[index].GetComponent<Renderer>().sharedMaterial;
-    //    Texture2D alphaMapTexture = new Texture2D(textureSize, textureSize);
-    //    alphaMapTexture.SetPixels(alphaMap);
-    //    alphaMapTexture.wrapMode = TextureWrapMode.Clamp;
-    //    mat.SetTexture("_AlphaMap", alphaMapTexture);
-
-    //}
-
-    /* ------------------------------------------------------------------------------------------- */
     public void reset()
     {
         GetComponent<MeshCollider>().sharedMesh = null;
         GetComponent<MeshCollider>().enabled = false;
 
         foreach (GameObject c in children)
-        {
             c.GetComponent<MeshFilter>().sharedMesh = null;
-            //c.GetComponent<Renderer>().material.SetTexture("_HeightMap", new Texture2D(texturesSize, texturesSize));
-            //c.GetComponent<Renderer>().material.SetTexture("_AlphaMap", new Texture2D(texturesSize, texturesSize));
-        }
 
         hasHeightMap = false;
     }

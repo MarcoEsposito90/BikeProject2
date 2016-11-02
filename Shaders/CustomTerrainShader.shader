@@ -97,7 +97,7 @@ Shader "Custom/CustomTerrainShader" {
 			//Tags { "RenderType" = "TransparentCutout" /*"Queue" = "Geometry-1" "IgnoreProjector" = "True" */}
 			//LOD 200
 
-			Tags{ "RenderType" = "TransparentCutout" "Queue" = "AlphaTest" "IgnoreProjector" = "True" }
+			Tags{ "RenderType" = "TransparentCutout" "Queue" = "Geometry" "IgnoreProjector" = "True" }
 			Blend OneMinusDstAlpha DstAlpha
 			//Lighting Off
 			ZWrite On
@@ -166,21 +166,11 @@ Shader "Custom/CustomTerrainShader" {
 		float3 interpolate(float3 coefficients, float3 value1, float3 value2, float3 value3);
 		float luminanceFromRGB(float3 rgb);
 		void initialize(float2 uv);
-		//float3 getRGBs(float3 coefficients, int level);
-		//float3 getNormals(float3 coefficients, int level);
-		//float3 getSpeculars(float3 coefficients, int level);
+
 
 		/*  --------------------------------------------------------------------------------- */
 		/*  MAIN ---------------------------------------------------------------------------- */
 		/*  --------------------------------------------------------------------------------- */
-
-		//void vert(inout appdata v) {
-
-		//	//float2 uv = v.texcoord.xy;
-		//	//float road = luminanceFromRGB(tex2Dlod(_RoadsMap, v.texcoord));
-		//	//v.vertex = float4(0, 0, 0, 0);
-		//	//v.vertex.y = road;
-		//}
 
 		/*  --------------------------------------------------------------------------------- */
 		void surf(Input IN, inout SurfaceOutputStandard o) {
@@ -192,7 +182,7 @@ Shader "Custom/CustomTerrainShader" {
 
 			else {
 
-					initialize(IN.uv_HeightMap);
+				initialize(IN.uv_HeightMap);
 				float luminance = luminanceFromRGB(rgb);
 				int level = 0;
 
@@ -212,7 +202,8 @@ Shader "Custom/CustomTerrainShader" {
 				o.Normal = interpolate(coefficients, normals[level], normals[upperIndex], normals[lowerIndex]);
 				
 				fixed alpha = luminanceFromRGB(tex2D(_AlphaMap, IN.uv_HeightMap).rgb);
-				
+				alpha *= alpha;
+
 				if (_InvertAlpha == 1)
 					alpha = 1 - alpha;
 
@@ -273,34 +264,9 @@ Shader "Custom/CustomTerrainShader" {
 		/*  --------------------------------------------------------------------------------- */
 		/*  INTERPOLATE --------------------------------------------------------------------- */
 		/*  --------------------------------------------------------------------------------- */
-		
-		//float3 getRGBs(float3 coefficients, int level) {
-		//
-		//	int upperIndex = level == _numberOfSections - 1 ? level : level + 1;
-		//	int lowerIndex = level == 0 ? level : level - 1;
-		//	return interpolate(coefficients, rgbs[level], rgbs[upperIndex], rgbs[lowerIndex]);
-		//}
-		//
-
-		///*  --------------------------------------------------------------------------------- */
-		//float3 getNormals(float3 coefficients, int level) {
-
-		//	int upperIndex = level == _numberOfSections - 1 ? level : level + 1;
-		//	int lowerIndex = level == 0 ? level : level - 1;
-		//	return interpolate(coefficients, normals[level], normals[upperIndex], normals[lowerIndex]);
-		//}
 
 
-		///*  --------------------------------------------------------------------------------- */
-		//float3 getSpeculars(float3 coefficients, int level) {
-
-		//	int upperIndex = level == _numberOfSections - 1 ? level : level + 1;
-		//	int lowerIndex = level == 0 ? level : level - 1;
-		//	return interpolate(coefficients, speculars[level], speculars[upperIndex], speculars[lowerIndex]);
-		//}
-
-
-		/*  --------------------------------------------------------------------------------- */
+		/* --------------------------------------------------------------------------------- */
 		float3 interpolate(float3 coefficients, float3 value1, float3 value2, float3 value3) {
 
 			float3 result = value1 * coefficients[0];
@@ -328,7 +294,6 @@ Shader "Custom/CustomTerrainShader" {
 			thresholds[1] = _Threshold1;
 			thresholds[2] = _Threshold2;
 			thresholds[3] = _Threshold3;
-			//thresholds[4] = _Threshold4;
 			thresholds[4] = 1;
 
 			scales[0] = _Scale0;
@@ -336,14 +301,11 @@ Shader "Custom/CustomTerrainShader" {
 			scales[2] = _Scale2;
 			scales[3] = _Scale3;
 			scales[4] = _Scale4;
-			//scales[5] = _Scale5;
-			//scales[MAX_SECTIONS] = _ScaleRoads;
 
 			minimumMergeDists[0] = _MinimumMergeDistance0;
 			minimumMergeDists[1] = _MinimumMergeDistance1;
 			minimumMergeDists[2] = _MinimumMergeDistance2;
 			minimumMergeDists[3] = _MinimumMergeDistance3;
-			//minimumMergeDists[4] = _MinimumMergeDistance4;
 
 			if (_displayType == 1) {
 
@@ -352,14 +314,6 @@ Shader "Custom/CustomTerrainShader" {
 				rgbs[2] = tex2D(_Texture2, float2(uv.x * scales[2], uv.y * scales[2])).rgb;
 				rgbs[3] = tex2D(_Texture3, float2(uv.x * scales[3], uv.y * scales[3])).rgb;
 				rgbs[4] = tex2D(_Texture4, float2(uv.x * scales[4], uv.y * scales[4])).rgb;
-				//rgbs[5] = tex2D(_Texture5, float2(uv.x * scales[5], uv.y * scales[5])).rgb;
-				//rgbs[MAX_SECTIONS] = tex2D(_RoadsTexture, float2(uv.x * scales[MAX_SECTIONS], uv.y * scales[MAX_SECTIONS])).rgb;
-
-				//normals[0] = UnpackNormal(tex2D(_Normals0, float2(uv.x * scales[0], uv.y * scales[0])));
-				//normals[1] = UnpackNormal(tex2D(_Normals1, float2(uv.x * scales[1], uv.y * scales[1])));
-				//normals[2] = UnpackNormal(tex2D(_Normals2, float2(uv.x * scales[2], uv.y * scales[2])));
-				//normals[3] = UnpackNormal(tex2D(_Normals3, float2(uv.x * scales[3], uv.y * scales[3])));
-				//normals[4] = UnpackNormal(tex2D(_Normals4, float2(uv.x * scales[4], uv.y * scales[4])));
 
 				normals[0] = tex2D(_Normals0, float2(uv.x * scales[0], uv.y * scales[0]));
 				normals[1] = tex2D(_Normals1, float2(uv.x * scales[1], uv.y * scales[1]));
@@ -367,16 +321,11 @@ Shader "Custom/CustomTerrainShader" {
 				normals[3] = tex2D(_Normals3, float2(uv.x * scales[3], uv.y * scales[3]));
 				normals[4] = tex2D(_Normals4, float2(uv.x * scales[4], uv.y * scales[4]));
 
-				//normals[5] = UnpackNormal(tex2D(_Normals5, float2(uv.x * scales[5], uv.y * scales[5])));
-				//normals[MAX_SECTIONS] = UnpackNormal(tex2D(_RoadsNormals, float2(uv.x * scales[MAX_SECTIONS], uv.y * scales[MAX_SECTIONS])));
-
 				speculars[0] = tex2D(_Spec0, float2(uv.x * scales[0], uv.y * scales[0])).rgb;
 				speculars[1] = tex2D(_Spec1, float2(uv.x * scales[1], uv.y * scales[1])).rgb;
 				speculars[2] = tex2D(_Spec2, float2(uv.x * scales[2], uv.y * scales[2])).rgb;
 				speculars[3] = tex2D(_Spec3, float2(uv.x * scales[3], uv.y * scales[3])).rgb;
 				speculars[4] = tex2D(_Spec4, float2(uv.x * scales[4], uv.y * scales[4])).rgb;
-				//speculars[5] = tex2D(_Spec5, float2(uv.x * scales[5], uv.y * scales[5])).rgb;
-				//speculars[MAX_SECTIONS] = tex2D(_RoadsSpec, float2(uv.x * scales[MAX_SECTIONS], uv.y * scales[MAX_SECTIONS])).rgb;
 			}
 			else {
 
@@ -385,11 +334,7 @@ Shader "Custom/CustomTerrainShader" {
 				rgbs[2] = _Color2.rgb;
 				rgbs[3] = _Color3.rgb;
 				rgbs[4] = _Color4.rgb;
-				//rgbs[5] = _Color5.rgb;
-				//rgbs[MAX_SECTIONS] = _RoadsColor.rgb;
 			}
-
-			//roadIntensity = tex2D(_RoadsMap, uv);
 		}
 
 
