@@ -8,7 +8,7 @@ public class MapDisplay : MonoBehaviour
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    [Range(2,10)]
+    [Range(2, 10)]
     public int NumberOfLods;
 
     //public enum DisplayMode { GreyScale, Colour, Textured };
@@ -99,7 +99,9 @@ public class MapDisplay : MonoBehaviour
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
 
-        Color[] colorMap = TextureGenerator.generateColorHeightMap(heightMap);
+        //Debug.Log("sector " + sector.position + "maps: " + width + "x" + height);
+
+        Color[] colorMap = TextureGenerator.generateColorHeightMap((float[,])heightMap.Clone());
         Color[] ColorAlphaMap = TextureGenerator.generateColorHeightMap(alphaMap);
 
         Color[] roadsMap = null;

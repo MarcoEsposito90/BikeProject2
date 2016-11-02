@@ -145,18 +145,14 @@ public class MapSector
 
         SubMeshHandler handler = prefabObject.GetComponent<SubMeshHandler>();
         updateMeshes(collider, mesh);
-        handler.setHeightMap(heightMap, size + 1);
-
-        for (int i = 0; i < alphaMaps.Count; i++)
-            handler.setAlphaTexture(alphaMaps[i], size + 1, i);
+        handler.setTextures(heightMap, alphaMaps, size + 1);
+        //handler.setAlphaTextures(alphaMaps, size + 1);
     }
 
 
     /* ------------------------------------------------------------------------------------------------- */
     public void updateMeshes(Mesh collider, Mesh mesh)
     {
-        if (collider != null)
-            Debug.Log("updating meshes for " + position + "; collider " + collider);
         SubMeshHandler handler = prefabObject.GetComponent<SubMeshHandler>();
         handler.setMeshes(collider, mesh);
     }

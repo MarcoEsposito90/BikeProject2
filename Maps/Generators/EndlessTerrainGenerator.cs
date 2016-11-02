@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class EndlessTerrainGenerator : MonoBehaviour
 {
-    [Range(1, 7)]
+    [Range(1, 3)]
     public int sectorDimension;
     public static int sectorSize
     {
@@ -70,7 +70,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     {
         mapSectors = new Dictionary<Vector2, MapSector>();
         LODThresholds = new float[mapDisplayer.NumberOfLods];
-        sectorSize = ((sectorDimension + 1) * 8);
+        sectorSize = ( (int)Mathf.Pow(2, sectorDimension) * 8);
         scaledChunkSize = sectorSize * scale;
         viewerDistanceUpdate = scaledChunkSize / (float)(viewerDistanceUpdateFrequency + 3);
 
@@ -208,12 +208,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
         if (sector.meshes[LOD] != null)
         {
             //Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
-            //sector.prefabObject.GetComponent<MeshFilter>().mesh = sector.meshes[LOD];
-
-            //sector.prefabObject.GetComponent<MeshCollider>().enabled = (LOD == 0);
-            //if (LOD == 0 && sector.meshes[colliderAccuracy] != null)
-            //    sector.prefabObject.GetComponent<MeshCollider>().sharedMesh = sector.meshes[colliderAccuracy];
-
             Mesh collider = null;
             if (LOD == 0 && sector.meshes[colliderAccuracy] != null)
                 collider = sector.meshes[colliderAccuracy];

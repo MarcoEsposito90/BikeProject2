@@ -97,11 +97,10 @@ Shader "Custom/CustomTerrainShader" {
 			//Tags { "RenderType" = "TransparentCutout" /*"Queue" = "Geometry-1" "IgnoreProjector" = "True" */}
 			//LOD 200
 
-			Tags{ "RenderType" = "TransparentCutout" }
-			//BlendOp Add	
+			Tags{ "RenderType" = "TransparentCutout" "Queue" = "AlphaTest" "IgnoreProjector" = "True" }
 			Blend OneMinusDstAlpha DstAlpha
 			//Lighting Off
-			//ZWrite Off
+			ZWrite On
 			LOD 200
 
 		CGPROGRAM
