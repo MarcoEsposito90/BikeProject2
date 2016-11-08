@@ -33,14 +33,12 @@ public class Graph<Key, Type>
     /* ----------------------------------------------------------------------------------------- */
     public GraphItem addItem(Key key, Type item, Dictionary<Key, Type> links)
     {
-
         GraphItem node = new GraphItem(item);
         lock (synchVariable)
         {
 
             if (!nodes.TryGetValue(key, out node))
                 node = new GraphItem(item);
-
 
             foreach (Key linkKey in links.Keys)
             {

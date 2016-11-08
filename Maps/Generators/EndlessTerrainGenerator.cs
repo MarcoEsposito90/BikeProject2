@@ -6,6 +6,8 @@ public class EndlessTerrainGenerator : MonoBehaviour
 {
     [Range(1, 3)]
     public int sectorDimension;
+    public static int sectorRate = 8;
+
     public static int sectorSize
     {
         get;
@@ -19,6 +21,9 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     [Range(1, 8)]
     public int subdivisions;
+    
+    [Range(2, 10)]
+    public int NumberOfLods;
 
     [Range(1, 5)]
     public int accuracy;
@@ -31,9 +36,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
     [Range(0, 2)]
     public int colliderAccuracy;
 
-    [Range(1, 5)]
-    public int textureSize;
-
     public Transform viewer;
     private Vector3 latestViewerRecordedPosition;
 
@@ -41,16 +43,20 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public int viewerDistanceUpdateFrequency;
     private float viewerDistanceUpdate;
 
-    public GameObject mapSectorPrefab;
     public Material terrainMaterial;
-
-    public bool singleChunk;
-
-    public MapDisplay mapDisplayer;
+    public GameObject mapSectorPrefab;
+    public GameObject roadPrefab;
+    public GameObject roadsContainer;
 
     private Dictionary<Vector2, MapSector> mapSectors;
     private PoolManager<Vector2> sectorsPoolManager;
+    public BlockingQueue<MapSector.SectorData> sectorResultsQueue;
+
+    private Dictionary<Road.Key, Road> roads;
+    private PoolManager<Road.Key> roadsPoolManager;
+
     public MapGenerator mapGenerator;
+    public RoadsGenerator roadsGenerator;
     public static float seedX, seedY;
 
 
@@ -68,9 +74,8 @@ public class EndlessTerrainGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     public void initialize()
     {
-        mapSectors = new Dictionary<Vector2, MapSector>();
-        LODThresholds = new float[mapDisplayer.NumberOfLods];
-        sectorSize = ( (int)Mathf.Pow(2, sectorDimension) * 8);
+        LODThresholds = new float[NumberOfLods];
+        sectorSize = ((int)Mathf.Pow(2, sectorDimension) * sectorRate);
         scaledChunkSize = sectorSize * scale;
         viewerDistanceUpdate = scaledChunkSize / (float)(viewerDistanceUpdateFrequency + 3);
 
@@ -82,8 +87,15 @@ public class EndlessTerrainGenerator : MonoBehaviour
         System.Random random = new System.Random();
         seedX = ((float)random.NextDouble()) * random.Next(100);
         seedY = ((float)random.NextDouble()) * random.Next(100);
-        sectorsPoolManager = new PoolManager<Vector2>(50, true, mapSectorPrefab, this.gameObject);
 
+        mapSectors = new Dictionary<Vector2, MapSector>();
+        sectorsPoolManager = new PoolManager<Vector2>(50, true, mapSectorPrefab, this.gameObject);
+        sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
+
+        roads = new Dictionary<Road.Key, Road>();
+        roadsPoolManager = new PoolManager<Road.Key>(200, true, roadPrefab, roadsContainer);
+
+        mapGenerator.parent = this;
     }
 
 
@@ -91,32 +103,26 @@ public class EndlessTerrainGenerator : MonoBehaviour
     void Start()
     {
         viewer.position = new Vector3(0, viewer.position.y, 0);
-
-        if (singleChunk)
-            createSector(0, 0);
-        else
-        {
-
-            createNewSectors();
-            updateSectors();
-        }
-        
+        createNewSectors();
+        updateSectors();
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
-        if (!singleChunk)
+        while (!sectorResultsQueue.isEmpty())
         {
-            float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
+            MapSector.SectorData data = sectorResultsQueue.Dequeue();
+            onSectorDataReceived(data);
+        }
 
-            if (distance >= viewerDistanceUpdate)
-            {
-                createNewSectors();
-                updateSectors();
-                latestViewerRecordedPosition = viewer.position;
-            }
+        float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
+        if (distance >= viewerDistanceUpdate)
+        {
+            createNewSectors();
+            updateSectors();
+            latestViewerRecordedPosition = viewer.position;
         }
     }
 
@@ -139,7 +145,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
                                 sectorSize,
                                 scale,
                                 subdivisions,
-                                mapDisplayer.NumberOfLods,
+                                NumberOfLods,
                                 newSectorObj);
 
         mapSectors.Add(sectorCenter, newSector);
@@ -151,6 +157,11 @@ public class EndlessTerrainGenerator : MonoBehaviour
             false,
             -1,
             onSectorDataReceived);
+
+        if (roadsGenerator != null)
+        {
+            roadsGenerator.requestRoadsData(newSector, onRoadDataReceived);
+        }
     }
 
 
@@ -315,7 +326,33 @@ public class EndlessTerrainGenerator : MonoBehaviour
         sector.currentLOD = sectorData.meshData.LOD;
     }
 
-   
 
-    
+    /* ----------------------------------------------------------------------------------------- */
+    public void onRoadDataReceived(Road.RoadData roadData)
+    {
+        Road r = null;
+        //Debug.Log("roadData received for " + roadData.sector.position);
+        Road.Key inverseKey = new Road.Key(roadData.key.end, roadData.key.start);
+        //Debug.Log("key = " + roadData.key.start + " - " + roadData.key.end + " | inverse = " + inverseKey.start + " - " + inverseKey.end);
+
+        if (roads.ContainsKey(roadData.key) || roads.ContainsKey(inverseKey))
+        {
+            Debug.Log("road exists");
+            if (!roads.TryGetValue(roadData.key, out r))
+            {
+                Debug.Log("road inv exists");
+                roads.TryGetValue(inverseKey, out r);
+            }
+        }
+        else
+        {
+            Debug.Log("road is new");
+            GameObject newRoadObj = roadsPoolManager.acquireObject(roadData.key);
+            r = new Road(roadData.sector, roadData.curve, newRoadObj, scale);
+            roads.Add(roadData.key, r);
+        }
+
+        r.setMesh(roadData.meshData.createMesh());
+    }
+
 }

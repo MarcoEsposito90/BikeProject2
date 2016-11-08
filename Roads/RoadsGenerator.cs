@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System;
+using System.Threading;
 
 public class RoadsGenerator : MonoBehaviour
 {
@@ -31,6 +33,7 @@ public class RoadsGenerator : MonoBehaviour
     public float maximumRoadsHeight;
 
     private Graph<Vector2, ControlPoint> controlPointsGraph;
+    private Queue<RoadsCallbackData> roadsQueue;
     private MapGenerator mapGenerator;
     private bool debug;
     #endregion
@@ -44,9 +47,29 @@ public class RoadsGenerator : MonoBehaviour
     void Awake()
     {
         controlPointsGraph = new Graph<Vector2, ControlPoint>();
+        roadsQueue = new Queue<RoadsCallbackData>();
         mapGenerator = this.GetComponent<MapGenerator>();
     }
 
+
+    void Update()
+    {
+        lock (roadsQueue)
+        {
+            for (int i = 0; i < roadsQueue.Count; i++)
+            {
+                RoadsCallbackData callbackData = roadsQueue.Dequeue();
+                callbackData.callback(callbackData.data);
+
+                /*  IMPORTANT INFO -------------------------------------------------------------
+                    the results are dequeued here in the update function, in order
+                    to use them in the main thread. This is necessary, since it is not
+                    possible to use them in secondary threads (for example, you cannot create
+                    a mesh) 
+                */
+            }
+        }
+    }
 
     #endregion
 
@@ -59,65 +82,57 @@ public class RoadsGenerator : MonoBehaviour
 
     #region METHODS
 
-    public Color[] generateRoads(float[,] map, MapSector sector)
+    public void requestRoadsData(MapSector sector, Action<Road.RoadData> callback)
     {
+        ThreadStart ts = delegate
+        {
+            generateRoads(sector, callback);
+        };
 
-        // 1) expand the graph -----------------------------------------------------------------------
+        Thread t = new Thread(ts);
+        t.Start();
+    }
+
+
+    /* --------------------------------------------------------------------------------------------- */
+    private void generateRoads(MapSector sector, Action<Road.RoadData> callback)
+    {
+        List<Road.RoadData> roadsDatas = new List<Road.RoadData>();
+
+        // 1) expand the graph - ----------------------------------------------------------------------
         debug = sector.position.Equals(new Vector2(0, 0));
         sector.roadsComputed = true;
         List<Graph<Vector2, ControlPoint>.GraphItem> graphItems = getGraphRoadsNodes(sector);
 
         // 2) compute the curves ---------------------------------------------------------------------
-        List<BezierCurve> curves = new List<BezierCurve>();
-        for (int i = 0; i < graphItems.Count; i++)
+        List<ICurve> curves = getCurves(graphItems);
+
+        // 3) generate meshes ------------------------------------------------------------------------
+        foreach (ICurve c in curves)
         {
-            Graph<Vector2, ControlPoint>.GraphItem gi = graphItems[i];
+            RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateRoadMeshData(c);
+            Road.Key key = new Road.Key(c.startPoint(), c.endPoint());
+            Road.RoadData data = new Road.RoadData(rmd, key, sector, c);
+            roadsDatas.Add(data);
+        }
 
-            float noiseValue = Noise.getNoiseValue(mapGenerator.noiseScale,
-                                    gi.item.position.x + mapGenerator.offsetX,
-                                    gi.item.position.y + mapGenerator.offsetY,
-                                    mapGenerator.numberOfFrequencies,
-                                    mapGenerator.frequencyMultiplier,
-                                    mapGenerator.amplitudeDemultiplier);
-
-            if (noiseValue >= maximumRoadsHeight || noiseValue <= minimumRoadsHeight)
-                continue;
-
-            for (int j = 0; j < gi.links.Count; j++)
+        // 4) enqueue results ------------------------------------------------------------------------
+        lock (roadsQueue)
+        {
+            foreach (Road.RoadData rd in roadsDatas)
             {
-                Graph<Vector2, ControlPoint>.GraphItem gj = gi.links[j];
-
-                noiseValue = Noise.getNoiseValue(mapGenerator.noiseScale,
-                                gj.item.position.x + mapGenerator.offsetX,
-                                gj.item.position.y + mapGenerator.offsetY,
-                                mapGenerator.numberOfFrequencies,
-                                mapGenerator.frequencyMultiplier,
-                                mapGenerator.amplitudeDemultiplier);
-
-                if (noiseValue <= minimumRoadsHeight || noiseValue >= maximumRoadsHeight)
-                    continue;
-
-                ControlPoint startTangent = computeTangent(gi, gj);
-                ControlPoint endTangent = computeTangent(gj, gi);
-                BezierCurve c = new BezierCurve(gi.item, startTangent, gj.item, endTangent);
-                curves.Add(c);
+                roadsQueue.Enqueue(new RoadsCallbackData(rd, callback));
             }
         }
 
-        // 3) map filtering 
-        //modifyHeightMap(map, sector, curves);
-        float[,] roadsMap = generateRoadsMap(map.GetLength(0), map.GetLength(1), sector, curves);
-        Color[] roadsColorMap = TextureGenerator.generateColorHeightMap(roadsMap);
-        //Debug.Log("roadsColorMap for " + sector.position + ": " + roadsColorMap.Length);
-        return roadsColorMap;
     }
 
     #endregion  // METHODS
 
 
-    /* ------------------------------------------------------------------------------------------------- */
-    /* -------------------------------- ROADS CREATION ------------------------------------------------- */
-    /* ------------------------------------------------------------------------------------------------- */
+    /* --------------------------------------------------------------------------------------------- */
+    /* -------------------------------- ROADS CREATION --------------------------------------------- */
+    /* --------------------------------------------------------------------------------------------- */
 
     #region ROADS
 
@@ -150,6 +165,52 @@ public class RoadsGenerator : MonoBehaviour
         }
 
         return graphItems;
+    }
+
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public List<ICurve> getCurves(List<Graph<Vector2, ControlPoint>.GraphItem> graphItems)
+    {
+        List<ICurve> curves = new List<ICurve>();
+        for (int i = 0; i < graphItems.Count; i++)
+        {
+            Graph<Vector2, ControlPoint>.GraphItem gi = graphItems[i];
+
+            float noiseValue = Noise.getNoiseValue(mapGenerator.noiseScale,
+                                    gi.item.position.x + mapGenerator.offsetX,
+                                    gi.item.position.y + mapGenerator.offsetY,
+                                    mapGenerator.numberOfFrequencies,
+                                    mapGenerator.frequencyMultiplier,
+                                    mapGenerator.amplitudeDemultiplier);
+
+            if (noiseValue >= maximumRoadsHeight || noiseValue <= minimumRoadsHeight)
+                continue;
+
+            for (int j = 0; j < gi.links.Count; j++)
+            {
+                Graph<Vector2, ControlPoint>.GraphItem gj = gi.links[j];
+                
+                noiseValue = Noise.getNoiseValue(mapGenerator.noiseScale,
+                                gj.item.position.x + mapGenerator.offsetX,
+                                gj.item.position.y + mapGenerator.offsetY,
+                                mapGenerator.numberOfFrequencies,
+                                mapGenerator.frequencyMultiplier,
+                                mapGenerator.amplitudeDemultiplier);
+
+                if (noiseValue <= minimumRoadsHeight || noiseValue >= maximumRoadsHeight)
+                    continue;
+
+                ControlPoint startTangent = computeTangent(gi, gj);
+                ControlPoint endTangent = computeTangent(gj, gi);
+                BezierCurve c = new BezierCurve(gi.item, startTangent, gj.item, endTangent);
+                //Debug.Log("curve from " + gi.item.position + " to " + gj.item.position + " / " + c.startPoint() + " - " + c.endPoint());
+
+                curves.Add(c);
+            }
+        }
+
+
+        return curves;
     }
 
 
@@ -193,23 +254,15 @@ public class RoadsGenerator : MonoBehaviour
 
     #endregion
 
-    /* ------------------------------------------------------------------------------------------------- */
-    /* -------------------------------- MAP FILTERING -------------------------------------------------- */
-    /* ------------------------------------------------------------------------------------------------- */
+    /* --------------------------------------------------------------------------------------------- */
+    /* -------------------------------- MAP FILTERING ---------------------------------------------- */
+    /* --------------------------------------------------------------------------------------------- */
 
     #region ROADS_MAP
 
-    private void modifyHeightMap(float[,] map, MapSector chunk, List<BezierCurve> curves)
-    {
-
-        foreach (BezierCurve c in curves)
-            MapProcessing.medianFilter(map, chunk, c, roadsWidth, roadsFlattening, mapGenerator);
-        
-    }
-
 
     /* ------------------------------------------------------------------------------------------------- */
-    public float[,] generateRoadsMap(int width, int height, MapSector sector, List<BezierCurve> curves)
+    public float[,] generateRoadsMap(int width, int height, MapSector sector, List<ICurve> curves)
     {
         float[,] roadsMap = new float[width, height];
 
@@ -217,7 +270,7 @@ public class RoadsGenerator : MonoBehaviour
             for (int y = 0; y < height; y++)
                 roadsMap[x, y] = 0;
 
-        foreach (BezierCurve curve in curves)
+        foreach (ICurve curve in curves)
         {
             for (float t = 0.0f; t <= 1.0f; t += 0.01f)
             {
@@ -249,25 +302,26 @@ public class RoadsGenerator : MonoBehaviour
 
     #endregion
 
-    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
-    /* ///-------------------------------------------------------------------------------------------/// */
-    /* ///----------------------------- SUBCLASSES --------------------------------------------------/// */
-    /* ///-------------------------------------------------------------------------------------------/// */
-    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
 
-    public struct CurveSegmentId
+    /* ///////////////////////////////////////////////////////////////////////////////////////////// */
+    /* ///---------------------------------------------------------------------------------------/// */
+    /* ///----------------------------- SUBCLASSES ----------------------------------------------/// */
+    /* ///---------------------------------------------------------------------------------------/// */
+    /* ///////////////////////////////////////////////////////////////////////////////////////////// */
+
+    #region SUBCLASSES
+
+    public struct RoadsCallbackData
     {
-        ControlPoint start;
-        ControlPoint end;
+        public readonly Road.RoadData data;
+        public readonly Action<Road.RoadData> callback;
 
-        public CurveSegmentId(ControlPoint start, ControlPoint end)
+        public RoadsCallbackData(Road.RoadData data, Action<Road.RoadData> callback)
         {
-            this.start = start;
-            this.end = end;
+            this.data = data;
+            this.callback = callback;
         }
     }
 
-
-
-    
+    #endregion
 }

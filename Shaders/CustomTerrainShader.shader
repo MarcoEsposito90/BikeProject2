@@ -98,10 +98,15 @@ Shader "Custom/CustomTerrainShader" {
 			//LOD 200
 
 			Tags{ "RenderType" = "TransparentCutout" "Queue" = "Geometry" "IgnoreProjector" = "True" }
-			Blend OneMinusDstAlpha DstAlpha
-			//Lighting Off
+			Blend SrcAlpha OneMinusSrcAlpha
 			ZWrite On
 			LOD 200
+
+		//Stencil{
+		//	Ref 0
+		//	Comp equal
+		//	
+		//}
 
 		CGPROGRAM
 		// Physically based Standard lighting model, and enable shadows on all light types

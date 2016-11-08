@@ -135,6 +135,7 @@ public static class MeshGenerator
         /* -------------- MESH GENERATION --------------------------------------------------------- */
         public Mesh createMesh()
         {
+            // this method can be called only on the main thread
             Mesh mesh = new Mesh();
 
             mesh.vertices = vertices;

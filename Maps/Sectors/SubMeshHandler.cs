@@ -5,36 +5,72 @@ using System.Collections.Generic;
 public class SubMeshHandler : MonoBehaviour {
 
     public GameObject[] children;
+
+    public bool waterEnabled;
+    public GameObject water;
     public Material[] materials;
+
+    [Range(0, 10)]
+    public int minimumLODObjectsVisibility;
+
     private bool hasHeightMap;
     private int texturesSize;
+    private int sectorDimension;
+
+    private int _currentLOD;
+    public int currentLOD
+    {
+        get { return _currentLOD; }
+        set
+        {
+            _currentLOD = value;
+            //Debug.Log("currentLOD = " + _currentLOD + ". setting visibility to " + (_currentLOD <= minimumLODObjectsVisibility));
+            setObjectsVisibility(_currentLOD <= minimumLODObjectsVisibility);
+        }
+    }
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- UNITY -------------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
 
     #region UNITY
 
-    // Use this for initialization
-    void Start () {
-
-        hasHeightMap = false;
+    /* ----------------------------------------------------------------------------------------- */
+    void Start ()
+    {
         texturesSize = EndlessTerrainGenerator.sectorSize + 1;
+        Vector3 scale = water.transform.localScale;
+        scale *= (float)EndlessTerrainGenerator.sectorRate / 2;
+        water.transform.localScale = scale;
+    }
 
 
+    /* ----------------------------------------------------------------------------------------- */
+    void OnEnable()
+    {
+        hasHeightMap = false;
+        setObjectsVisibility(false);
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    void Update ()
+    {
 
     }
 
-    // Update is called once per frame
-    void Update () {
-	
-	}
-
     #endregion
 
+    /* ----------------------------------------------------------------------------------------- */
+    /* ----------------------- MESHES AND TEXTURES --------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
 
-
-    #region METHODS
+    #region MESHES_TEXTURES
 
     /* ------------------------------------------------------------------------------------------- */
     public void setMeshes(Mesh colliderMesh, Mesh mesh)
     {
+
         if (colliderMesh != null)
         {
             GetComponent<MeshCollider>().sharedMesh = colliderMesh;
@@ -92,6 +128,16 @@ public class SubMeshHandler : MonoBehaviour {
         hasHeightMap = false;
     }
 
-
     #endregion
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* ----------------------- OBJECTS HANDLING ------------------------------------------------ */
+    /* ----------------------------------------------------------------------------------------- */
+
+    private void setObjectsVisibility(bool visibility)
+    {
+        if(waterEnabled)
+            water.SetActive(visibility);
+    }
 }

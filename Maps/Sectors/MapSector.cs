@@ -53,10 +53,16 @@ public class MapSector
         private set;
     }
 
+    private int _currentLOD;
     public int currentLOD
     {
-        get;
-        set;
+        get { return _currentLOD;  }
+        set
+        {
+            _currentLOD = value;
+            if(prefabObject != null)
+                prefabObject.GetComponent<SubMeshHandler>().currentLOD = _currentLOD;
+        }
     }
 
     public int latestLODRequest
@@ -227,12 +233,12 @@ public class MapSector
         public readonly MeshGenerator.MeshData colliderMeshData;
         public readonly Color[] colorMap;
         public readonly Color[] alphaMap;
-        public readonly Color[] roadsMap;
+        //public readonly Color[] roadsMap;
 
-        public SectorData(int LOD, MeshGenerator.MeshData meshData, MeshGenerator.MeshData colliderMeshData, Color[] colorMap, Color[] roadsMap, Color[] alphaMap)
+        public SectorData(int LOD, MeshGenerator.MeshData meshData, MeshGenerator.MeshData colliderMeshData, Color[] colorMap, Color[] alphaMap)
         {
             this.meshData = meshData;
-            this.roadsMap = roadsMap;
+            //this.roadsMap = roadsMap;
             this.colorMap = colorMap;
             this.alphaMap = alphaMap;
             this.colliderMeshData = colliderMeshData;
