@@ -14,7 +14,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
         private set;
     }
 
-    private static int scaledChunkSize;
+    private int scaledChunkSize;
 
     [Range(1, 10)]
     public int scale;
@@ -45,18 +45,20 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     public Material terrainMaterial;
     public GameObject mapSectorPrefab;
-    public GameObject roadPrefab;
-    public GameObject roadsContainer;
+    //public GameObject roadPrefab;
+    //public GameObject roadsContainer;
 
     private Dictionary<Vector2, MapSector> mapSectors;
     private PoolManager<Vector2> sectorsPoolManager;
     public BlockingQueue<MapSector.SectorData> sectorResultsQueue;
 
-    private Dictionary<Road.Key, Road> roads;
-    private PoolManager<Road.Key> roadsPoolManager;
+    //private Dictionary<Road.Key, Road> roads;
+    //private PoolManager<Road.Key> roadsPoolManager;
 
+    public GameObject sectorsContainer;
     public MapGenerator mapGenerator;
-    public RoadsGenerator roadsGenerator;
+    public EndlessRoadsGenerator roadsGenerator;
+    //public RoadsGenerator roadsGenerator;
     public static float seedX, seedY;
 
 
@@ -89,13 +91,14 @@ public class EndlessTerrainGenerator : MonoBehaviour
         seedY = ((float)random.NextDouble()) * random.Next(100);
 
         mapSectors = new Dictionary<Vector2, MapSector>();
-        sectorsPoolManager = new PoolManager<Vector2>(50, true, mapSectorPrefab, this.gameObject);
+        sectorsPoolManager = new PoolManager<Vector2>(50, true, mapSectorPrefab, sectorsContainer);
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
 
-        roads = new Dictionary<Road.Key, Road>();
-        roadsPoolManager = new PoolManager<Road.Key>(200, true, roadPrefab, roadsContainer);
+        //roads = new Dictionary<Road.Key, Road>();
+        //roadsPoolManager = new PoolManager<Road.Key>(200, true, roadPrefab, roadsContainer);
 
-        mapGenerator.parent = this;
+        //mapGenerator.parent = this;
+        roadsGenerator.initialize(sectorSize, scale, viewerDistanceUpdate, viewer, LODThresholds);
     }
 
 
@@ -155,13 +158,12 @@ public class EndlessTerrainGenerator : MonoBehaviour
             (newSector,
             LODThresholds.Length - 1,
             false,
-            -1,
-            onSectorDataReceived);
+            -1);
 
-        if (roadsGenerator != null)
-        {
-            roadsGenerator.requestRoadsData(newSector, onRoadDataReceived);
-        }
+        //if (roadsGenerator != null)
+        //{
+        //    roadsGenerator.requestRoadsData(newSector, onRoadDataReceived);
+        //}
     }
 
 
@@ -233,8 +235,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
             (sector,
             LOD,
             colliderRequested,
-            colliderAccuracy,
-            onSectorDataReceived);
+            colliderAccuracy);
     }
 
 
@@ -328,31 +329,31 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
 
     /* ----------------------------------------------------------------------------------------- */
-    public void onRoadDataReceived(Road.RoadData roadData)
-    {
-        Road r = null;
-        //Debug.Log("roadData received for " + roadData.sector.position);
-        Road.Key inverseKey = new Road.Key(roadData.key.end, roadData.key.start);
-        //Debug.Log("key = " + roadData.key.start + " - " + roadData.key.end + " | inverse = " + inverseKey.start + " - " + inverseKey.end);
+    //public void onRoadDataReceived(Road.RoadData roadData)
+    //{
+    //    Road r = null;
+    //    //Debug.Log("roadData received for " + roadData.sector.position);
+    //    Road.Key inverseKey = new Road.Key(roadData.key.end, roadData.key.start);
+    //    //Debug.Log("key = " + roadData.key.start + " - " + roadData.key.end + " | inverse = " + inverseKey.start + " - " + inverseKey.end);
 
-        if (roads.ContainsKey(roadData.key) || roads.ContainsKey(inverseKey))
-        {
-            Debug.Log("road exists");
-            if (!roads.TryGetValue(roadData.key, out r))
-            {
-                Debug.Log("road inv exists");
-                roads.TryGetValue(inverseKey, out r);
-            }
-        }
-        else
-        {
-            Debug.Log("road is new");
-            GameObject newRoadObj = roadsPoolManager.acquireObject(roadData.key);
-            r = new Road(roadData.sector, roadData.curve, newRoadObj, scale);
-            roads.Add(roadData.key, r);
-        }
+    //    if (roads.ContainsKey(roadData.key) || roads.ContainsKey(inverseKey))
+    //    {
+    //        Debug.Log("road exists");
+    //        if (!roads.TryGetValue(roadData.key, out r))
+    //        {
+    //            Debug.Log("road inv exists");
+    //            roads.TryGetValue(inverseKey, out r);
+    //        }
+    //    }
+    //    else
+    //    {
+    //        Debug.Log("road is new");
+    //        GameObject newRoadObj = roadsPoolManager.acquireObject(roadData.key);
+    //        r = new Road(roadData.curve, newRoadObj, scale);
+    //        roads.Add(roadData.key, r);
+    //    }
 
-        r.setMesh(roadData.meshData.createMesh());
-    }
+    //    r.setMesh(roadData.meshData.createMesh());
+    //}
 
 }

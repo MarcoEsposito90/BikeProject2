@@ -6,8 +6,8 @@ public static class MeshGenerator
 
     public static MeshData generateMesh
         (float[,] noiseMap,
-        AnimationCurve _meshHeightCurve, 
-        float heightMultiplier, 
+        AnimationCurve _meshHeightCurve,
+        float heightMultiplier,
         int LOD)
     {
 
@@ -29,6 +29,7 @@ public static class MeshGenerator
             for (y = 0; y < height; y += increment)
             {
                 float h = meshHeightCurve.Evaluate(noiseMap[x, y]) * heightMultiplier;
+                //float h = heightMultiplier * noiseMap[x, y];
                 Vector3 vertex = new Vector3(topLeftX + x, h, topLeftZ - y);
                 meshData.vertices[vertexIndex++] = vertex;
             }
@@ -40,7 +41,7 @@ public static class MeshGenerator
     public static MeshData generateMesh(int width, int height)
     {
 
-        float topLeftX = - width / 2.0f;
+        float topLeftX = -width / 2.0f;
         float topLeftZ = height / 2.0f;
 
         MeshData meshData = new MeshData(2, 2, 0);
@@ -86,7 +87,7 @@ public static class MeshGenerator
             this.height = height / (int)Mathf.Pow(2, LOD) + a;
 
             vertices = new Vector3[width * height];
-            triangles = new int[(width-1) * (height-1) * 6];
+            triangles = new int[(width - 1) * (height - 1) * 6];
             uvs = new Vector2[width * height];
 
             for (int y = 0; y < this.height; y++)
@@ -105,7 +106,7 @@ public static class MeshGenerator
                 return;
 
             int vertexIndex = x * width + y;
-            int triangleIndex = (x * (width-1) + y) * 6;
+            int triangleIndex = (x * (width - 1) + y) * 6;
 
             if (triangleIndex >= triangles.Length)
                 return;
@@ -129,7 +130,7 @@ public static class MeshGenerator
             if (index >= uvs.Length)
                 return;
 
-            uvs[index] = new Vector2( x / (float)(width-1), y / (float)(height-1));
+            uvs[index] = new Vector2(x / (float)(width - 1), y / (float)(height - 1));
         }
 
         /* -------------- MESH GENERATION --------------------------------------------------------- */

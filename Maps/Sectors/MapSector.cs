@@ -86,7 +86,7 @@ public class MapSector
     public float[,] heightMap = null;
     public float[,] alphaMap = null;
 
-    public Dictionary<Vector2, Quadrant> quadrants;
+    //public Dictionary<Vector2, Quadrant> quadrants;
 
     public bool roadsComputed;
     public bool mapComputed;
@@ -120,15 +120,15 @@ public class MapSector
         this.prefabObject = prefabObject;
         initializePrefabObject(x, y);
 
-        quadrants = new Dictionary<Vector2, Quadrant>();
-        createQuadrants();
+        //quadrants = new Dictionary<Vector2, Quadrant>();
+        //createQuadrants();
     }
 
     #endregion
 
 
     /* ------------------------------------------------------------------------------------------------- */
-    /* -------------------------------- METHODS -------------------------------------------------------- */
+    /* -------------------------------- PREFAB MANAGING ------------------------------------------------ */
     /* ------------------------------------------------------------------------------------------------- */
 
     #region METHODS
@@ -152,7 +152,6 @@ public class MapSector
         SubMeshHandler handler = prefabObject.GetComponent<SubMeshHandler>();
         updateMeshes(collider, mesh);
         handler.setTextures(heightMap, alphaMaps, size + 1);
-        //handler.setAlphaTextures(alphaMaps, size + 1);
     }
 
 
@@ -167,10 +166,6 @@ public class MapSector
     /* ------------------------------------------------------------------------------------------------- */
     public void resetPrefabObject()
     {
-        //prefabObject.GetComponent<MeshFilter>().mesh = null;
-        //prefabObject.GetComponent<Renderer>().sharedMaterial.mainTexture = null;
-        //prefabObject.GetComponent<MeshCollider>().sharedMesh = null;
-        //prefabObject.GetComponent<MeshCollider>().enabled = false;
         prefabObject.GetComponent<SubMeshHandler>().reset();
 
         prefabObject.transform.position = Vector3.zero;
@@ -192,28 +187,28 @@ public class MapSector
 
 
     /* ------------------------------------------------------------------------------------------------- */
-    public void createQuadrants()
-    {
-        int quadrantWidth = (int)(size / (float)subdivisions);
-        int quadrantHeight = (int)(size / (float)subdivisions);
+    //public void createQuadrants()
+    //{
+    //    int quadrantWidth = (int)(size / (float)subdivisions);
+    //    int quadrantHeight = (int)(size / (float)subdivisions);
 
-        for (int j = 0; j < subdivisions; j++)
-        {
-            for (int i = 0; i < subdivisions; i++)
-            {
-                // 1) compute normalized coordinates of quadrant -------------
-                float quadrantX = (position.x - 0.5f + (1.0f / (float)subdivisions) * i);
-                float quadrantY = (position.y - 0.5f + (1.0f / (float)subdivisions) * j);
+    //    for (int j = 0; j < subdivisions; j++)
+    //    {
+    //        for (int i = 0; i < subdivisions; i++)
+    //        {
+    //            // 1) compute normalized coordinates of quadrant -------------
+    //            float quadrantX = (position.x - 0.5f + (1.0f / (float)subdivisions) * i);
+    //            float quadrantY = (position.y - 0.5f + (1.0f / (float)subdivisions) * j);
 
-                Vector2 quadrantCoordinates = new Vector2(quadrantX, quadrantY);
-                Vector2 localCoordinates = new Vector2(i, j);
+    //            Vector2 quadrantCoordinates = new Vector2(quadrantX, quadrantY);
+    //            Vector2 localCoordinates = new Vector2(i, j);
 
-                // 1) create quadrant and add it to list ---------------------
-                Quadrant q = new Quadrant(new Vector2(i, j), quadrantCoordinates, quadrantWidth, quadrantHeight, this.subdivisions);
-                quadrants.Add(localCoordinates, q);
-            }
-        }
-    }
+    //            // 1) create quadrant and add it to list ---------------------
+    //            Quadrant q = new Quadrant(new Vector2(i, j), quadrantCoordinates, quadrantWidth, quadrantHeight, this.subdivisions);
+    //            quadrants.Add(localCoordinates, q);
+    //        }
+    //    }
+    //}
 
 
     #endregion

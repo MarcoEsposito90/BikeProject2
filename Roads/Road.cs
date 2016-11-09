@@ -4,15 +4,15 @@ using System;
 
 public class Road {
 
+    public ControlPoint start;
+    public ControlPoint end;
     public ICurve curve;
-    public MapSector sector;
     public GameObject prefab;
     public int scale;
 
-
-    public Road(MapSector sector, ICurve curve, GameObject prefab, int scale)
+    public Road(ICurve curve, GameObject prefab, int scale)
     {
-        this.sector = sector;
+
         this.curve = curve;
         this.prefab = prefab;
         this.scale = scale;
@@ -31,33 +31,31 @@ public class Road {
 
 
     /* ----------------------------------------------------------------------------------- */
-    public class Key
-    {
-        public readonly Vector2 start;
-        public readonly Vector2 end;
+    //public class Key
+    //{
+    //    public readonly Vector2 start;
+    //    public readonly Vector2 end;
 
-        public Key(Vector2 start, Vector2 end)
-        {
-            this.start = start;
-            this.end = end;
-        }
+    //    public Key(Vector2 start, Vector2 end)
+    //    {
+    //        this.start = start;
+    //        this.end = end;
+    //    }
         
-    }
+    //}
 
 
     /* ----------------------------------------------------------------------------------- */
     public class RoadData
     {
         public RoadMeshGenerator.RoadMeshData meshData;
-        public Key key;
-        public MapSector sector;
+        public Graph<Vector2,ControlPoint>.Link key;
         public ICurve curve;
 
-        public RoadData(RoadMeshGenerator.RoadMeshData meshData, Key key, MapSector sector, ICurve curve)
+        public RoadData(RoadMeshGenerator.RoadMeshData meshData, Graph<Vector2, ControlPoint>.Link key, ICurve curve)
         {
             this.key = key;
             this.meshData = meshData;
-            this.sector = sector;
             this.curve = curve;
         }
     }

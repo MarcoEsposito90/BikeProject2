@@ -5,16 +5,16 @@ using System;
 public class BezierCurve : ICurve
 {
 
-    public ControlPoint start;
-    public ControlPoint startTangent;
-    public ControlPoint end;
-    public ControlPoint endTangent;
+    public Vector2 start;
+    public Vector2 startTangent;
+    public Vector2 end;
+    public Vector2 endTangent;
     public float ax, bx, cx, ay, by, cy;
     public const int lengthSamplesNumber = 20;
     public float archLength;
     public float[] lengthSamples;
 
-    public BezierCurve(ControlPoint start, ControlPoint startTangent, ControlPoint end, ControlPoint endTangent)
+    public BezierCurve(Vector2 start, Vector2 startTangent, Vector2 end, Vector2 endTangent)
     {
         this.start = start;
         this.end = end;
@@ -29,14 +29,14 @@ public class BezierCurve : ICurve
     /* ---------------------------------------------------------------- */
     private void computeBezierCoefficients()
     {
-        cx = 3.0f * (startTangent.position.x - start.position.x);
-        cy = 3.0f * (startTangent.position.y - start.position.y);
+        cx = 3.0f * (startTangent.x - start.x);
+        cy = 3.0f * (startTangent.y - start.y);
 
-        bx = 3.0f * (endTangent.position.x - startTangent.position.x) - cx;
-        by = 3.0f * (endTangent.position.y - startTangent.position.y) - cy;
+        bx = 3.0f * (endTangent.x - startTangent.x) - cx;
+        by = 3.0f * (endTangent.y - startTangent.y) - cy;
 
-        ax = end.position.x - start.position.x - cx - bx;
-        ay = end.position.y - start.position.y - cy - by;
+        ax = end.x - start.x - cx - bx;
+        ay = end.y - start.y - cy - by;
     }
 
 
@@ -72,8 +72,8 @@ public class BezierCurve : ICurve
         if (t < 0) t = 0;
         if (t > 1) t = 1;
 
-        float x = ax * Mathf.Pow(t, 3) + bx * Mathf.Pow(t, 2) + cx * t + start.position.x;
-        float y = ay * Mathf.Pow(t, 3) + by * Mathf.Pow(t, 2) + cy * t + start.position.y;
+        float x = ax * Mathf.Pow(t, 3) + bx * Mathf.Pow(t, 2) + cx * t + start.x;
+        float y = ay * Mathf.Pow(t, 3) + by * Mathf.Pow(t, 2) + cy * t + start.y;
         return new Vector2(x, y);
     }
 
@@ -155,12 +155,12 @@ public class BezierCurve : ICurve
     /* ---------------------------------------------------------------- */
     public Vector2 startPoint()
     {
-        return start.position;
+        return start;
     }
 
     /* ---------------------------------------------------------------- */
     public Vector2 endPoint()
     {
-        return end.position;
+        return end;
     }
 }

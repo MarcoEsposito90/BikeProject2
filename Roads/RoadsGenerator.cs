@@ -12,16 +12,16 @@ public class RoadsGenerator : MonoBehaviour
 
     #region ATTRIBUTES
 
-    [Range(0, 200)]
-    public int sinuosity;
+    //[Range(0, 200)]
+    //public int sinuosity;
 
-    public Quadrant.Neighborhood neighborhood;
+    public ControlPoint.Neighborhood neighborhood;
 
-    [Range(0, 10)]
-    public int roadsWidth;
+    //[Range(0, 10)]
+    //public int roadsWidth;
 
-    [Range(10, 50)]
-    public int roadsFlattening;
+    //[Range(10, 50)]
+    //public int roadsFlattening;
 
     [Range(1.0f, 2.0f)]
     public float maximumSegmentLength;
@@ -32,10 +32,13 @@ public class RoadsGenerator : MonoBehaviour
     [Range(0.5f, 1.0f)]
     public float maximumRoadsHeight;
 
+    public EndlessRoadsGenerator parent;
+
     private Graph<Vector2, ControlPoint> controlPointsGraph;
-    private Queue<RoadsCallbackData> roadsQueue;
-    private MapGenerator mapGenerator;
-    private bool debug;
+    private Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve> curves;
+    private bool initialized;
+    private object synchVariable;
+    private float maxLength;
     #endregion
 
     /* ------------------------------------------------------------------------------------------------- */
@@ -46,29 +49,15 @@ public class RoadsGenerator : MonoBehaviour
 
     void Awake()
     {
+        initialized = false;
+        synchVariable = new object();
         controlPointsGraph = new Graph<Vector2, ControlPoint>();
-        roadsQueue = new Queue<RoadsCallbackData>();
-        mapGenerator = this.GetComponent<MapGenerator>();
+        curves = new Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve>();
     }
 
 
     void Update()
     {
-        lock (roadsQueue)
-        {
-            for (int i = 0; i < roadsQueue.Count; i++)
-            {
-                RoadsCallbackData callbackData = roadsQueue.Dequeue();
-                callbackData.callback(callbackData.data);
-
-                /*  IMPORTANT INFO -------------------------------------------------------------
-                    the results are dequeued here in the update function, in order
-                    to use them in the main thread. This is necessary, since it is not
-                    possible to use them in secondary threads (for example, you cannot create
-                    a mesh) 
-                */
-            }
-        }
     }
 
     #endregion
@@ -82,246 +71,190 @@ public class RoadsGenerator : MonoBehaviour
 
     #region METHODS
 
-    public void requestRoadsData(MapSector sector, Action<Road.RoadData> callback)
+    /* -------------------------------------------------------------------------------------- */
+    /* -------------------------------- CONTROL POINTS -------------------------------------- */
+    /* -------------------------------------------------------------------------------------- */
+
+    #region CONTROL_POINTS
+
+    public void sendNewControlPoint(ControlPoint cp)
     {
         ThreadStart ts = delegate
         {
-            generateRoads(sector, callback);
+            lock (synchVariable)
+            {
+                addControlPoint(cp);
+            }
         };
 
         Thread t = new Thread(ts);
         t.Start();
     }
 
-
-    /* --------------------------------------------------------------------------------------------- */
-    private void generateRoads(MapSector sector, Action<Road.RoadData> callback)
+    /* -------------------------------------------------------------------------------------- */
+    private void addControlPoint(ControlPoint cp)
     {
-        List<Road.RoadData> roadsDatas = new List<Road.RoadData>();
-
-        // 1) expand the graph - ----------------------------------------------------------------------
-        debug = sector.position.Equals(new Vector2(0, 0));
-        sector.roadsComputed = true;
-        List<Graph<Vector2, ControlPoint>.GraphItem> graphItems = getGraphRoadsNodes(sector);
-
-        // 2) compute the curves ---------------------------------------------------------------------
-        List<ICurve> curves = getCurves(graphItems);
-
-        // 3) generate meshes ------------------------------------------------------------------------
-        foreach (ICurve c in curves)
+        if (!initialized)
         {
-            RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateRoadMeshData(c);
-            Road.Key key = new Road.Key(c.startPoint(), c.endPoint());
-            Road.RoadData data = new Road.RoadData(rmd, key, sector, c);
-            roadsDatas.Add(data);
+            maxLength = maximumSegmentLength * cp.AreaSize;
+            initialized = true;
         }
 
-        // 4) enqueue results ------------------------------------------------------------------------
-        lock (roadsQueue)
+        // add point to graph --------------------------------------
+        Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph.createItem(cp.gridPosition, cp);
+
+        // check if the point is not on water or on mountains ------
+        float noiseValue = NoiseGenerator.Instance.getNoiseValue(
+            1,
+            gi.item.position.x,
+            gi.item.position.y);
+
+        bool linkable = noiseValue < maximumRoadsHeight && noiseValue > minimumRoadsHeight;
+        cp.linkable = linkable;
+        if (!linkable)
+            return;
+
+        //Debug.Log("point " + cp.gridPosition + " is linkable");
+
+        // if the point is linkable to others, we will get here ----
+
+        // create links (if possible) ------------------------------
+        foreach (Vector2 target in cp.getNeighborsGridPositions(neighborhood))
         {
-            foreach (Road.RoadData rd in roadsDatas)
+            if (controlPointsGraph.containsItem(target))
             {
-                roadsQueue.Enqueue(new RoadsCallbackData(rd, callback));
-            }
-        }
-
-    }
-
-    #endregion  // METHODS
-
-
-    /* --------------------------------------------------------------------------------------------- */
-    /* -------------------------------- ROADS CREATION --------------------------------------------- */
-    /* --------------------------------------------------------------------------------------------- */
-
-    #region ROADS
-
-    private List<Graph<Vector2, ControlPoint>.GraphItem> getGraphRoadsNodes(MapSector chunk)
-    {
-        List<Graph<Vector2, ControlPoint>.GraphItem> graphItems = new List<Graph<Vector2, ControlPoint>.GraphItem>();
-        float maxLength = maximumSegmentLength * (chunk.size / (float)chunk.subdivisions);
-
-        foreach (Quadrant q in chunk.quadrants.Values)
-        {
-            foreach (Quadrant neighbor in q.getNeighbors(neighborhood))
-            {
-                Dictionary<Vector2, ControlPoint> pointsToLink = new Dictionary<Vector2, ControlPoint>();
-                List<ControlPoint> neighborPoints = neighbor.getNeighborsPoints(neighborhood);
-
-                for (int i = 0; i < neighborPoints.Count; i++)
-                {
-                    ControlPoint cp = neighborPoints[i];
-
-                    if (cp.distance(neighbor.roadsControlPoint) < maxLength)
-                        pointsToLink.Add(cp.position, cp);
-                }
-
-                Graph<Vector2, ControlPoint>.GraphItem item = controlPointsGraph.addItem(neighbor.roadsControlPoint.position,
-                                                                                        neighbor.roadsControlPoint,
-                                                                                        pointsToLink);
-                graphItems.Add(item);
-            }
-
-        }
-
-        return graphItems;
-    }
-
-
-    /* ------------------------------------------------------------------------------------------------- */
-    public List<ICurve> getCurves(List<Graph<Vector2, ControlPoint>.GraphItem> graphItems)
-    {
-        List<ICurve> curves = new List<ICurve>();
-        for (int i = 0; i < graphItems.Count; i++)
-        {
-            Graph<Vector2, ControlPoint>.GraphItem gi = graphItems[i];
-
-            float noiseValue = Noise.getNoiseValue(mapGenerator.noiseScale,
-                                    gi.item.position.x + mapGenerator.offsetX,
-                                    gi.item.position.y + mapGenerator.offsetY,
-                                    mapGenerator.numberOfFrequencies,
-                                    mapGenerator.frequencyMultiplier,
-                                    mapGenerator.amplitudeDemultiplier);
-
-            if (noiseValue >= maximumRoadsHeight || noiseValue <= minimumRoadsHeight)
-                continue;
-
-            for (int j = 0; j < gi.links.Count; j++)
-            {
-                Graph<Vector2, ControlPoint>.GraphItem gj = gi.links[j];
-                
-                noiseValue = Noise.getNoiseValue(mapGenerator.noiseScale,
-                                gj.item.position.x + mapGenerator.offsetX,
-                                gj.item.position.y + mapGenerator.offsetY,
-                                mapGenerator.numberOfFrequencies,
-                                mapGenerator.frequencyMultiplier,
-                                mapGenerator.amplitudeDemultiplier);
-
-                if (noiseValue <= minimumRoadsHeight || noiseValue >= maximumRoadsHeight)
+                ControlPoint toLink = controlPointsGraph[target].item;
+                if (!toLink.linkable)
                     continue;
 
-                ControlPoint startTangent = computeTangent(gi, gj);
-                ControlPoint endTangent = computeTangent(gj, gi);
-                BezierCurve c = new BezierCurve(gi.item, startTangent, gj.item, endTangent);
-                //Debug.Log("curve from " + gi.item.position + " to " + gj.item.position + " / " + c.startPoint() + " - " + c.endPoint());
-
-                curves.Add(c);
+                if (cp.distance(toLink) < maxLength)
+                {
+                    //Debug.Log("creating link: " + cp.gridPosition + " - " + toLink.gridPosition);
+                    Graph<Vector2, ControlPoint>.Link l =
+                        controlPointsGraph.createLink(cp.gridPosition, toLink.gridPosition);
+                }
             }
         }
 
 
-        return curves;
+        // create new curves, where it is possible ------------------
+        foreach (Graph<Vector2, ControlPoint>.Link l in controlPointsGraph.links)
+        {
+            lock (curves)
+            {
+                if (curves.ContainsKey(l))
+                    continue;
+            }
+
+            //Debug.Log("scanning link " + l.from.item.position + " - " + l.to.item.position);
+
+            ControlPoint from = l.from.item;
+            ControlPoint to = l.to.item;
+
+            bool canCreateCurve = true;
+            foreach (Vector2 target in from.getNeighborsGridPositions(neighborhood))
+                if (!controlPointsGraph.containsItem(target))
+                {
+                    canCreateCurve = false;
+                    break;
+                }
+
+            if (!canCreateCurve)
+                continue;
+
+            //Debug.Log("control1 passed");
+
+            foreach (Vector2 target in to.getNeighborsGridPositions(neighborhood))
+                if (!controlPointsGraph.containsItem(target))
+                {
+                    canCreateCurve = false;
+                    break;
+                }
+
+            //Debug.Log("control2 passed? " + canCreateCurve);
+
+            if (canCreateCurve)
+                createCurve(l);
+
+        }
+
+        //Debug.Log("add control point finished");
     }
 
 
-    /* ------------------------------------------------------------------------------------------------- */
-    public ControlPoint computeTangent(Graph<Vector2, ControlPoint>.GraphItem graphItem, Graph<Vector2, ControlPoint>.GraphItem exclude)
+    public void removeControlPoint(ControlPoint cp)
     {
-        float averageX = 0;
-        float averageY = 0;
-        int denom = graphItem.links.Count - 1;
-        float xDist = 0;
-        float yDist = 0;
+        // TODO
+    }
 
-        for (int k = 0; k < graphItem.links.Count; k++)
+    #endregion
+
+    /* -------------------------------------------------------------------------------------- */
+    /* -------------------------------- CURVES ---------------------------------------------- */
+    /* -------------------------------------------------------------------------------------- */
+
+    #region CURVES
+
+    private void createCurve(Graph<Vector2, ControlPoint>.Link link)
+    {
+
+        //Debug.Log("creating curve " + link.from.item.gridPosition + " - " + link.to.item.position);
+        Vector2 startTangent = getTangent(link.from, link);
+        Vector2 endTangent = getTangent(link.to, link);
+
+        BezierCurve c = new BezierCurve(
+            link.from.item.position,
+            startTangent,
+            link.to.item.position,
+            endTangent);
+
+        lock (curves)
         {
-            if (graphItem.links[k].Equals(exclude))
-                continue;
-
-            Graph<Vector2, ControlPoint>.GraphItem gk = graphItem.links[k];
-            xDist = gk.item.position.x - graphItem.item.position.x;
-            yDist = gk.item.position.y - graphItem.item.position.y;
-            averageX += xDist / (float)denom;
-            averageY += yDist / (float)denom;
+            curves.Add(link, c);
         }
 
-        Vector2 meanTangent = new Vector2(averageX, averageY);
-        Vector2 tangentPosition = meanTangent + graphItem.item.position;
-        float angle = Mathf.Atan2(averageY, averageX);
+        RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateRoadMeshData(c);
+        Road.RoadData data = new Road.RoadData(rmd, link, c);
+        parent.resultsQueue.Enqueue(data);
+    }
 
-        float distanceFromTangent = Vector2.Distance(exclude.item.position, tangentPosition);
-        float distanceFromPoint = Vector2.Distance(exclude.item.position, graphItem.item.position);
+    /* -------------------------------------------------------------------------------------- */
+    private Vector2 getTangent(Graph<Vector2, ControlPoint>.GraphItem point, Graph<Vector2, ControlPoint>.Link exclude)
+    {
+        List<Vector2> linksPositions = new List<Vector2>();
 
-        if (distanceFromTangent > distanceFromPoint)
-            angle = Mathf.PI + angle;
+        foreach (Graph<Vector2, ControlPoint>.Link l in point.links)
+        {
+            if (l.Equals(exclude))
+                continue;
 
-        tangentPosition.x = graphItem.item.position.x + Mathf.Cos(angle) * sinuosity;
-        tangentPosition.y = graphItem.item.position.y + Mathf.Sin(angle) * sinuosity;
+            ControlPoint cp = null;
+            if (l.from.Equals(point))
+                cp = l.to.item;
+            else
+                cp = l.from.item;
 
-        ControlPoint tangent = new ControlPoint(tangentPosition, ControlPoint.Type.Tangent);
+            linksPositions.Add(cp.position);
+        }
+
+        Graph<Vector2, ControlPoint>.GraphItem toward = null;
+        if (exclude.from.Equals(point))
+            toward = exclude.to;
+        else
+            toward = exclude.from;
+
+        Vector2 tangent = point.item.getAverageVector(
+            linksPositions,
+            true,
+            false,
+            true,
+            toward.item.position);
+
         return tangent;
     }
 
     #endregion
 
-    /* --------------------------------------------------------------------------------------------- */
-    /* -------------------------------- MAP FILTERING ---------------------------------------------- */
-    /* --------------------------------------------------------------------------------------------- */
+    #endregion  // METHODS
 
-    #region ROADS_MAP
-
-
-    /* ------------------------------------------------------------------------------------------------- */
-    public float[,] generateRoadsMap(int width, int height, MapSector sector, List<ICurve> curves)
-    {
-        float[,] roadsMap = new float[width, height];
-
-        for (int x = 0; x < width; x++)
-            for (int y = 0; y < height; y++)
-                roadsMap[x, y] = 0;
-
-        foreach (ICurve curve in curves)
-        {
-            for (float t = 0.0f; t <= 1.0f; t += 0.01f)
-            {
-                Vector2 point = curve.pointOnCurve(t);
-
-                int localX = (int)(point.x - (sector.position.x - 0.5f) * sector.size);
-                int localY = (int)((sector.position.y + 0.5f) * sector.size - point.y);
-
-                int startX = Mathf.Max(0, localX - roadsWidth);
-                int endX = Mathf.Min(width - 1, localX + roadsWidth);
-                int startY = Mathf.Max(0, localY - roadsWidth);
-                int endY = Mathf.Min(height - 1, localY + roadsWidth);
-
-                for (int j = startX; j <= endX; j++)
-                {
-                    for (int k = startY; k <= endY; k++)
-                    {
-                        if (j < 0 || j >= width) continue;
-                        if (k < 0 || k >= height) continue;
-                        roadsMap[j, k] = 1.0f;
-                    }
-                }
-            }
-        }
-
-        //Debug.Log("finished roads mapping for " + sector.position);
-        return roadsMap;
-    }
-
-    #endregion
-
-
-    /* ///////////////////////////////////////////////////////////////////////////////////////////// */
-    /* ///---------------------------------------------------------------------------------------/// */
-    /* ///----------------------------- SUBCLASSES ----------------------------------------------/// */
-    /* ///---------------------------------------------------------------------------------------/// */
-    /* ///////////////////////////////////////////////////////////////////////////////////////////// */
-
-    #region SUBCLASSES
-
-    public struct RoadsCallbackData
-    {
-        public readonly Road.RoadData data;
-        public readonly Action<Road.RoadData> callback;
-
-        public RoadsCallbackData(Road.RoadData data, Action<Road.RoadData> callback)
-        {
-            this.data = data;
-            this.callback = callback;
-        }
-    }
-
-    #endregion
 }

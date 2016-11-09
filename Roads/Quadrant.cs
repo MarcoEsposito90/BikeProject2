@@ -44,11 +44,11 @@ public class Quadrant
         private set;
     }
 
-    public ControlPoint roadsControlPoint
-    {
-        get;
-        set;
-    }
+    //public ControlPoint roadsControlPoint
+    //{
+    //    get;
+    //    set;
+    //}
 
     #endregion
 
@@ -67,7 +67,7 @@ public class Quadrant
         this.height = height;
         this.subdivisions = subdivisions;
 
-        computeControlPoint();
+        //computeControlPoint();
     }
 
     #endregion
@@ -79,42 +79,43 @@ public class Quadrant
 
     #region METHODS
 
-    private void computeControlPoint()
-    {
-        float seedX = EndlessTerrainGenerator.seedX;
-        float seedY = EndlessTerrainGenerator.seedY;
-        int size = EndlessTerrainGenerator.sectorSize;
+    //private void computeControlPoint()
+    //{
+    //    float seedX = EndlessTerrainGenerator.seedX;
+    //    float seedY = EndlessTerrainGenerator.seedY;
+    //    int size = EndlessTerrainGenerator.sectorSize;
 
-        // 2) get perlin value relative to coordinates ----------------
-        float randomX = Mathf.PerlinNoise(position.x + seedX, position.y + seedX);
-        float randomY = Mathf.PerlinNoise(position.x + seedY, position.y + seedY);
+    //    // 2) get perlin value relative to coordinates ----------------
+    //    float randomX = Mathf.PerlinNoise(position.x + seedX, position.y + seedX);
+    //    float randomY = Mathf.PerlinNoise(position.x + seedY, position.y + seedY);
+    //    // NOTE: randomX and randomY are in [0,1]
 
-        // 3) compute absolute coordinates of point in space ----------
-        int X = Mathf.RoundToInt(randomX * (float)width + position.x * size);
-        int Y = Mathf.RoundToInt(randomY * (float)height + position.y * size);
+    //    // 3) compute absolute coordinates of point in space ----------
+    //    int X = Mathf.RoundToInt(randomX * (float)width + position.x * size);
+    //    int Y = Mathf.RoundToInt(randomY * (float)height + position.y * size);
 
-        // 4) create point  --------------------------
-        Vector2 center = new Vector2(X, Y);
-        this.roadsControlPoint = new ControlPoint(center, ControlPoint.Type.Center);
-    }
+    //    // 4) create point  --------------------------
+    //    Vector2 center = new Vector2(X, Y);
+    //    //this.roadsControlPoint = new ControlPoint(center);
+    //}
 
 
     /* ------------------------------------------------------------------------------------------------- */
-    public List<ControlPoint> getNeighborsPoints(Neighborhood neighborhood)
-    {
-        // returns the list of neighbors, ordered by growing distance
-        List<ControlPoint> neighbors = new List<ControlPoint>();
+    //public List<ControlPoint> getNeighborsPoints(Neighborhood neighborhood)
+    //{
+    //    // returns the list of neighbors, ordered by growing distance
+    //    List<ControlPoint> neighbors = new List<ControlPoint>();
 
-        foreach (Quadrant q in this.getNeighbors(neighborhood))
-        {
-            float currentDistance = Vector2.Distance(q.roadsControlPoint.position, roadsControlPoint.position);
+    //    foreach (Quadrant q in this.getNeighbors(neighborhood))
+    //    {
+    //        float currentDistance = Vector2.Distance(q.roadsControlPoint.position, roadsControlPoint.position);
 
-            neighbors.Add(q.roadsControlPoint);
-            neighbors.Sort(new ControlPoint.NearestPointComparer(roadsControlPoint));
-        }
+    //        neighbors.Add(q.roadsControlPoint);
+    //        neighbors.Sort(new ControlPoint.NearestPointComparer(roadsControlPoint));
+    //    }
 
-        return neighbors;
-    }
+    //    return neighbors;
+    //}
 
 
     /* ------------------------------------------------------------------------------------------------- */
@@ -148,24 +149,24 @@ public class Quadrant
 
 
     /* ------------------------------------------------------------------------------------------------- */
-    public static ControlPoint computeControlPoint(Vector2 position, int quadrantWidth, int quadrantHeight)
-    {
-        float seedX = EndlessTerrainGenerator.seedX;
-        float seedY = EndlessTerrainGenerator.seedY;
-        int size = EndlessTerrainGenerator.sectorSize;
+    //public static ControlPoint computeControlPoint(Vector2 position, int quadrantWidth, int quadrantHeight)
+    //{
+    //    float seedX = EndlessTerrainGenerator.seedX;
+    //    float seedY = EndlessTerrainGenerator.seedY;
+    //    int size = EndlessTerrainGenerator.sectorSize;
 
-        // 2) get perlin value relative to coordinates ----------------
-        float randomX = Mathf.PerlinNoise(position.x + seedX, position.y + seedX);
-        float randomY = Mathf.PerlinNoise(position.x + seedY, position.y + seedY);
+    //    // 2) get perlin value relative to coordinates ----------------
+    //    float randomX = Mathf.PerlinNoise(position.x + seedX, position.y + seedX);
+    //    float randomY = Mathf.PerlinNoise(position.x + seedY, position.y + seedY);
 
-        // 3) compute absolute coordinates of point in space ----------
-        int X = Mathf.RoundToInt(randomX * (float)quadrantWidth + position.x * size);
-        int Y = Mathf.RoundToInt(randomY * (float)quadrantHeight + position.y * size);
+    //    // 3) compute absolute coordinates of point in space ----------
+    //    int X = Mathf.RoundToInt(randomX * (float)quadrantWidth + position.x * size);
+    //    int Y = Mathf.RoundToInt(randomY * (float)quadrantHeight + position.y * size);
 
-        // 4) create point  --------------------------
-        Vector2 center = new Vector2(X, Y);
-        return new ControlPoint(center, ControlPoint.Type.Center);
-    }
+    //    // 4) create point  --------------------------
+    //    Vector2 center = new Vector2(X, Y);
+    //    return new ControlPoint(center);
+    //}
 
 
 

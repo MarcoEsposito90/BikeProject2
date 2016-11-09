@@ -71,6 +71,7 @@ public class PoolManager<Key>
         if(freeObjectsList.Count == 0)
         {
             if (!canGrow) return null;
+            //Debug.Log("creating new obj");
             addObject();
         }
 

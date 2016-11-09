@@ -5,18 +5,37 @@ using System.Collections.Generic;
 public class Graph<Key, Type>
 {
 
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- CONSTRUCTOR, FIELDS ------------------------------------------ */
-    /* ----------------------------------------------------------------------------------------- */
+    /* ------------------------------------------------------------------------------------ */
+    /* -------------------------- CONSTRUCTOR, FIELDS ------------------------------------- */
+    /* ------------------------------------------------------------------------------------ */
 
     #region FIELDS_CONSTRUCTOR
 
-    private Dictionary<Key, GraphItem> nodes;
+    /* ------------------------------------------------------------------------------------ */
+    public Dictionary<Key, GraphItem> nodes { get; private set; }
+    public List<Link> links { get; private set; }
     private object synchVariable;
 
+
+    /* ------------------------------------------------------------------------------------ */
+    public GraphItem this[Key key]
+    {
+        get
+        {
+            return nodes[key];
+        }
+        private set
+        {
+            nodes[key] = value;
+        }
+    }
+
+
+    /* ------------------------------------------------------------------------------------ */
     public Graph()
     {
         nodes = new Dictionary<Key, GraphItem>();
+        links = new List<Link>();
         synchVariable = new object();
     }
 
@@ -31,81 +50,92 @@ public class Graph<Key, Type>
 
 
     /* ----------------------------------------------------------------------------------------- */
-    public GraphItem addItem(Key key, Type item, Dictionary<Key, Type> links)
+    public GraphItem createItem(Key key, Type item)
     {
-        GraphItem node = new GraphItem(item);
-        lock (synchVariable)
+        GraphItem node = null;
+        lock (nodes)
         {
-
             if (!nodes.TryGetValue(key, out node))
                 node = new GraphItem(item);
 
-            foreach (Key linkKey in links.Keys)
-            {
-
-                GraphItem toLink = null;
-
-                if (!nodes.ContainsKey(linkKey))
-                {
-                    toLink = new GraphItem(links[linkKey]);
-                    nodes.Add(linkKey, toLink);
-                }
-                else
-                    toLink = nodes[linkKey];
-
-                if (!node.isLinkedTo(toLink))
-                    node.addLink(toLink);
-
-                if (!toLink.isLinkedTo(node))
-                    toLink.addLink(node);
-
-            }
-
-            if (!nodes.ContainsKey(key))
-                nodes.Add(key, node);
+            nodes.Add(key, node);
         }
-
 
         return node;
     }
 
-
     /* ----------------------------------------------------------------------------------------- */
-    public bool linkExists(Key key1, Key key2)
+    public bool containsItem(Key key)
     {
-        GraphItem item1 = null;
-        GraphItem item2 = null;
-
-        lock (synchVariable)
-        {
-            if (!nodes.ContainsKey(key1))
-                return false;
-
-            nodes.TryGetValue(key1, out item1);
-
-            if (!nodes.ContainsKey(key2))
-                return false;
-            nodes.TryGetValue(key2, out item2);
-
-        }
-
-        return item1.isLinkedTo(item2) && item2.isLinkedTo(item1);
+        lock(nodes)
+            return nodes.ContainsKey(key);
     }
 
 
+    /* ----------------------------------------------------------------------------------------- */
+    public void removeItem(Key key)
+    {
+        lock (nodes)
+        {
+            if (!nodes.ContainsKey(key))
+                return;
+
+            List<Link> toBeRemoved = nodes[key].links;
+            foreach (Link l in toBeRemoved)
+            {
+                if (l.from.Equals(nodes[key]))
+                    l.to.links.Remove(l);
+                else
+                    l.from.links.Remove(l);
+
+                links.Remove(l);
+            }
+        }
+        
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    public Link createLink(Key from, Key to)
+    {
+        lock (nodes)
+        {
+            if (!nodes.ContainsKey(from) || !nodes.ContainsKey(to))
+            {
+                Debug.Log("WARNING! object missing (Graph.createLink)");
+                return null;
+            }
+
+            GraphItem g1 = nodes[from];
+            GraphItem g2 = nodes[to];
+            Link l = new Link(g1, g2);
+
+            if (!g1.isLinkedTo(g2))
+                g1.links.Add(l);
+
+            if (!g2.isLinkedTo(g1))
+                g2.links.Add(l);
+
+            if (!links.Contains(l))
+                links.Add(l);
+
+            return l;
+        }
+    }
+    
     #endregion
 
 
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- GRAPH ITEM --------------------------------------------------- */
-    /* ----------------------------------------------------------------------------------------- */
+    /* ------------------------------------------------------------------------------------ */
+    /* -------------------------- GRAPH ITEM ---------------------------------------------- */
+    /* ------------------------------------------------------------------------------------ */
 
     #region GRAPH_ITEM
 
     public class GraphItem
     {
         public Type item { get; private set; }
-        public List<GraphItem> links
+        public List<Link> links
         {
             get;
             private set;
@@ -114,17 +144,37 @@ public class Graph<Key, Type>
         public GraphItem(Type item)
         {
             this.item = item;
-            links = new List<GraphItem>();
-        }
-
-        public void addLink(GraphItem item)
-        {
-            links.Add(item);
+            links = new List<Link>();
         }
 
         public bool isLinkedTo(GraphItem other)
         {
-            return links.Contains(other);
+            foreach (Link l in links)
+                if (l.from.Equals(other) || l.to.Equals(other))
+                    return true;
+
+            return false;
+        }
+    }
+
+    #endregion
+
+
+    /* ------------------------------------------------------------------------------------ */
+    /* -------------------------- LINK ---------------------------------------------------- */
+    /* ------------------------------------------------------------------------------------ */
+
+    #region LINK
+
+    public class Link
+    {
+        public GraphItem from;
+        public GraphItem to;
+
+        public Link(GraphItem from, GraphItem to)
+        {
+            this.from = from;
+            this.to = to;
         }
     }
 
