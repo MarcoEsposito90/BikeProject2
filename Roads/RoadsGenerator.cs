@@ -17,14 +17,32 @@ public class RoadsGenerator : MonoBehaviour
 
     public ControlPoint.Neighborhood neighborhood;
 
-    //[Range(0, 10)]
-    //public int roadsWidth;
+    [Range(1, 6)]
+    public int largeRoads;
+    private float roadWidth;
+
+    [Range(0, 6)]
+    public int croassRoadsDimension;
+    private float distanceFromCrossroad;
+
+    [Range(1, 4)]
+    public int baseSegmentDimension;
+    private float segmentLength;
+
+    [Range(1, 6)]
+    public int sinuosity;
+    private float tangentRescale;
 
     //[Range(10, 50)]
     //public int roadsFlattening;
 
     [Range(1.0f, 2.0f)]
     public float maximumSegmentLength;
+    private float maxLength;
+
+    [Range(0.0f, 0.5f)]
+    public float minimumSegmentLength;
+    private float minLength;
 
     [Range(0.0f, 0.5f)]
     public float minimumRoadsHeight;
@@ -32,13 +50,15 @@ public class RoadsGenerator : MonoBehaviour
     [Range(0.5f, 1.0f)]
     public float maximumRoadsHeight;
 
+    [Range(0.0f, 10.0f)]
+    public float terrainOffset;
+
     public EndlessRoadsGenerator parent;
 
     private Graph<Vector2, ControlPoint> controlPointsGraph;
     private Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve> curves;
     private bool initialized;
     private object synchVariable;
-    private float maxLength;
     #endregion
 
     /* ------------------------------------------------------------------------------------------------- */
@@ -53,6 +73,11 @@ public class RoadsGenerator : MonoBehaviour
         synchVariable = new object();
         controlPointsGraph = new Graph<Vector2, ControlPoint>();
         curves = new Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve>();
+
+        roadWidth = largeRoads * 0.25f;
+        distanceFromCrossroad = croassRoadsDimension * 1.0f;
+        segmentLength = 0.5f * baseSegmentDimension;
+        tangentRescale = 0.25f * sinuosity - 0.25f;
     }
 
 
@@ -97,6 +122,7 @@ public class RoadsGenerator : MonoBehaviour
         if (!initialized)
         {
             maxLength = maximumSegmentLength * cp.AreaSize;
+            minLength = minimumSegmentLength * cp.AreaSize;
             initialized = true;
         }
 
@@ -127,9 +153,13 @@ public class RoadsGenerator : MonoBehaviour
                 if (!toLink.linkable)
                     continue;
 
-                if (cp.distance(toLink) < maxLength)
+                float dist = cp.distance(toLink);
+                if (dist < maxLength && dist > minLength)
                 {
                     //Debug.Log("creating link: " + cp.gridPosition + " - " + toLink.gridPosition);
+                    if (!checkLinkFeasibility(cp, toLink))
+                        continue;
+
                     Graph<Vector2, ControlPoint>.Link l =
                         controlPointsGraph.createLink(cp.gridPosition, toLink.gridPosition);
                 }
@@ -178,10 +208,44 @@ public class RoadsGenerator : MonoBehaviour
 
         }
 
-        //Debug.Log("add control point finished");
+        // we have now to create the crossroads meshes
+        foreach (Graph<Vector2, ControlPoint>.GraphItem it in controlPointsGraph.nodes.Values)
+        {
+            //Dictionary<ControlPoint, Graph<Vector2,ControlPoint>.Link> points = new Dictionary<ControlPoint, Graph<Vector2, ControlPoint>.Link>();
+            List<Graph<Vector2, ControlPoint>.Link> incomingCurves = new List<Graph<Vector2, ControlPoint>.Link>();
+            foreach (Graph<Vector2, ControlPoint>.Link link in it.links)
+            {
+                if (!curves.ContainsKey(link))
+                    continue;
+
+                incomingCurves.Add(link);
+            }
+         
+               
+        }
     }
 
 
+
+
+    /* -------------------------------------------------------------------------------------- */
+    private bool checkLinkFeasibility(ControlPoint a, ControlPoint b)
+    {
+        int numberOfChecks = 10;
+        for (int i = 1; i < numberOfChecks; i++)
+        {
+            Vector2 checkPos = a.position + (b.position - a.position) / (float)numberOfChecks;
+            float n = NoiseGenerator.Instance.getNoiseValue(1, checkPos.x, checkPos.y);
+            if (n > maximumRoadsHeight || n < minimumRoadsHeight)
+                return false;
+        }
+
+        return true;
+    }
+
+
+
+    /* -------------------------------------------------------------------------------------- */
     public void removeControlPoint(ControlPoint cp)
     {
         // TODO
@@ -213,9 +277,13 @@ public class RoadsGenerator : MonoBehaviour
             curves.Add(link, c);
         }
 
-        RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateRoadMeshData(c);
+        RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(
+            c,
+            roadWidth,
+            distanceFromCrossroad,
+            segmentLength);
         Road.RoadData data = new Road.RoadData(rmd, link, c);
-        parent.resultsQueue.Enqueue(data);
+        parent.roadsResultsQueue.Enqueue(data);
     }
 
     /* -------------------------------------------------------------------------------------- */
@@ -245,12 +313,12 @@ public class RoadsGenerator : MonoBehaviour
 
         Vector2 tangent = point.item.getAverageVector(
             linksPositions,
-            true,
+            false,
             false,
             true,
             toward.item.position);
 
-        return tangent;
+        return tangent * tangentRescale + point.item.position;
     }
 
     #endregion

@@ -11,7 +11,7 @@ public class EndlessRoadsGenerator : MonoBehaviour {
 
     #region ATTRIBUTES
 
-    [Range(-10, 10)]
+    [Range(-5, 5)]
     public int controlPointsDensity;
     public float controlPointArea { get; private set; }
     public float scaledControlPointArea { get; private set; }
@@ -45,7 +45,8 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     private Dictionary<Graph<Vector2,ControlPoint>.Link, Road> roads;
     private PoolManager<Graph<Vector2, ControlPoint>.Link> roadsPoolManager;
     private PoolManager<Vector2> controlPointsPoolManager;
-    public BlockingQueue<Road.RoadData> resultsQueue { get; private set; }
+    public BlockingQueue<Road.RoadData> roadsResultsQueue { get; private set; }
+    //public BlockingQueue<Road.RoadData> roadsResultsQueue { get; private set; }
 
     #endregion
 
@@ -61,7 +62,7 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     {
         controlPoints = new Dictionary<Vector2, ControlPoint>();
         roads = new Dictionary<Graph<Vector2, ControlPoint>.Link, Road>();
-        resultsQueue = new BlockingQueue<Road.RoadData>();
+        roadsResultsQueue = new BlockingQueue<Road.RoadData>();
 
         roadsPoolManager = new PoolManager<Graph<Vector2, ControlPoint>.Link>(10, true, roadPrefab, roadsContainer);
         controlPointsPoolManager = new PoolManager<Vector2>(400, true, controlPointPrefab, controlPointsContainer);
@@ -70,9 +71,9 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     /* ----------------------------------------------------------------------------------------- */
 	void Update () {
 
-        while (!resultsQueue.isEmpty())
+        while (!roadsResultsQueue.isEmpty())
         {
-            Road.RoadData data = resultsQueue.Dequeue();
+            Road.RoadData data = roadsResultsQueue.Dequeue();
             onRoadDataReceived(data);
         }
 
@@ -215,18 +216,15 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     public void onRoadDataReceived(Road.RoadData roadData)
     {
         Road r = null;
-        //Debug.Log("key = " + roadData.key.from.item.position + " - " + roadData.key.to.item.position);
 
         if (roads.ContainsKey(roadData.key))
         {
-            //Debug.Log("road exists");
             r = roads[roadData.key];
         }
         else
         {
-            //Debug.Log("road is new");
             GameObject newRoadObj = roadsPoolManager.acquireObject(roadData.key);
-            r = new Road(roadData.curve, newRoadObj, scale);
+            r = new Road(roadData.curve, roadData.key, newRoadObj, scale);
             roads.Add(roadData.key, r);
         }
 

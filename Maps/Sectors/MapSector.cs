@@ -224,13 +224,13 @@ public class MapSector
     {
         public Vector2 sectorPosition;
         public readonly int LOD;
-        public readonly MeshGenerator.MeshData meshData;
-        public readonly MeshGenerator.MeshData colliderMeshData;
+        public readonly MapMeshGenerator.MapMeshData meshData;
+        public readonly MapMeshGenerator.MapMeshData colliderMeshData;
         public readonly Color[] colorMap;
         public readonly Color[] alphaMap;
         //public readonly Color[] roadsMap;
 
-        public SectorData(int LOD, MeshGenerator.MeshData meshData, MeshGenerator.MeshData colliderMeshData, Color[] colorMap, Color[] alphaMap)
+        public SectorData(int LOD, MapMeshGenerator.MapMeshData meshData, MapMeshGenerator.MapMeshData colliderMeshData, Color[] colorMap, Color[] alphaMap)
         {
             this.meshData = meshData;
             //this.roadsMap = roadsMap;

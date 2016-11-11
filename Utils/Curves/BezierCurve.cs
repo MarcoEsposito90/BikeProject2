@@ -163,4 +163,24 @@ public class BezierCurve : ICurve
     {
         return end;
     }
+
+    /* ---------------------------------------------------------------- */
+    public float length()
+    {
+        return archLength;
+    }
+
+
+    /* ---------------------------------------------------------------- */
+    public Vector2 getRightVector(float t)
+    {
+        Vector2 p = pointOnCurve(t);
+        Vector2 deriv = derivate1(t, true);
+        Vector3 crossProd = GeometryUtilities.CrossProduct(
+            Vector3.up,
+            new Vector3(deriv.x, 0, deriv.y));
+        Vector2 rightVect = new Vector2(crossProd.x, crossProd.z);
+
+        return rightVect;
+    }
 }

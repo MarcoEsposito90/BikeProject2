@@ -4,60 +4,76 @@ using System.Collections;
 public static class RoadMeshGenerator
 {
 
-    public static RoadMeshData generateRoadMeshData(ICurve curve)
+    public static RoadMeshData generateMeshData(
+        ICurve curve, 
+        float roadWidth, 
+        float distanceFromCP, 
+        float segmentLength)
     {
-        int numberOfSegments = 10;
-        int roadWidth = 2;
+        
+        float curveLength = curve.length();
         Vector2 start = curve.startPoint();
-        RoadMeshData rmd = new RoadMeshData(curve, numberOfSegments);
+        float div = (curveLength - 2.0f * distanceFromCP) / segmentLength;
+        int numberOfSegments = (int)div + 1;
+        float recomputedLength = (curveLength - 2.0f * distanceFromCP) / (float)numberOfSegments;
 
+        RoadMeshData rmd = new RoadMeshData(curve, numberOfSegments);
+        AnimationCurve ac = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
+        AnimationCurve heightCurve = new AnimationCurve(ac.keys);
+        float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
+
+        //Debug.Log("number of segs = " + numberOfSegments + "; length = " + recomputedLength + " (" + curve.startPoint() + " - " + curve.endPoint() + ")");
         for (int i = 0; i <= numberOfSegments; i++)
         {
-            float t = curve.parameterOnCurveArchLength(i / (float)numberOfSegments, true);
-            Vector2 p = curve.pointOnCurve(t);
-            Vector2 v1 = curve.derivate1(t, true);
-            Vector3 crossProd = CrossProduct(Vector3.up, new Vector3(v1.x, 0, v1.y));
-            Vector2 v2 = new Vector2(crossProd.x, crossProd.z);
+            float l = distanceFromCP + i * ((curveLength - 2.0f * distanceFromCP) / (float)numberOfSegments);
+            l /= curveLength;
+            float t = curve.parameterOnCurveArchLength(l, true);
 
+            Vector2 p = curve.pointOnCurve(t);
+            Vector2 rightVect = curve.getRightVector(t);
+            float n = NoiseGenerator.Instance.highestPointOnSegment(
+                p, 
+                p + rightVect, 
+                1, 
+                10);
+
+            float height = heightCurve.Evaluate(n) * mul;
+
+            // create vertices --------------------------------------------------------
             Vector3 vertex1 = new Vector3(
-                (p.x - start.x) - v2.x * (float)roadWidth,
-                0,
-                (p.y - start.y) - v2.y * (float)roadWidth);
+                (p.x - start.x) - rightVect.x * roadWidth,
+                height,
+                (p.y - start.y) - rightVect.y * roadWidth);
 
             Vector3 vertex2 = new Vector3(
-                (p.x - start.x) + v2.x * (float)roadWidth,
-                0,
-                (p.y - start.y) + v2.y * (float)roadWidth);
+                (p.x - start.x) + rightVect.x * roadWidth,
+                height,
+                (p.y - start.y) + rightVect.y * roadWidth);
 
+            
             rmd.addSegment(vertex1, vertex2);
         }
 
         return rmd;
     }
 
-    private static Vector3 CrossProduct(Vector3 v1, Vector3 v2)
-    {
-        float x = v1.y * v2.z - v1.z * v2.y;
-        float y = v1.x * v2.z - v1.z * v2.x;
-        float z = v1.x * v2.y - v1.y * v2.x;
-        return new Vector3(x, y, z);
-    }
+    //private static Vector3 CrossProduct(Vector3 v1, Vector3 v2)
+    //{
+    //    float x = v1.y * v2.z - v1.z * v2.y;
+    //    float y = v1.x * v2.z - v1.z * v2.x;
+    //    float z = v1.x * v2.y - v1.y * v2.x;
+    //    return new Vector3(x, y, z);
+    //}
 
 
 
     #region ROADMESHDATA
 
-    public class RoadMeshData
+    public class RoadMeshData : MeshData
     {
         public ICurve curve;
         public int numberOfSegments;
-
-        public Vector3[] vertices;
-        public int[] triangles;
-        public Vector2[] uvs;
-
         private int segmentCounter;
-
 
         /* ----------------------------------------------------------- */
         public RoadMeshData(ICurve curve, int numberOfSegments)
@@ -74,8 +90,11 @@ public static class RoadMeshGenerator
         /* ----------------------------------------------------------- */
         public void addSegment(Vector3 point1, Vector3 point2)
         {
-            if (segmentCounter == numberOfSegments)
+            if (segmentCounter > numberOfSegments)
+            {
+                Debug.Log("exceed segments");
                 return;
+            }
 
             int index = segmentCounter * 4 - 2;
             int triangleIndex = segmentCounter * 6;
@@ -108,19 +127,6 @@ public static class RoadMeshGenerator
             segmentCounter++;
         }
 
-
-        /* ----------------------------------------------------------- */
-        public Mesh createMesh()
-        {
-            // this method can be called only on the main thread
-            Mesh mesh = new Mesh();
-
-            mesh.vertices = vertices;
-            mesh.triangles = triangles;
-            mesh.uv = uvs;
-            mesh.RecalculateNormals();
-            return mesh;
-        }
     }
 
     #endregion

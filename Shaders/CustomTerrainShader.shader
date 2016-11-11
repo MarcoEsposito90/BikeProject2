@@ -207,11 +207,12 @@ Shader "Custom/CustomTerrainShader" {
 				o.Normal = interpolate(coefficients, normals[level], normals[upperIndex], normals[lowerIndex]);
 				
 				fixed alpha = luminanceFromRGB(tex2D(_AlphaMap, IN.uv_HeightMap).rgb);
-				alpha *= alpha;
+				//alpha *= alpha;
 
 				if (_InvertAlpha == 1)
 					alpha = 1 - alpha;
 
+				alpha += 0.25f;
 				o.Alpha = alpha;
 			}
 		}

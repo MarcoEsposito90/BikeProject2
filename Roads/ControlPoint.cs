@@ -35,20 +35,7 @@ public class ControlPoint
     public bool linkable;
 
     private float scaledAreaSize;
-
     public GameObject prefabObject;
-
-    //public Type type
-    //{
-    //    get;
-    //    private set;
-    //}
-
-    //public int NumberOfPaths
-    //{
-    //    get;
-    //    private set;
-    //}
 
     #endregion
 
@@ -79,8 +66,8 @@ public class ControlPoint
 
     private void computePosition()
     {
-        float seedX = EndlessTerrainGenerator.seedX;
-        float seedY = EndlessTerrainGenerator.seedY;
+        float seedX = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.MAP_SEEDX);
+        float seedY = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.MAP_SEEDY);
 
         // 2) get perlin value relative to coordinates ----------------
         float randomX = Mathf.PerlinNoise(gridPosition.x + seedX, gridPosition.y + seedX);
@@ -113,6 +100,7 @@ public class ControlPoint
         for (int i = -1; i <= 1; i++)
             for (int j = -1; j <= 1; j++)
             {
+                if (i == 0 && j == 0) continue;
                 bool corner = i != 0 && j != 0;
                 if (corner && neighborhood.Equals(Neighborhood.Quad))
                     continue;
@@ -169,8 +157,12 @@ public class ControlPoint
     /* ------------------------------------------------------------------------------------------------- */
     private void initializePrefab()
     {
+        AnimationCurve c = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
+        AnimationCurve meshHeightCurve = new AnimationCurve(c.keys);
         float n = NoiseGenerator.Instance.getNoiseValue(1, position.x, position.y);
-        float h = MapDisplay.MESH_HEIGHT_CURVE.Evaluate(n) * MapDisplay.MESH_HEIGHT_MUL;
+        float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
+
+        float h = meshHeightCurve.Evaluate(n) * mul;
         float y = h * scale;
         float x = position.x * scale;
         float z = position.y * scale;
@@ -220,6 +212,45 @@ public class ControlPoint
             else if (distanceX == distanceY) return 0;
             return 1;
         }
+    }
+
+
+    /* ------------------------------------------------------------------------------------------ */
+    public class ClockWiseComparer : IComparer<Vector2>
+    {
+        public ControlPoint center;
+        public bool clockwise;
+
+        // -----------------------------------------------------------
+        public ClockWiseComparer(ControlPoint center, bool clockwise)
+        {
+            this.center = center;
+            this.clockwise = clockwise;
+        }
+
+
+        // -----------------------------------------------------------
+        public int Compare(Vector2 x, Vector2 y)
+        {
+            float angle1 = getAngle(x);
+            float angle2 = getAngle(y);
+            int diff = (int)Mathf.Sign(angle1 - angle2);
+
+            if (clockwise)
+                diff *= -1;
+
+            return diff;
+        }
+
+
+        // -----------------------------------------------------------
+        private float getAngle(Vector2 other)
+        {
+            Vector2 v1 = other - center.position;
+            Vector2 v2 = new Vector2(1, 0);
+            return Vector2.Angle(v2, v1);
+        }
+
     }
 
     #endregion

@@ -4,6 +4,10 @@ using System.Collections.Generic;
 
 public class EndlessTerrainGenerator : MonoBehaviour
 {
+    public static readonly string MAP_SEEDX = "EndlessTerrainGenerator.SeedX";
+    public static readonly string MAP_SEEDY = "EndlessTerrainGenerator.SeedY";
+
+
     [Range(1, 3)]
     public int sectorDimension;
     public static int sectorRate = 8;
@@ -59,7 +63,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public MapGenerator mapGenerator;
     public EndlessRoadsGenerator roadsGenerator;
     //public RoadsGenerator roadsGenerator;
-    public static float seedX, seedY;
+    public float seedX, seedY;
 
 
     /* ----------------------------------------------------------------------------------------- */
@@ -94,10 +98,8 @@ public class EndlessTerrainGenerator : MonoBehaviour
         sectorsPoolManager = new PoolManager<Vector2>(50, true, mapSectorPrefab, sectorsContainer);
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
 
-        //roads = new Dictionary<Road.Key, Road>();
-        //roadsPoolManager = new PoolManager<Road.Key>(200, true, roadPrefab, roadsContainer);
-
-        //mapGenerator.parent = this;
+        GlobalInformation.Instance.addData(MAP_SEEDX, seedX);
+        GlobalInformation.Instance.addData(MAP_SEEDY, seedY);
         roadsGenerator.initialize(sectorSize, scale, viewerDistanceUpdate, viewer, LODThresholds);
     }
 

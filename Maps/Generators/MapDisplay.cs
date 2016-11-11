@@ -4,6 +4,9 @@ using System.Collections;
 public class MapDisplay : MonoBehaviour
 {
 
+    public static string MESH_HEIGHT_CURVE = "MapDisplay.MeshHeightCurve";
+    public static string MESH_HEIGHT_MUL = "MapDisplay.MeshHeightMultiplier";
+
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
@@ -13,8 +16,8 @@ public class MapDisplay : MonoBehaviour
 
     public float meshHeightMultiplier;
     public AnimationCurve meshHeightCurve;
-    public static float MESH_HEIGHT_MUL;
-    public static AnimationCurve MESH_HEIGHT_CURVE;
+    //public static float MESH_HEIGHT_MUL;
+    //public static AnimationCurve MESH_HEIGHT_CURVE;
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- UNITY -------------------------------------------------------- */
@@ -22,13 +25,14 @@ public class MapDisplay : MonoBehaviour
 
     void Awake()
     {
-        MESH_HEIGHT_MUL = meshHeightMultiplier;
-        MESH_HEIGHT_CURVE = new AnimationCurve(this.meshHeightCurve.keys);
+        GlobalInformation.Instance.addData(MESH_HEIGHT_CURVE, meshHeightCurve);
+        GlobalInformation.Instance.addData(MESH_HEIGHT_MUL, meshHeightMultiplier);
     }
 
     /* ----------------------------------------------------------------------------------------- */
     void Start()
     {
+        
     }
 
     /* ----------------------------------------------------------------------------------------- */
@@ -58,20 +62,20 @@ public class MapDisplay : MonoBehaviour
         Color[] colorMap = TextureGenerator.generateColorHeightMap((float[,])heightMap.Clone());
         Color[] ColorAlphaMap = TextureGenerator.generateColorHeightMap(alphaMap);
 
-        MeshGenerator.MeshData newMesh = null;
+        MapMeshGenerator.MapMeshData newMesh = null;
         if (renderingMode == RenderingMode.Mesh)
-            newMesh = MeshGenerator.generateMesh(heightMap, meshHeightCurve, meshHeightMultiplier, levelOfDetail);
+            newMesh = MapMeshGenerator.generateMesh(heightMap, meshHeightCurve, meshHeightMultiplier, levelOfDetail);
         else
-            newMesh = MeshGenerator.generateMesh(width, height);
+            newMesh = MapMeshGenerator.generateMesh(width, height);
 
-        MeshGenerator.MeshData colliderMesh = null;
+        MapMeshGenerator.MapMeshData colliderMesh = null;
         if (colliderRequested)
         {
             int colliderLOD = levelOfDetail + colliderAccuracy;
             if (renderingMode == RenderingMode.Mesh)
-                colliderMesh = MeshGenerator.generateMesh(heightMap, meshHeightCurve, meshHeightMultiplier, colliderLOD);
+                colliderMesh = MapMeshGenerator.generateMesh(heightMap, meshHeightCurve, meshHeightMultiplier, colliderLOD);
             else
-                colliderMesh = MeshGenerator.generateMesh(width, height);
+                colliderMesh = MapMeshGenerator.generateMesh(width, height);
         }
 
         return new MapSector.SectorData(levelOfDetail, newMesh, colliderMesh, colorMap, ColorAlphaMap);

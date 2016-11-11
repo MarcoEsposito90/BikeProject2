@@ -146,6 +146,28 @@ public class NoiseGenerator
         return sampleValue;
     }
 
+
+    /* ----------------------------------------------------------------------------------------- */
+    public float highestPointOnSegment(Vector2 from, Vector2 to, float noiseScale, int precision)
+    {
+        float n = 0;
+        Vector2 dist = to - from;
+
+        if (precision < 1) precision = 1;
+        if (precision > 20) precision = 20;
+        float increment = 1.0f / (float)precision;
+
+        for (float j = -1; j <= 1; j += 0.1f)
+        {
+            Vector2 pos = from + j * dist;
+            float temp = getNoiseValue(noiseScale, pos.x, pos.y);
+            if (temp > n)
+                n = temp;
+        }
+
+        return n;
+    }
+
     #endregion
 
 
@@ -155,7 +177,7 @@ public class NoiseGenerator
 
     #region STATICS
 
-    
+
 
     /* ----------------------------------------------------------------------------------------- */
     private static float computeValue(float x, float y, int frequencies, float frequencyMultiplier, float amplitudeDemultiplier)

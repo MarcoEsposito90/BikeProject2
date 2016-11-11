@@ -1,10 +1,10 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public static class MeshGenerator
+public static class MapMeshGenerator
 {
 
-    public static MeshData generateMesh
+    public static MapMeshData generateMesh
         (float[,] noiseMap,
         AnimationCurve _meshHeightCurve,
         float heightMultiplier,
@@ -18,7 +18,7 @@ public static class MeshGenerator
         float topLeftX = -noiseMap.GetLength(0) / 2.0f;
         float topLeftZ = noiseMap.GetLength(1) / 2.0f;
 
-        MeshData meshData = new MeshData(width, height, LOD);
+        MapMeshData meshData = new MapMeshData(width, height, LOD);
 
         int vertexIndex = 0;
         int increment = (int)Mathf.Pow(2, LOD);
@@ -29,7 +29,6 @@ public static class MeshGenerator
             for (y = 0; y < height; y += increment)
             {
                 float h = meshHeightCurve.Evaluate(noiseMap[x, y]) * heightMultiplier;
-                //float h = heightMultiplier * noiseMap[x, y];
                 Vector3 vertex = new Vector3(topLeftX + x, h, topLeftZ - y);
                 meshData.vertices[vertexIndex++] = vertex;
             }
@@ -38,13 +37,13 @@ public static class MeshGenerator
     }
 
 
-    public static MeshData generateMesh(int width, int height)
+    public static MapMeshData generateMesh(int width, int height)
     {
 
         float topLeftX = -width / 2.0f;
         float topLeftZ = height / 2.0f;
 
-        MeshData meshData = new MeshData(2, 2, 0);
+        MapMeshData meshData = new MapMeshData(2, 2, 0);
 
         meshData.vertices[0] = new Vector3(topLeftX, 0, topLeftZ);
         meshData.vertices[1] = new Vector3(topLeftX, 0, topLeftZ - height);
@@ -53,32 +52,19 @@ public static class MeshGenerator
         return meshData;
     }
 
-    /* ------------------------------------------------------------------------------------------------- */
-    /* -------------------------------- MESH DATA ------------------------------------------------------ */
-    /* ------------------------------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------- */
+    /* ---------------------- MESH DATA ------------------------------------- */
+    /* ---------------------------------------------------------------------- */
 
-    public class MeshData
+    public class MapMeshData : MeshData
     {
-        public Vector3[] vertices;
-        public int[] triangles;
-        public Vector2[] uvs;
         public int LOD;
 
         public int width;
         public int height;
 
-        // NOTE: the vector "triangles" stores the indexes of the vertices of the mesh, in the order
-        // they compose the triangles. For example, if:
-        //
-        // triangles = { 1, 4, 5, 3, 2, 0}
-        // vertices = { (0.32,0.54,1.03) , (.....) , .... }
-        //
-        // means the mesh is composed of two triangles: (1,4,5) ; (3,2,0)
-        // the coordinates of each vertex are retrieved from the vertices array: 
-        // in this case vertex 1 has coordinates 0.32 , 0.54, 1.03
-
-        /* --------------- CONSTRUCTOR ----------------------------------------------------------------- */
-        public MeshData(int width, int height, int LOD)
+        /* --------------- CONSTRUCTOR ----------------------------------- */
+        public MapMeshData(int width, int height, int LOD)
         {
             this.LOD = LOD;
 
@@ -99,7 +85,7 @@ public static class MeshGenerator
         }
 
 
-        /* ------------- TRIANGLES ASSIGNATION ----------------------------------------------------- */
+        /* ------------- TRIANGLES ASSIGNATION --------------------------- */
         public void addTriangles(int x, int y)
         {
             if (x == width - 1 || y == height - 1)
@@ -122,7 +108,7 @@ public static class MeshGenerator
             triangles[triangleIndex + 5] = vertexIndex + 1;
         }
 
-        /* ------------- UV COORDINATES ----------------------------------------------------------- */
+        /* ------------- UV COORDINATES ----------------------------------- */
         public void generateUvs(int x, int y)
         {
             int index = x * width + y;
@@ -131,19 +117,6 @@ public static class MeshGenerator
                 return;
 
             uvs[index] = new Vector2(x / (float)(width - 1), y / (float)(height - 1));
-        }
-
-        /* -------------- MESH GENERATION --------------------------------------------------------- */
-        public Mesh createMesh()
-        {
-            // this method can be called only on the main thread
-            Mesh mesh = new Mesh();
-
-            mesh.vertices = vertices;
-            mesh.triangles = triangles;
-            mesh.uv = uvs;
-            mesh.RecalculateNormals();
-            return mesh;
         }
     }
 }
