@@ -25,7 +25,7 @@ public class RoadsGenerator : MonoBehaviour
     public int croassRoadsDimension;
     private float distanceFromCrossroad;
 
-    [Range(1, 4)]
+    [Range(1, 8)]
     public int baseSegmentDimension;
     private float segmentLength;
 
@@ -50,7 +50,7 @@ public class RoadsGenerator : MonoBehaviour
     [Range(0.5f, 1.0f)]
     public float maximumRoadsHeight;
 
-    [Range(0, 20)]
+    [Range(1, 20)]
     public int adherence;
 
     public GameObject roadSegment;

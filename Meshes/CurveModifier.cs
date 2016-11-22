@@ -8,16 +8,43 @@ public class CurveModifier : IMeshModifier
     public Axis axis;
     public ICurve curve;
     bool relative;
+    float from;
+    float to;
     private int index;
     private int index2;
 
-    public CurveModifier(ICurve curve, Axis axis, bool relative)
+
+    public CurveModifier(
+        ICurve curve, 
+        Axis axis, 
+        bool relative, 
+        float from, 
+        float to)
     {
         this.axis = axis;
         this.curve = curve;
         this.relative = relative;
+
+        if (from < 0) from = 0;
+        else if (from > 1) from = 1;
+        if (to < from) to = from;
+        else if (to > 1) to = 1;
+
+        this.from = from;
+        this.to = to;
         setIndex();
     }
+
+    public CurveModifier(ICurve curve, Axis axis, bool relative)
+        : this(curve, axis, relative, 0, 1)
+    {
+        //this.axis = axis;
+        //this.curve = curve;
+        //this.relative = relative;
+        //setIndex();
+    }
+
+    
 
 
     private void setIndex()
@@ -49,7 +76,11 @@ public class CurveModifier : IMeshModifier
         for (int i = 0; i < vertices.Length; i++)
         {
             Vector3 v = vertices[i];
-            float t = curve.parameterOnCurveArchLength(v[index]/dims[index]);
+            float l = v[index] / dims[index];
+            float t = curve.parameterOnCurveArchLength(l);
+            t = from + (to - from) * t;
+            //Debug.Log("l = " + l + "; t = " + t);
+
             Vector2 p = curve.pointOnCurve(t);
             Vector3 right = curve.getRightVector(t, true);
             vertices[i] = new Vector3(

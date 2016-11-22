@@ -49,7 +49,8 @@ public static class CrossroadsMeshGenerator {
         }
 
         // add points to the mesh -------------------------------------------
-        points.Sort(new  GeometryUtilities.ClockWiseComparer(Vector2.zero, true));
+        GeometryUtilities.ClockWiseComparer comp = new GeometryUtilities.ClockWiseComparer(Vector2.zero, true);
+        points.Sort(comp);
         float centerHeight = NoiseGenerator.Instance.getNoiseValue(1, center.position.x, center.position.y);
         centerHeight = heightCurve.Evaluate(centerHeight) * mul;
         crmd.addPoint(new Vector3(0, centerHeight, 0));
@@ -77,7 +78,6 @@ public static class CrossroadsMeshGenerator {
 
     public class CrossroadMeshData : MeshData
     {
-
         // -------------------------------------------------------- 
         private int numberOfLinks;
         private int pointCounter;

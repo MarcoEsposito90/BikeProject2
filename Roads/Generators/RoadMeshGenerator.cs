@@ -27,11 +27,19 @@ public static class RoadMeshGenerator
             numberOfSegments, 
             distanceFromCP, 
             adherence);
-        
-        ArrayModifier arrayMod = new ArrayModifier(numberOfSegments, Vector3.zero, true, false, false);
+
+        Vector3 startOffsets = new Vector3(distanceFromCP, 0, 0);
+        ArrayModifier arrayMod = new ArrayModifier(
+            numberOfSegments, 
+            true, 
+            false, 
+            false);
+
         HeightModifier heightMod = new HeightModifier(heights, null);
         heightMod.mode = HeightModifier.Mode.Array;
-        CurveModifier curveMod = new CurveModifier(curve, CurveModifier.Axis.X, true);
+        float from = curve.parameterOnCurveArchLength(distanceFromCP / curveLength);
+        float to = curve.parameterOnCurveArchLength((curveLength - distanceFromCP) / curveLength);
+        CurveModifier curveMod = new CurveModifier(curve, CurveModifier.Axis.X, true, from, to);
 
         MeshData newMesh = segmentMeshData.clone();
         arrayMod.Apply(newMesh);
@@ -64,27 +72,33 @@ public static class RoadMeshGenerator
 
         float curveLength = curve.length();
         float[] heights = new float[numberOfSegments + 1];
+        Vector2 start = curve.startPoint();
+        Vector2 end = curve.endPoint();
+        float startHeight = getHeight(start, heightCurve, mul);
+        float endHeight = getHeight(end, heightCurve, mul);
+        float denom = 1.0f / (float)adherence;
+        float toAdd = (curveLength - 2.0f * distanceFromCP) / (float)numberOfSegments;
+        float l = distanceFromCP;
 
         for (int i = 0; i <= numberOfSegments; i++)
         {
-            float l = distanceFromCP + i * ((curveLength - 2.0f * distanceFromCP) / (float)numberOfSegments);
-            l /= curveLength;
-            float t = curve.parameterOnCurveArchLength(l);
+            l += toAdd;
+            float t = curve.parameterOnCurveArchLength(l / curveLength);
             Vector2 p = curve.pointOnCurve(t);
-            float n = NoiseGenerator.Instance.highestPointOnZone(p, 1, 1, 10);
-            heights[i] = heightCurve.Evaluate(n) * mul;
-        }
-
-        if (adherence > 0)
-        {
-            float denom = 25 - adherence;
-            int dim = Mathf.Max((int)(heights.Length / denom), 3);
-            if (dim % 2 == 0) dim--;
-            float[] kernel = GeometryUtilities.averageFilterKernel(dim);
-            GeometryUtilities.filter(heights, kernel);
+            float n = NoiseGenerator.Instance.highestPointOnZone(p, 1, 1, 2);
+            float h = getHeight(p, heightCurve, mul);
+            float medH = startHeight + (endHeight - startHeight) * t;
+            heights[i] = medH + denom * (h - medH);
         }
 
         return heights;
+    }
+
+
+    private static float getHeight(Vector2 point, AnimationCurve heightCurve, float multiplier)
+    {
+        float n = NoiseGenerator.Instance.highestPointOnZone(point, 1, 1, 2);
+        return heightCurve.Evaluate(n) * multiplier;
     }
 
     #endregion

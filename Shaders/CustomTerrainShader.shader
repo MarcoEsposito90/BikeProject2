@@ -212,8 +212,7 @@ Shader "Custom/CustomTerrainShader" {
 				if (_InvertAlpha == 1)
 					alpha = 1 - alpha;
 
-				alpha += 0.25f;
-				o.Alpha = alpha;
+				o.Alpha = 0.5f;
 			}
 		}
 

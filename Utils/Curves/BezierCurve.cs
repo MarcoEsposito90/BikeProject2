@@ -10,7 +10,7 @@ public class BezierCurve : ICurve
     public Vector2 end;
     public Vector2 endTangent;
     public float ax, bx, cx, ay, by, cy;
-    public const int lengthSamplesNumber = 20;
+    public const int lengthSamplesNumber = 10;
     public float archLength;
     public float[] lengthSamples;
 
@@ -43,26 +43,23 @@ public class BezierCurve : ICurve
     /* ---------------------------------------------------------------- */
     private void computeLengthSamples()
     {
-        lengthSamples = new float[lengthSamplesNumber];
+        lengthSamples = new float[lengthSamplesNumber + 1];
         float increment = 1.0f / (float)lengthSamplesNumber;
         float currentLength = 0;
-        Vector2 previous = Vector2.zero;
+        Vector2 previous = pointOnCurve(0);
+        lengthSamples[0] = 0;
+        float t = 0;
 
-        int counter = 0;
-        for (float i = 0; i <= 1.0f; i += increment)
+        for (int i = 1; i <= lengthSamplesNumber; i++)
         {
-            Vector2 point = pointOnCurve(i);
-            float addLength = 0;
-            if (i != 0)
-                addLength = Vector2.Distance(point, previous);
-
-            lengthSamples[counter] = currentLength + addLength;
-            currentLength = lengthSamples[counter];
-            counter++;
+            t += increment;
+            Vector2 point = pointOnCurve(t);
+            currentLength += Vector2.Distance(point, previous);
+            lengthSamples[i] = currentLength;
             previous = point;
         }
 
-        archLength = lengthSamples[lengthSamplesNumber - 1];
+        archLength = currentLength;
     }
 
 
@@ -81,36 +78,39 @@ public class BezierCurve : ICurve
     /* ---------------------------------------------------------------- */
     public float parameterOnCurveArchLength(float normalizedLength)
     {
-        float t = -1.0f;
 
         if (normalizedLength <= 0)
-        {
-            t = 0.0f;
-            return t;
-        }
+            return 0;
 
         if (normalizedLength >= 1)
-        {
-            t = 1.0f;
-            return t;
-        }
+            return 1;
 
+        float t = 0;
         float length = normalizedLength * archLength;
+        float segment = 1.0f / (float)lengthSamplesNumber;
 
-        float interval = (1.0f / (float)lengthSamplesNumber);
-        for (int i = 0; i < lengthSamplesNumber - 1; i++)
+        for (int i = lengthSamples.Length - 1; i > 0; i--)
         {
-            int index = i;
-            float L1 = lengthSamples[index];
-            float L2 = lengthSamples[index + 1];
-
-            if (length >= L1 && length <= L2)
+            if (length <= lengthSamples[i] && length >= lengthSamples[i - 1])
             {
-                t = interval * (float)index;
-                float rate = (length - L1) / (L2 - L1) * interval;
-                t += rate;
-                break;
+                float L1 = lengthSamples[i - 1];
+                float L2 = lengthSamples[i];
+                float r = (length - L1) / (L2 - L1) * segment;
+                t = segment * (i - 1);
+                t += r;
+                return t;
             }
+            //int index = i;
+            //float L1 = lengthSamples[index];
+            //float L2 = lengthSamples[index + 1];
+
+            //if (length >= L1 && length <= L2)
+            //{
+            //    t = interval * (float)index;
+            //    float rate = (length - L1) / (L2 - L1) * interval;
+            //    t += rate;
+            //    break;
+            //}
         }
 
         return t;
