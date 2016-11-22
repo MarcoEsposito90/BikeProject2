@@ -29,7 +29,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     [Range(2, 10)]
     public int NumberOfLods;
 
-    [Range(1, 5)]
+    [Range(1, 20)]
     public int accuracy;
     private float[] LODThresholds;
 

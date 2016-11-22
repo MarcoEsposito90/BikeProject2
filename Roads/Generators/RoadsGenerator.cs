@@ -50,9 +50,12 @@ public class RoadsGenerator : MonoBehaviour
     [Range(0.5f, 1.0f)]
     public float maximumRoadsHeight;
 
-    [Range(0.0f, 10.0f)]
-    public float terrainOffset;
+    [Range(0, 20)]
+    public int adherence;
 
+    public GameObject roadSegment;
+    public Texture2D roadSegmentTexture;
+    private MeshData roadSegmentMeshData;
     public EndlessRoadsGenerator parent;
 
     private Graph<Vector2, ControlPoint> controlPointsGraph;
@@ -73,9 +76,11 @@ public class RoadsGenerator : MonoBehaviour
         synchVariable = new object();
         controlPointsGraph = new Graph<Vector2, ControlPoint>();
         curves = new Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve>();
+        Mesh m = roadSegment.GetComponent<MeshFilter>().sharedMesh;
+        roadSegmentMeshData = new MeshData(m.vertices, m.triangles, m.uv, m.normals, 0);
 
         roadWidth = largeRoads * 0.25f;
-        distanceFromCrossroad = croassRoadsDimension * 1.0f;
+        distanceFromCrossroad = croassRoadsDimension * 0.5f;
         segmentLength = 0.5f * baseSegmentDimension;
         tangentRescale = 0.25f * sinuosity - 0.25f;
     }
@@ -140,8 +145,6 @@ public class RoadsGenerator : MonoBehaviour
         if (!linkable)
             return;
 
-        //Debug.Log("point " + cp.gridPosition + " is linkable");
-
         // if the point is linkable to others, we will get here ----
 
         // create links (if possible) ------------------------------
@@ -176,8 +179,6 @@ public class RoadsGenerator : MonoBehaviour
                     continue;
             }
 
-            //Debug.Log("scanning link " + l.from.item.position + " - " + l.to.item.position);
-
             ControlPoint from = l.from.item;
             ControlPoint to = l.to.item;
 
@@ -192,8 +193,6 @@ public class RoadsGenerator : MonoBehaviour
             if (!canCreateCurve)
                 continue;
 
-            //Debug.Log("control1 passed");
-
             foreach (Vector2 target in to.getNeighborsGridPositions(neighborhood))
                 if (!controlPointsGraph.containsItem(target))
                 {
@@ -201,27 +200,9 @@ public class RoadsGenerator : MonoBehaviour
                     break;
                 }
 
-            //Debug.Log("control2 passed? " + canCreateCurve);
-
             if (canCreateCurve)
                 createCurve(l);
 
-        }
-
-        // we have now to create the crossroads meshes
-        foreach (Graph<Vector2, ControlPoint>.GraphItem it in controlPointsGraph.nodes.Values)
-        {
-            //Dictionary<ControlPoint, Graph<Vector2,ControlPoint>.Link> points = new Dictionary<ControlPoint, Graph<Vector2, ControlPoint>.Link>();
-            List<Graph<Vector2, ControlPoint>.Link> incomingCurves = new List<Graph<Vector2, ControlPoint>.Link>();
-            foreach (Graph<Vector2, ControlPoint>.Link link in it.links)
-            {
-                if (!curves.ContainsKey(link))
-                    continue;
-
-                incomingCurves.Add(link);
-            }
-         
-               
         }
     }
 
@@ -281,10 +262,13 @@ public class RoadsGenerator : MonoBehaviour
             c,
             roadWidth,
             distanceFromCrossroad,
-            segmentLength);
-        Road.RoadData data = new Road.RoadData(rmd, link, c);
+            segmentLength,
+            adherence,
+            roadSegmentMeshData);
+        Road.RoadData data = new Road.RoadData(rmd, link, c, roadSegmentTexture);
         parent.roadsResultsQueue.Enqueue(data);
     }
+
 
     /* -------------------------------------------------------------------------------------- */
     private Vector2 getTangent(Graph<Vector2, ControlPoint>.GraphItem point, Graph<Vector2, ControlPoint>.Link exclude)
@@ -319,6 +303,32 @@ public class RoadsGenerator : MonoBehaviour
             toward.item.position);
 
         return tangent * tangentRescale + point.item.position;
+    }
+
+    #endregion
+
+
+    /* -------------------------------------------------------------------------- */
+    /* ---------------------- CROSSROADS ---------------------------------------- */
+    /* -------------------------------------------------------------------------- */
+
+    #region CROSSROADS
+
+    public void requestCrossroad(ControlPoint center, List<Road> roads)
+    {
+
+        CrossroadsMeshGenerator.CrossroadMeshData crmd;
+        crmd = CrossroadsMeshGenerator.generateMeshData(
+            center,
+            roads,
+            distanceFromCrossroad,
+            roadWidth);
+
+        ControlPoint.ControlPointData data = new ControlPoint.ControlPointData(
+            center.gridPosition,
+            crmd);
+
+        parent.cpsResultsQueue.Enqueue(data);
     }
 
     #endregion

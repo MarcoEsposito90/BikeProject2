@@ -79,19 +79,19 @@ public class BezierCurve : ICurve
 
 
     /* ---------------------------------------------------------------- */
-    public float parameterOnCurveArchLength(float normalizedLength, bool fromStart)
+    public float parameterOnCurveArchLength(float normalizedLength)
     {
         float t = -1.0f;
 
         if (normalizedLength <= 0)
         {
-            t = fromStart ? 0.0f : 1.0f;
+            t = 0.0f;
             return t;
         }
 
         if (normalizedLength >= 1)
         {
-            t = fromStart ? 1.0f : 0.0f;
+            t = 1.0f;
             return t;
         }
 
@@ -100,16 +100,14 @@ public class BezierCurve : ICurve
         float interval = (1.0f / (float)lengthSamplesNumber);
         for (int i = 0; i < lengthSamplesNumber - 1; i++)
         {
-            int index = fromStart ? i : lengthSamplesNumber - (i + 1);
-            float L1 = fromStart ? lengthSamples[index] : archLength - lengthSamples[index];
-            float L2 = fromStart ? lengthSamples[index + 1] : archLength - lengthSamples[index - 1];
+            int index = i;
+            float L1 = lengthSamples[index];
+            float L2 = lengthSamples[index + 1];
 
             if (length >= L1 && length <= L2)
             {
                 t = interval * (float)index;
                 float rate = (length - L1) / (L2 - L1) * interval;
-                if (!fromStart) rate *= -1;
-
                 t += rate;
                 break;
             }
@@ -172,10 +170,10 @@ public class BezierCurve : ICurve
 
 
     /* ---------------------------------------------------------------- */
-    public Vector2 getRightVector(float t)
+    public Vector2 getRightVector(float t, bool normalize)
     {
         Vector2 p = pointOnCurve(t);
-        Vector2 deriv = derivate1(t, true);
+        Vector2 deriv = derivate1(t, normalize);
         Vector3 crossProd = GeometryUtilities.CrossProduct(
             Vector3.up,
             new Vector3(deriv.x, 0, deriv.y));

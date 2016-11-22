@@ -134,9 +134,14 @@ public class MapGenerator : MonoBehaviour
         }
 
         // 2) generate meshes and textures
-        MapSector.SectorData sectorData = mapDisplayer.getSectorData(sector, LOD, colliderRequested, colliderAccuracy);
-        sectorData.sectorPosition = sector.position;
+        MapSector.SectorData sectorData = mapDisplayer.getSectorData(
+            sector, 
+            LOD, 
+            colliderRequested, 
+            colliderAccuracy);
 
+        sectorData.sectorPosition = sector.position;
+        
         // 3) enqueue results
         parent.sectorResultsQueue.Enqueue(sectorData);
     }

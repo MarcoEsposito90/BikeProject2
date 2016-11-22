@@ -40,18 +40,18 @@ public class NoiseGenerator
     #region INITIALIZE
 
     public static void Initialize(
-        float noiseScale, 
-        int frequencies, 
-        float frequencyMultiplier,  
+        float noiseScale,
+        int frequencies,
+        float frequencyMultiplier,
         float amplitudeDemultiplier,
         float offsetX,
         float offsetY)
     {
         if (initialized) return;
         Instance = new NoiseGenerator(
-            noiseScale, 
-            frequencies, 
-            frequencyMultiplier, 
+            noiseScale,
+            frequencies,
+            frequencyMultiplier,
             amplitudeDemultiplier,
             offsetX,
             offsetY);
@@ -61,9 +61,9 @@ public class NoiseGenerator
 
     /* ----------------------------------------------------------------------------------------- */
     private NoiseGenerator(
-        float noiseScale, 
-        int frequencies, 
-        float frequencyMultiplier, 
+        float noiseScale,
+        int frequencies,
+        float frequencyMultiplier,
         float amplitudeDemultiplier,
         float offsetX,
         float offsetY)
@@ -137,7 +137,6 @@ public class NoiseGenerator
     /* ----------------------------------------------------------------------------------------- */
     public float getNoiseValue(float scaleMultiply, float x, float y)
     {
-
         float sampleX = (x + offsetX) / (noiseScale * scaleMultiply);
         float sampleY = (y + offsetY) / (noiseScale * scaleMultiply);
 
@@ -152,12 +151,11 @@ public class NoiseGenerator
     {
         float n = 0;
         Vector2 dist = to - from;
-
         if (precision < 1) precision = 1;
         if (precision > 20) precision = 20;
         float increment = 1.0f / (float)precision;
 
-        for (float j = -1; j <= 1; j += 0.1f)
+        for (float j = 0; j < 1 + increment; j += increment)
         {
             Vector2 pos = from + j * dist;
             float temp = getNoiseValue(noiseScale, pos.x, pos.y);
@@ -166,6 +164,29 @@ public class NoiseGenerator
         }
 
         return n;
+    }
+
+    /* ----------------------------------------------------------------------------------------- */
+    public float highestPointOnZone(Vector2 position, float scaleMultiply, float radius, int precision)
+    {
+        float x = position.x;
+        float y = position.y;
+        float currentMax = 0;
+        if (precision < 1) precision = 1;
+        else if (precision > 20) precision = 20;
+        float increment = 1.0f / (float)precision;
+
+        for(float i = -radius; i <= radius; i+= increment)
+        {
+            for(float j = -radius; j <= radius; j+= increment)
+            {
+                float n = getNoiseValue(scaleMultiply, x + i, y + j);
+                if (n > currentMax)
+                    currentMax = n;
+            }
+        }
+
+        return currentMax;
     }
 
     #endregion

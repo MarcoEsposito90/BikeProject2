@@ -3,15 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 
-public class EndlessRoadsGenerator : MonoBehaviour {
+public class EndlessRoadsGenerator : MonoBehaviour
+{
 
     /* ----------------------------------------------------------------------------------------- */
     /* ---------------------------- ATTRIBUTES ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
+    public const int DENSITY_ONE = 5;
+
     #region ATTRIBUTES
 
-    [Range(-5, 5)]
+    [Range(1, DENSITY_ONE + 1)]
     public int controlPointsDensity;
     public float controlPointArea { get; private set; }
     public float scaledControlPointArea { get; private set; }
@@ -19,11 +22,11 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     [Range(2, 10)]
     public int NumberOfLods;
 
-    [Range(3,10)]
+    [Range(3, 10)]
     public int radius;
     private float threshold;
 
-    [Range(1,3)]
+    [Range(1, 3)]
     public int removeRadius;
     private float removeThreshold;
 
@@ -42,11 +45,11 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     //private float[] LODThresholds;
 
     private Dictionary<Vector2, ControlPoint> controlPoints;
-    private Dictionary<Graph<Vector2,ControlPoint>.Link, Road> roads;
+    private Dictionary<Graph<Vector2, ControlPoint>.Link, Road> roads;
     private PoolManager<Graph<Vector2, ControlPoint>.Link> roadsPoolManager;
     private PoolManager<Vector2> controlPointsPoolManager;
     public BlockingQueue<Road.RoadData> roadsResultsQueue { get; private set; }
-    //public BlockingQueue<Road.RoadData> roadsResultsQueue { get; private set; }
+    public BlockingQueue<ControlPoint.ControlPointData> cpsResultsQueue { get; private set; }
 
     #endregion
 
@@ -54,22 +57,24 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     /* ----------------------------------------------------------------------------------------- */
     /* ---------------------------- UNITY ------------------------------------------------------ */
     /* ----------------------------------------------------------------------------------------- */
-    
+
     #region UNITY
 
     /* ----------------------------------------------------------------------------------------- */
-    void Awake ()
+    void Awake()
     {
         controlPoints = new Dictionary<Vector2, ControlPoint>();
         roads = new Dictionary<Graph<Vector2, ControlPoint>.Link, Road>();
         roadsResultsQueue = new BlockingQueue<Road.RoadData>();
+        cpsResultsQueue = new BlockingQueue<ControlPoint.ControlPointData>();
 
         roadsPoolManager = new PoolManager<Graph<Vector2, ControlPoint>.Link>(10, true, roadPrefab, roadsContainer);
         controlPointsPoolManager = new PoolManager<Vector2>(400, true, controlPointPrefab, controlPointsContainer);
     }
-	
+
     /* ----------------------------------------------------------------------------------------- */
-	void Update () {
+    void Update()
+    {
 
         while (!roadsResultsQueue.isEmpty())
         {
@@ -77,10 +82,15 @@ public class EndlessRoadsGenerator : MonoBehaviour {
             onRoadDataReceived(data);
         }
 
+        while (!cpsResultsQueue.isEmpty())
+        {
+            ControlPoint.ControlPointData data = cpsResultsQueue.Dequeue();
+            onCpDataReceived(data);
+        }
+
         float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
         if (distance >= viewerDistanceUpdate)
         {
-            // TODO
             createControlPoints();
             updateControlPoints();
             latestViewerRecordedPosition = viewer.position;
@@ -88,7 +98,7 @@ public class EndlessRoadsGenerator : MonoBehaviour {
 
     }
 
-    
+
 
     #endregion
 
@@ -101,18 +111,16 @@ public class EndlessRoadsGenerator : MonoBehaviour {
 
     /* ----------------------------------------------------------------------------------------- */
     public void initialize
-        (int sectorSize, 
-        int scale, 
-        float viewerDistanceUpdate, 
+        (int sectorSize,
+        int scale,
+        float viewerDistanceUpdate,
         Transform viewer,
         float[] LODThresholds)
     {
         this.sectorSize = sectorSize;
-
-        if (controlPointsDensity == 0) controlPointsDensity = 1;
-        float multiplier =  controlPointsDensity > 0 ? controlPointsDensity : 
-                            - 1.0f / (float)controlPointsDensity;
-
+        float denom = (DENSITY_ONE + 1) - controlPointsDensity;
+        if (denom <= 0) denom = 1.0f / Mathf.Pow(2, -denom + 1); 
+        float multiplier = 1.0f / denom;
         controlPointArea = (float)sectorSize / multiplier;
         scaledControlPointArea = controlPointArea * scale;
 
@@ -126,9 +134,9 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     }
 
 
-    /* ------------------------------------------------------------------------------------ */
-    /* ---------------------------- CREATE CONTROL POINTS --------------------------------- */
-    /* ------------------------------------------------------------------------------------ */
+    /* ----------------------------------------------------------------------------- */
+    /* ---------------------------- CONTROL POINTS --------------------------------- */
+    /* ----------------------------------------------------------------------------- */
 
     #region CONTROL_POINTS
 
@@ -175,18 +183,11 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     }
 
 
-    #endregion
-
-    /* ------------------------------------------------------------------------------------ */
-    /* ---------------------------- UPDATE CONTROL POINTS --------------------------------- */
-    /* ------------------------------------------------------------------------------------ */
-
-    #region UPDATE_CONTROL_POINTS
-
+    /* ----------------------------------------------------------------------------------------- */
     private void updateControlPoints()
     {
-        List<ControlPoint> toBeRemoved = new List<ControlPoint>(); 
-        foreach(ControlPoint cp in controlPoints.Values)
+        List<ControlPoint> toBeRemoved = new List<ControlPoint>();
+        foreach (ControlPoint cp in controlPoints.Values)
         {
             float d = cp.bounds.SqrDistance(viewer.transform.position);
             d = (float)Math.Sqrt(d);
@@ -199,10 +200,37 @@ public class EndlessRoadsGenerator : MonoBehaviour {
             }
         }
 
-        foreach(ControlPoint cp in toBeRemoved)
+        foreach (ControlPoint cp in toBeRemoved)
             controlPoints.Remove(cp.gridPosition);
     }
 
+
+    #endregion
+
+    /* ----------------------------------------------------------------------------- */
+    /* ---------------------------- CONTROL POINTS --------------------------------- */
+    /* ----------------------------------------------------------------------------- */
+
+    #region CROSSROADS
+
+    private void createCrossRoad(Graph<Vector2, ControlPoint>.GraphItem node)
+    {
+        bool canCreateCrossroad = true;
+        List<Road> incomingRoads = new List<Road>();
+        foreach (Graph<Vector2, ControlPoint>.Link l in node.links)
+        {
+            if (!roads.ContainsKey(l))
+            {
+                canCreateCrossroad = false;
+                break;
+            }
+
+            incomingRoads.Add(roads[l]);
+        }
+
+        if (canCreateCrossroad)
+            roadsGenerator.requestCrossroad(node.item, incomingRoads);
+    }
 
     #endregion
 
@@ -213,7 +241,7 @@ public class EndlessRoadsGenerator : MonoBehaviour {
     #region DATA_RECEIVED
 
     /* ----------------------------------------------------------------------------------------- */
-    public void onRoadDataReceived(Road.RoadData roadData)
+    private void onRoadDataReceived(Road.RoadData roadData)
     {
         Road r = null;
 
@@ -224,11 +252,35 @@ public class EndlessRoadsGenerator : MonoBehaviour {
         else
         {
             GameObject newRoadObj = roadsPoolManager.acquireObject(roadData.key);
-            r = new Road(roadData.curve, roadData.key, newRoadObj, scale);
+            r = new Road(
+                roadData.curve,
+                roadData.key,
+                newRoadObj,
+                scale,
+                ((RoadMeshGenerator.RoadMeshData)roadData.meshData).numberOfSections,
+                ((RoadMeshGenerator.RoadMeshData)roadData.meshData).heights);
+
             roads.Add(roadData.key, r);
         }
 
-        r.setMesh(roadData.meshData.createMesh());
+        r.setMesh(roadData.meshData.createMesh(), roadData.texture);
+        createCrossRoad(roadData.key.from);
+        createCrossRoad(roadData.key.to);
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void onCpDataReceived(ControlPoint.ControlPointData data)
+    {
+        //Debug.Log("data received for " + data.gridPosition);
+        if (!controlPoints.ContainsKey(data.gridPosition))
+        {
+            //Debug.Log("request deceased for control point " + data.gridPosition);
+            return;
+        }
+
+        ControlPoint cp = controlPoints[data.gridPosition];
+        cp.setMesh(data.crossRoadMeshData.createMesh());
     }
 
     #endregion

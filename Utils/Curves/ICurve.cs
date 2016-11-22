@@ -9,8 +9,8 @@ public interface ICurve {
 
     Vector2 pointOnCurve(float t);
 
-    float parameterOnCurveArchLength(float normalizedLength, bool fromStart);
-    Vector2 getRightVector(float t);
+    float parameterOnCurveArchLength(float normalizedLength);
+    Vector2 getRightVector(float t, bool normalize);
     Vector2 derivate1(float t, bool normalize);
     Vector2 derivate2(float t, bool normalize);
     

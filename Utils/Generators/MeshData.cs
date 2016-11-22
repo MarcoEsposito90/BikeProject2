@@ -7,6 +7,8 @@ public class MeshData : IMeshData
     public Vector3[] vertices;
     public int[] triangles;
     public Vector2[] uvs;
+    public Vector3[] normals;
+    public int LOD;
 
     /*  NOTE: the vector "triangles" stores the indexes of the vertices of the mesh, in the order
         they compose the triangles. For example, if:
@@ -26,6 +28,22 @@ public class MeshData : IMeshData
         vertices = new Vector3[0];
         triangles = new int[0];
         uvs = new Vector2[0];
+        normals = new Vector3[0];
+        LOD = -1;
+    }
+
+    public MeshData(Vector3[] vertices, int[] triangles, Vector2[] uvs, Vector3[] normals, int LOD)
+    {
+        this.vertices = vertices;
+        this.triangles = triangles;
+        this.uvs = uvs;
+        this.normals = normals;
+        this.LOD = LOD;
+    }
+
+    public MeshData clone()
+    {
+        return new MeshData(vertices, triangles, uvs, normals, LOD);
     }
 
     // this method can be called only on the main thread,
@@ -37,7 +55,12 @@ public class MeshData : IMeshData
         mesh.vertices = vertices;
         mesh.triangles = triangles;
         mesh.uv = uvs;
-        mesh.RecalculateNormals();
+
+        if (normals == null || normals.Length == 0)
+            mesh.RecalculateNormals();
+        else
+            mesh.normals = normals;
+
         return mesh;
     }
 }

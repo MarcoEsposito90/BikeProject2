@@ -148,22 +148,16 @@ public class ControlPoint
         return mean;
     }
 
-    /* ------------------------------------------------------------------------------------- */
-    /* ------------------------------ PREFAB ----------------------------------------------- */
-    /* ------------------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------------- */
+    /* ------------------------------ PREFAB -------------------------------------- */
+    /* ---------------------------------------------------------------------------- */
 
     #region PREFAB
 
     /* ------------------------------------------------------------------------------------------------- */
     private void initializePrefab()
     {
-        AnimationCurve c = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
-        AnimationCurve meshHeightCurve = new AnimationCurve(c.keys);
-        float n = NoiseGenerator.Instance.getNoiseValue(1, position.x, position.y);
-        float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
-
-        float h = meshHeightCurve.Evaluate(n) * mul;
-        float y = h * scale;
+        float y = 0;
         float x = position.x * scale;
         float z = position.y * scale;
 
@@ -174,6 +168,14 @@ public class ControlPoint
         prefabObject.SetActive(true);
     }
 
+    /* ------------------------------------------------------------------------------------------------- */
+    public void setMesh(Mesh mesh)
+    {
+        mesh.name = "Crossroad " + gridPosition;
+        prefabObject.GetComponent<MeshFilter>().mesh = mesh;
+        prefabObject.GetComponent<MeshCollider>().sharedMesh = mesh;
+    }
+
 
     /* ------------------------------------------------------------------------------------------------- */
     public void resetPrefab()
@@ -181,6 +183,7 @@ public class ControlPoint
         prefabObject.transform.position = Vector3.zero;
         prefabObject.name = "ControlPoint (available)";
         prefabObject.transform.localScale = Vector3.one;
+        prefabObject.GetComponent<MeshFilter>().mesh = null;
         prefabObject.SetActive(false);
     }
 
@@ -188,9 +191,9 @@ public class ControlPoint
     #endregion
 
 
-    /* ------------------------------------------------------------------------------------------ */
-    /* -------------------------------- COMPARER ------------------------------------------------ */
-    /* ------------------------------------------------------------------------------------------ */
+    /* ----------------------------------------------------------------------------- */
+    /* ------------------- COMPARERS ----------------------------------------------- */
+    /* ----------------------------------------------------------------------------- */
 
     #region COMPARER
 
@@ -215,43 +218,22 @@ public class ControlPoint
     }
 
 
-    /* ------------------------------------------------------------------------------------------ */
-    public class ClockWiseComparer : IComparer<Vector2>
-    {
-        public ControlPoint center;
-        public bool clockwise;
-
-        // -----------------------------------------------------------
-        public ClockWiseComparer(ControlPoint center, bool clockwise)
-        {
-            this.center = center;
-            this.clockwise = clockwise;
-        }
-
-
-        // -----------------------------------------------------------
-        public int Compare(Vector2 x, Vector2 y)
-        {
-            float angle1 = getAngle(x);
-            float angle2 = getAngle(y);
-            int diff = (int)Mathf.Sign(angle1 - angle2);
-
-            if (clockwise)
-                diff *= -1;
-
-            return diff;
-        }
-
-
-        // -----------------------------------------------------------
-        private float getAngle(Vector2 other)
-        {
-            Vector2 v1 = other - center.position;
-            Vector2 v2 = new Vector2(1, 0);
-            return Vector2.Angle(v2, v1);
-        }
-
-    }
-
     #endregion
+
+
+    /* ---------------------------------------------------------------------------- */
+    /* ------------------------------ OBJECT DATA --------------------------------- */
+    /* ---------------------------------------------------------------------------- */
+
+    public class ControlPointData
+    {
+        public readonly Vector2 gridPosition;
+        public readonly MeshData crossRoadMeshData;
+        
+        public ControlPointData(Vector2 gridPosition, MeshData crossRoadMeshData)
+        {
+            this.gridPosition = gridPosition;
+            this.crossRoadMeshData = crossRoadMeshData;
+        }
+    }
 }

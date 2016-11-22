@@ -58,8 +58,6 @@ public static class MapMeshGenerator
 
     public class MapMeshData : MeshData
     {
-        public int LOD;
-
         public int width;
         public int height;
 
