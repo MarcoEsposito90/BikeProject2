@@ -25,7 +25,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     [Range(1, 8)]
     public int subdivisions;
-    
+
     [Range(2, 10)]
     public int NumberOfLods;
 
@@ -86,7 +86,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
         viewerDistanceUpdate = scaledChunkSize / (float)(viewerDistanceUpdateFrequency + 3);
 
         for (int i = 0; i < LODThresholds.Length; i++)
-            LODThresholds[i] = (scaledChunkSize / 2.0f + i * scaledChunkSize) * accuracy / 2.0f;
+            LODThresholds[i] = (scaledChunkSize / 2.0f + i * scaledChunkSize * accuracy) * (accuracy) / 2.0f;
 
         removeThreshold = LODThresholds[LODThresholds.Length - 1] * keepUnvisible;
 
@@ -107,28 +107,28 @@ public class EndlessTerrainGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     void Start()
     {
-        //viewer.position = new Vector3(0, viewer.position.y, 0);
-        //createNewSectors();
-        //updateSectors();
+        viewer.position = new Vector3(0, viewer.position.y, 0);
+        createNewSectors();
+        updateSectors();
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
-        //while (!sectorResultsQueue.isEmpty())
-        //{
-        //    MapSector.SectorData data = sectorResultsQueue.Dequeue();
-        //    onSectorDataReceived(data);
-        //}
+        while (!sectorResultsQueue.isEmpty())
+        {
+            MapSector.SectorData data = sectorResultsQueue.Dequeue();
+            onSectorDataReceived(data);
+        }
 
-        //float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
-        //if (distance >= viewerDistanceUpdate)
-        //{
-        //    createNewSectors();
-        //    updateSectors();
-        //    latestViewerRecordedPosition = viewer.position;
-        //}
+        float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
+        if (distance >= viewerDistanceUpdate)
+        {
+            createNewSectors();
+            updateSectors();
+            latestViewerRecordedPosition = viewer.position;
+        }
     }
 
     #endregion

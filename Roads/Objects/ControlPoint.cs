@@ -157,11 +157,16 @@ public class ControlPoint
     /* ------------------------------------------------------------------------------------------------- */
     private void initializePrefab()
     {
-        float y = 0;
+        AnimationCurve heightCurve = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
+        float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
+
+        float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 4, 1);
+        y = heightCurve.Evaluate(y) * mul * scale;
         float x = position.x * scale;
         float z = position.y * scale;
 
         Vector3 prefabPos = new Vector3(x, y, z);
+        //Debug.Log(prefabPos);
         prefabObject.transform.position = prefabPos;
         prefabObject.name = "ControlPoint " + gridPosition;
         prefabObject.transform.localScale = new Vector3(scale, scale, scale);
@@ -169,11 +174,12 @@ public class ControlPoint
     }
 
     /* ------------------------------------------------------------------------------------------------- */
-    public void setMesh(Mesh mesh)
+    public void setData(ControlPoint.ControlPointData data)
     {
-        mesh.name = "Crossroad " + gridPosition;
-        prefabObject.GetComponent<MeshFilter>().mesh = mesh;
-        prefabObject.GetComponent<MeshCollider>().sharedMesh = mesh;
+        prefabObject.GetComponent<CrossroadHandler>().setData(data);
+        //mesh.name = "Crossroad " + gridPosition;
+        //prefabObject.GetComponent<MeshFilter>().mesh = mesh;
+        //prefabObject.GetComponent<MeshCollider>().sharedMesh = mesh;
     }
 
 
@@ -183,7 +189,7 @@ public class ControlPoint
         prefabObject.transform.position = Vector3.zero;
         prefabObject.name = "ControlPoint (available)";
         prefabObject.transform.localScale = Vector3.one;
-        prefabObject.GetComponent<MeshFilter>().mesh = null;
+        //prefabObject.GetComponent<MeshFilter>().mesh = null;
         prefabObject.SetActive(false);
     }
 
@@ -228,12 +234,20 @@ public class ControlPoint
     public class ControlPointData
     {
         public readonly Vector2 gridPosition;
-        public readonly MeshData crossRoadMeshData;
+        public readonly Texture2D crossroadTexture;
+        public readonly Texture2D roadTexture;
+        public readonly CrossroadsMeshGenerator.CrossroadMeshData crossRoadMeshData;
         
-        public ControlPointData(Vector2 gridPosition, MeshData crossRoadMeshData)
+        public ControlPointData(
+            Vector2 gridPosition, 
+            CrossroadsMeshGenerator.CrossroadMeshData crossRoadMeshData,
+            Texture2D crossroadTexture,
+            Texture2D roadTexture)
         {
             this.gridPosition = gridPosition;
             this.crossRoadMeshData = crossRoadMeshData;
+            this.crossroadTexture = crossroadTexture;
+            this.roadTexture = roadTexture;
         }
     }
 }

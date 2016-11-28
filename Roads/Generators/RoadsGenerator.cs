@@ -55,6 +55,9 @@ public class RoadsGenerator : MonoBehaviour
 
     public GameObject roadSegment;
     public Texture2D roadSegmentTexture;
+    public GameObject crossroadPrefab;
+    public Texture2D crossroadTexture;
+
     private MeshData roadSegmentMeshData;
     public EndlessRoadsGenerator parent;
 
@@ -76,11 +79,13 @@ public class RoadsGenerator : MonoBehaviour
         synchVariable = new object();
         controlPointsGraph = new Graph<Vector2, ControlPoint>();
         curves = new Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve>();
+
         Mesh m = roadSegment.GetComponent<MeshFilter>().sharedMesh;
         roadSegmentMeshData = new MeshData(m.vertices, m.triangles, m.uv, m.normals, 0);
 
+
         roadWidth = largeRoads * 0.25f;
-        distanceFromCrossroad = croassRoadsDimension * 0.5f;
+        distanceFromCrossroad = croassRoadsDimension;
         segmentLength = 0.5f * baseSegmentDimension;
         tangentRescale = 0.25f * sinuosity - 0.25f;
     }
@@ -322,11 +327,15 @@ public class RoadsGenerator : MonoBehaviour
             center,
             roads,
             distanceFromCrossroad,
-            roadWidth);
+            roadWidth,
+            roadSegmentMeshData,
+            crossroadPrefab);
 
         ControlPoint.ControlPointData data = new ControlPoint.ControlPointData(
             center.gridPosition,
-            crmd);
+            crmd,
+            crossroadTexture,
+            roadSegmentTexture);
 
         parent.cpsResultsQueue.Enqueue(data);
     }

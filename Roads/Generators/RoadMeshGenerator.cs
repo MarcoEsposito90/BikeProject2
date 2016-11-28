@@ -97,7 +97,7 @@ public static class RoadMeshGenerator
 
     private static float getHeight(Vector2 point, AnimationCurve heightCurve, float multiplier)
     {
-        float n = NoiseGenerator.Instance.highestPointOnZone(point, 1, 1, 2);
+        float n = NoiseGenerator.Instance.highestPointOnZone(point, 1, 3, 2);
         return heightCurve.Evaluate(n) * multiplier;
     }
 
@@ -118,15 +118,15 @@ public static class RoadMeshGenerator
         private int sectionCounter;
 
         /* ----------------------------------------------------------- */
-        public RoadMeshData(ICurve curve, int numberOfSections)
-        {
-            this.curve = curve;
-            this.numberOfSections = numberOfSections;
-            vertices = new Vector3[numberOfSections * 4];
-            uvs = new Vector2[numberOfSections * 4];
-            triangles = new int[numberOfSections * 6];
-            sectionCounter = 0;
-        }
+        //public RoadMeshData(ICurve curve, int numberOfSections)
+        //{
+        //    this.curve = curve;
+        //    this.numberOfSections = numberOfSections;
+        //    vertices = new Vector3[numberOfSections * 4];
+        //    uvs = new Vector2[numberOfSections * 4];
+        //    triangles = new int[numberOfSections * 6];
+        //    sectionCounter = 0;
+        //}
 
         /* ----------------------------------------------------------- */
         public RoadMeshData(
@@ -143,44 +143,44 @@ public static class RoadMeshGenerator
         }
 
         /* ----------------------------------------------------------- */
-        public void addSegment(Vector3 point1, Vector3 point2)
-        {
-            if (sectionCounter > numberOfSections)
-            {
-                Debug.Log("exceed segments");
-                return;
-            }
+        //public void addSegment(Vector3 point1, Vector3 point2)
+        //{
+        //    if (sectionCounter > numberOfSections)
+        //    {
+        //        Debug.Log("exceed segments");
+        //        return;
+        //    }
 
-            int index = sectionCounter * 4 - 2;
-            int triangleIndex = sectionCounter * 6;
+        //    int index = sectionCounter * 4 - 2;
+        //    int triangleIndex = sectionCounter * 6;
 
-            if(sectionCounter < numberOfSections)
-            {
-                vertices[index + 2] = point1;
-                uvs[index + 2] = Vector2.zero;
-                vertices[index + 3] = point2;
-                uvs[index + 3] = new Vector2(1, 0);
-            }
+        //    if(sectionCounter < numberOfSections)
+        //    {
+        //        vertices[index + 2] = point1;
+        //        uvs[index + 2] = Vector2.zero;
+        //        vertices[index + 3] = point2;
+        //        uvs[index + 3] = new Vector2(1, 0);
+        //    }
             
-            if(sectionCounter > 0)
-            {
-                vertices[index] = point1;
-                uvs[index] = new Vector2(0, 1);
+        //    if(sectionCounter > 0)
+        //    {
+        //        vertices[index] = point1;
+        //        uvs[index] = new Vector2(0, 1);
 
-                vertices[index + 1] = point2;
-                uvs[index + 1] = Vector2.one;
+        //        vertices[index + 1] = point2;
+        //        uvs[index + 1] = Vector2.one;
 
-                triangles[triangleIndex - 6] = index - 1;
-                triangles[triangleIndex - 5] = index - 2;
-                triangles[triangleIndex - 4] = index;
+        //        triangles[triangleIndex - 6] = index - 1;
+        //        triangles[triangleIndex - 5] = index - 2;
+        //        triangles[triangleIndex - 4] = index;
 
-                triangles[triangleIndex - 3] = index;
-                triangles[triangleIndex - 2] = index + 1;
-                triangles[triangleIndex - 1] = index - 1;
-            }
+        //        triangles[triangleIndex - 3] = index;
+        //        triangles[triangleIndex - 2] = index + 1;
+        //        triangles[triangleIndex - 1] = index - 1;
+        //    }
 
-            sectionCounter++;
-        }
+        //    sectionCounter++;
+        //}
 
     }
 

@@ -280,7 +280,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         }
 
         ControlPoint cp = controlPoints[data.gridPosition];
-        cp.setMesh(data.crossRoadMeshData.createMesh());
+        cp.setData(data);
     }
 
     #endregion

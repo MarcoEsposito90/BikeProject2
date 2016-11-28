@@ -2,68 +2,67 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public static class CrossroadsMeshGenerator {
+public static class CrossroadsMeshGenerator
+{
 
     static bool debug = true;
 
     public static CrossroadMeshData generateMeshData(
-        ControlPoint center, 
+        ControlPoint center,
         List<Road> roads,
         float distanceFromCenter,
-        float roadWidth)
+        float roadWidth,
+        MeshData segmentMeshData,
+        GameObject crossroadPrefab)
     {
-        CrossroadMeshData crmd = new CrossroadMeshData(roads.Count);
-        List<Vector2> points = new List<Vector2>();
-        Dictionary<Vector2, float> heightLevels = new Dictionary<Vector2, float>();
+
+        CrossroadHandler ch = crossroadPrefab.GetComponent<CrossroadHandler>();
+        CrossroadMeshData crmd = new CrossroadMeshData();
         AnimationCurve heightCurve = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
-        //AnimationCurve  = new AnimationCurve(ac.keys);
         float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
 
         foreach (Road r in roads)
         {
-
             bool isStart = r.curve.startPoint().Equals(center.position);
+            ControlPoint other = isStart ? r.link.to.item : r.link.from.item;
+
             float d = isStart ? distanceFromCenter : r.curve.length() - distanceFromCenter;
             d /= r.curve.length();
-
             float t = r.curve.parameterOnCurveArchLength(d);
-            Vector2 p = r.curve.pointOnCurve(t);
-            Vector2 rightVect = r.curve.getRightVector(t, true);
+            Vector2 curveEnd = r.curve.pointOnCurve(t);
+            Vector2 derivate = r.curve.derivate1(t, true);
+            if (isStart) derivate *= -1;
+            Vector2 controlEnd = curveEnd + derivate;
 
-            // calculate height ------------------------------------------------------
-            //float n = NoiseGenerator.Instance.highestPointOnSegment(
-            //    p - rightVect, 
-            //    p + rightVect, 
-            //    1,
-            //    10);
+            Vector2 relativePosition = other.gridPosition - center.gridPosition;
+            Transform startPoint = ch.getStartPoint(relativePosition);
+            Vector2 localPos = new Vector2(startPoint.localPosition.x, startPoint.localPosition.z);
+            Vector2 curveStart = center.position + localPos;
+            Vector2 controlStart = curveStart + localPos;
 
-            Vector2 c1 = (p - center.position) - rightVect * roadWidth;
-            Vector2 c2 = (p - center.position) + rightVect * roadWidth;
+            Debug.Log(center.position + ": " + curveStart + " - " + controlStart + " - " + controlEnd + " - " + curveEnd);
+
+            ArrayModifier aMod = new ArrayModifier(3, true, false, false);
             int index = isStart ? 0 : r.heights.Length - 1;
+            float finalH = r.heights[index];
+            float startH = NoiseGenerator.Instance.highestPointOnZone(center.position, 1, 4, 1);
+            startH = heightCurve.Evaluate(startH) * mul;
+            float[] heights = new float[3];
+            for(int i = 0; i < heights.Length; i++)
+            {
+                float h = startH + (finalH - startH) * i / (float)heights.Length;
+                h -= startH;
+                heights[i] = h;
+            }
+            HeightModifier hMod = new HeightModifier(heights, null);
+            BezierCurve c = new BezierCurve(curveStart, controlStart, curveEnd, controlEnd);
+            CurveModifier cMod = new CurveModifier(c, CurveModifier.Axis.X, true);
 
-            points.Add(c1);
-            points.Add(c2);
-            heightLevels.Add(c1, r.heights[index]);
-            heightLevels.Add(c2, r.heights[index]);
-            
-        }
-
-        // add points to the mesh -------------------------------------------
-        GeometryUtilities.ClockWiseComparer comp = new GeometryUtilities.ClockWiseComparer(Vector2.zero, true);
-        points.Sort(comp);
-        float centerHeight = NoiseGenerator.Instance.getNoiseValue(1, center.position.x, center.position.y);
-        centerHeight = heightCurve.Evaluate(centerHeight) * mul;
-        crmd.addPoint(new Vector3(0, centerHeight, 0));
-
-        for (int i = 0; i < points.Count; i++)
-        {
-            Vector2 p = points[i];
-            float h = heightLevels[p];
-            //float height = heightCurve.Evaluate(n) * mul;
-            
-            // create vertices ----------------------------------------------
-            Vector3 vertex1 = new Vector3(p.x, h, p.y);
-            crmd.addPoint(vertex1);
+            MeshData md = segmentMeshData.clone();
+            aMod.Apply(md);
+            hMod.Apply(md);
+            cMod.Apply(md);
+            crmd.setSegment(relativePosition, md);
         }
 
         return crmd;
@@ -78,95 +77,51 @@ public static class CrossroadsMeshGenerator {
 
     public class CrossroadMeshData : MeshData
     {
-        // -------------------------------------------------------- 
-        private int numberOfLinks;
-        private int pointCounter;
 
-        public CrossroadMeshData(int numberOfLinks)
+        // -------------------------------------------------------- 
+        public MeshData left;
+        public MeshData right;
+        public MeshData up;
+        public MeshData down;
+        public bool hasLeft;
+        public bool hasRight;
+        public bool hasUp;
+        public bool hasDown;
+
+        public CrossroadMeshData() : base()
         {
-            this.numberOfLinks = numberOfLinks;
-            vertices = new Vector3[numberOfLinks * 2 + 1];
-            triangles = new int[numberOfLinks * 6];
-            uvs = new Vector2[numberOfLinks * 2 + 1];
-            pointCounter = 0;
+            hasLeft = false;
+            hasRight = false;
+            hasUp = false;
+            hasDown = false;
         }
 
-
-        // -------------------------------------------------------- 
-        public void addPoint(Vector3 point)
+        public void setSegment(Vector2 relativePosition, MeshData meshData)
         {
-            if (pointCounter == vertices.Length)
-                return;
-
-            vertices[pointCounter] = point;
-            uvs[pointCounter] = Vector2.zero;
-
-            if (pointCounter > 1)
+            if (relativePosition.Equals(new Vector2(-1, 0)))
             {
-                int triangleIndex = (pointCounter - 2) * 3;
-                triangles[triangleIndex] = pointCounter;
-                triangles[triangleIndex + 1] = pointCounter - 1;
-                triangles[triangleIndex + 2] = 0;
+                hasLeft = true;
+                left = meshData;
+            }
+            else if (relativePosition.Equals(new Vector2(1, 0)))
+            {
+                hasRight = true;
+                right = meshData;
+            }
+            else if (relativePosition.Equals(new Vector2(0, -1)))
+            {
+                hasDown = true;
+                down = meshData;
+            }
+            else if (relativePosition.Equals(new Vector2(0, 1)))
+            {
+                hasUp = true;
+                up = meshData;
             }
 
-            if (pointCounter == vertices.Length - 1 && pointCounter > 0)
-                closeMesh();
-
-            pointCounter++;
         }
 
 
-        // -------------------------------------------------------- 
-        private void closeMesh()
-        {
-            // last triangle
-            int triangleIndex = (pointCounter - 1) * 3;
-            triangles[triangleIndex] = 1;
-            triangles[triangleIndex + 1] = pointCounter;
-            triangles[triangleIndex + 2] = 0;
-
-            // center
-            Vector3 center = Vector3.zero;
-            for(int i = 1; i < vertices.Length; i++)
-                center += vertices[i];
-
-            center /= (float)(vertices.Length - 1);
-            vertices[0] = center;
-            calculateUVs();
-
-        }
-
-        // -------------------------------------------------------- 
-        private void calculateUVs()
-        {
-            float left = vertices[0].x;
-            float right = vertices[0].x;
-            float top = vertices[0].z;
-            float bottom = vertices[0].z;
-
-            for (int i = 1; i < vertices.Length; i++)
-            {
-                if (vertices[i].x < left)
-                    left = vertices[i].x;
-
-                if (vertices[i].x > right)
-                    right = vertices[i].x;
-
-                if (vertices[i].y < bottom)
-                    bottom = vertices[i].y;
-
-                if (vertices[i].y > top)
-                    top = vertices[i].y;
-
-            }
-
-            for(int i = 0; i < vertices.Length; i++)
-            {
-                float u = (vertices[i].x - left) / (right - left) ;
-                float v = (vertices[i].y - bottom) / (top - bottom);
-                uvs[i] = new Vector2(u, v);
-            }
-        }
     }
 
     #endregion
