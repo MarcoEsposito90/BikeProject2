@@ -38,16 +38,18 @@ public static class CrossroadsMeshGenerator
             Transform startPoint = ch.getStartPoint(relativePosition);
             Vector2 localPos = new Vector2(startPoint.localPosition.x, startPoint.localPosition.z);
             Vector2 curveStart = center.position + localPos;
-            Vector2 controlStart = curveStart + localPos;
+            Vector2 controlStart = curveStart + localPos * 2;
 
-            Debug.Log(center.position + ": " + curveStart + " - " + controlStart + " - " + controlEnd + " - " + curveEnd);
+            //Debug.Log(center.position + ": " + curveStart + " - " + controlStart + " - " + controlEnd + " - " + curveEnd);
 
             ArrayModifier aMod = new ArrayModifier(3, true, false, false);
             int index = isStart ? 0 : r.heights.Length - 1;
-            float finalH = r.heights[index];
-            float startH = NoiseGenerator.Instance.highestPointOnZone(center.position, 1, 4, 1);
+            float finalH = NoiseGenerator.Instance.getNoiseValue(1, curveEnd.x, curveEnd.y);
+            finalH = heightCurve.Evaluate(finalH) * mul;
+            float startH = NoiseGenerator.Instance.getNoiseValue(1, center.position.x, center.position.y);
             startH = heightCurve.Evaluate(startH) * mul;
             float[] heights = new float[3];
+            
             for(int i = 0; i < heights.Length; i++)
             {
                 float h = startH + (finalH - startH) * i / (float)heights.Length;
@@ -56,7 +58,7 @@ public static class CrossroadsMeshGenerator
             }
             HeightModifier hMod = new HeightModifier(heights, null);
             BezierCurve c = new BezierCurve(curveStart, controlStart, curveEnd, controlEnd);
-            CurveModifier cMod = new CurveModifier(c, CurveModifier.Axis.X, true);
+            RoadModifier cMod = new RoadModifier(c, RoadModifier.Axis.X, true);
 
             MeshData md = segmentMeshData.clone();
             aMod.Apply(md);

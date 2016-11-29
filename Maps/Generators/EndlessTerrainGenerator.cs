@@ -4,9 +4,6 @@ using System.Collections.Generic;
 
 public class EndlessTerrainGenerator : MonoBehaviour
 {
-    public static readonly string MAP_SEEDX = "EndlessTerrainGenerator.SeedX";
-    public static readonly string MAP_SEEDY = "EndlessTerrainGenerator.SeedY";
-
 
     [Range(1, 3)]
     public int sectorDimension;
@@ -29,7 +26,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     [Range(2, 10)]
     public int NumberOfLods;
 
-    [Range(1, 20)]
+    [Range(2, 6)]
     public int accuracy;
     private float[] LODThresholds;
 
@@ -63,7 +60,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public MapGenerator mapGenerator;
     public EndlessRoadsGenerator roadsGenerator;
     //public RoadsGenerator roadsGenerator;
-    public float seedX, seedY;
+    private float seedX, seedY;
 
 
     /* ----------------------------------------------------------------------------------------- */
@@ -85,21 +82,17 @@ public class EndlessTerrainGenerator : MonoBehaviour
         scaledChunkSize = sectorSize * scale;
         viewerDistanceUpdate = scaledChunkSize / (float)(viewerDistanceUpdateFrequency + 3);
 
+        int multiply = accuracy;
         for (int i = 0; i < LODThresholds.Length; i++)
-            LODThresholds[i] = (scaledChunkSize / 2.0f + i * scaledChunkSize * accuracy) * (accuracy) / 2.0f;
-
+        {
+            if (i > 3) multiply *= 2;
+            LODThresholds[i] = (1.5f * scaledChunkSize + i * scaledChunkSize * multiply) / 2.0f;
+        }
         removeThreshold = LODThresholds[LODThresholds.Length - 1] * keepUnvisible;
-
-        System.Random random = new System.Random();
-        seedX = ((float)random.NextDouble()) * random.Next(100);
-        seedY = ((float)random.NextDouble()) * random.Next(100);
 
         mapSectors = new Dictionary<Vector2, MapSector>();
         sectorsPoolManager = new PoolManager<Vector2>(50, true, mapSectorPrefab, sectorsContainer);
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
-
-        GlobalInformation.Instance.addData(MAP_SEEDX, seedX);
-        GlobalInformation.Instance.addData(MAP_SEEDY, seedY);
         roadsGenerator.initialize(sectorSize, scale, viewerDistanceUpdate, viewer, LODThresholds);
     }
 
@@ -161,11 +154,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
             LODThresholds.Length - 1,
             false,
             -1);
-
-        //if (roadsGenerator != null)
-        //{
-        //    roadsGenerator.requestRoadsData(newSector, onRoadDataReceived);
-        //}
     }
 
 

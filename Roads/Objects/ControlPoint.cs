@@ -66,8 +66,8 @@ public class ControlPoint
 
     private void computePosition()
     {
-        float seedX = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.MAP_SEEDX);
-        float seedY = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.MAP_SEEDY);
+        float seedX = (float)GlobalInformation.Instance.getData(EndlessRoadsGenerator.MAP_SEEDX);
+        float seedY = (float)GlobalInformation.Instance.getData(EndlessRoadsGenerator.MAP_SEEDY);
 
         // 2) get perlin value relative to coordinates ----------------
         float randomX = Mathf.PerlinNoise(gridPosition.x + seedX, gridPosition.y + seedX);
@@ -160,7 +160,7 @@ public class ControlPoint
         AnimationCurve heightCurve = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
         float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
 
-        float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 4, 1);
+        float y = NoiseGenerator.Instance.getNoiseValue(1, position.x, position.y);
         y = heightCurve.Evaluate(y) * mul * scale;
         float x = position.x * scale;
         float z = position.y * scale;

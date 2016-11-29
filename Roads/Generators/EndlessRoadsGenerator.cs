@@ -6,6 +6,9 @@ using System;
 public class EndlessRoadsGenerator : MonoBehaviour
 {
 
+    public static readonly string MAP_SEEDX = "EndlessRoadsGenerator.SeedX";
+    public static readonly string MAP_SEEDY = "EndlessRoadsGenerator.SeedY";
+
     /* ----------------------------------------------------------------------------------------- */
     /* ---------------------------- ATTRIBUTES ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
@@ -18,6 +21,9 @@ public class EndlessRoadsGenerator : MonoBehaviour
     public int controlPointsDensity;
     public float controlPointArea { get; private set; }
     public float scaledControlPointArea { get; private set; }
+
+    [Range(0, 1000)]
+    public int seed;
 
     [Range(2, 10)]
     public int NumberOfLods;
@@ -42,6 +48,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
     private Transform viewer;
     private Vector3 latestViewerRecordedPosition;
     private float viewerDistanceUpdate;
+    private float seedX, seedY;
     //private float[] LODThresholds;
 
     private Dictionary<Vector2, ControlPoint> controlPoints;
@@ -63,6 +70,12 @@ public class EndlessRoadsGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     void Awake()
     {
+        System.Random random = new System.Random(seed);
+        seedX = ((float)random.NextDouble()) * random.Next(100);
+        seedY = ((float)random.NextDouble()) * random.Next(100);
+        GlobalInformation.Instance.addData(MAP_SEEDX, seedX);
+        GlobalInformation.Instance.addData(MAP_SEEDY, seedY);
+
         controlPoints = new Dictionary<Vector2, ControlPoint>();
         roads = new Dictionary<Graph<Vector2, ControlPoint>.Link, Road>();
         roadsResultsQueue = new BlockingQueue<Road.RoadData>();

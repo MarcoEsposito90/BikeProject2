@@ -137,11 +137,20 @@ public class NoiseGenerator
     /* ----------------------------------------------------------------------------------------- */
     public float getNoiseValue(float scaleMultiply, float x, float y)
     {
+        //bool debug = x < 108 && x >= 95 && y >= -52 && y < -44;
         float sampleX = (x + offsetX) / (noiseScale * scaleMultiply);
         float sampleY = (y + offsetY) / (noiseScale * scaleMultiply);
 
         float sampleValue = computeValue(sampleX, sampleY, frequencies, frequencyMultiplier, amplitudeDemultiplier);
         sampleValue = sampleValue / maxValue;
+
+        //if (debug)
+        //{
+        //    AnimationCurve hc = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
+        //    float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
+        //    float h = hc.Evaluate(sampleValue) * mul;
+        //    Debug.Log("sample = " + x + "," + y + "; value = " + sampleValue + " (" + h + ")");
+        //}
         return sampleValue;
     }
 
@@ -176,9 +185,9 @@ public class NoiseGenerator
         else if (precision > 20) precision = 20;
         float increment = 1.0f / (float)precision;
 
-        for(float i = -radius; i <= radius; i+= increment)
+        for (float i = -radius; i <= radius; i += increment)
         {
-            for(float j = -radius; j <= radius; j+= increment)
+            for (float j = -radius; j <= radius; j += increment)
             {
                 float n = getNoiseValue(scaleMultiply, x + i, y + j);
                 if (n > currentMax)

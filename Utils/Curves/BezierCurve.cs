@@ -10,7 +10,7 @@ public class BezierCurve : ICurve
     public Vector2 end;
     public Vector2 endTangent;
     public float ax, bx, cx, ay, by, cy;
-    public const int lengthSamplesNumber = 10;
+    public const int lengthSamplesNumber = 20;
     public float archLength;
     public float[] lengthSamples;
 
