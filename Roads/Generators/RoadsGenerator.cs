@@ -6,6 +6,10 @@ using System.Threading;
 
 public class RoadsGenerator : MonoBehaviour
 {
+
+    public static readonly string ROAD_ADHERENCE = "RoadsGenerator.Adherence";
+    public static readonly string MAX_ROAD_ADHERENCE = "RoadsGenerator.MaxAdherence";
+
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- ATTRIBUTES ----------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
@@ -50,7 +54,8 @@ public class RoadsGenerator : MonoBehaviour
     [Range(0.5f, 1.0f)]
     public float maximumRoadsHeight;
 
-    [Range(1, 20)]
+    const int MAX_ADHERENCE = 20;
+    [Range(1, MAX_ADHERENCE)]
     public int adherence;
 
     public GameObject roadSegment;
@@ -83,11 +88,13 @@ public class RoadsGenerator : MonoBehaviour
         Mesh m = roadSegment.GetComponent<MeshFilter>().sharedMesh;
         roadSegmentMeshData = new MeshData(m.vertices, m.triangles, m.uv, m.normals, 0);
 
-
         roadWidth = largeRoads * 0.25f;
         distanceFromCrossroad = croassRoadsDimension;
         segmentLength = 0.5f * baseSegmentDimension;
         tangentRescale = 0.25f * sinuosity - 0.25f;
+
+        GlobalInformation.Instance.addData(ROAD_ADHERENCE, adherence);
+        GlobalInformation.Instance.addData(MAX_ROAD_ADHERENCE, MAX_ADHERENCE);
     }
 
 
@@ -234,7 +241,16 @@ public class RoadsGenerator : MonoBehaviour
     /* -------------------------------------------------------------------------------------- */
     public void removeControlPoint(ControlPoint cp)
     {
-        // TODO
+        //Debug.Log("must remove " + cp.gridPosition);
+        Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph[cp.gridPosition];
+
+        foreach (Graph<Vector2, ControlPoint>.Link l in gi.links)
+        {
+            curves.Remove(l);
+            parent.roadsRemoveQueue.Enqueue(l);
+        }
+
+        controlPointsGraph.removeItem(cp.gridPosition);
     }
 
     #endregion
@@ -264,6 +280,7 @@ public class RoadsGenerator : MonoBehaviour
         }
 
         RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(
+            link,
             c,
             roadWidth,
             distanceFromCrossroad,
@@ -328,6 +345,7 @@ public class RoadsGenerator : MonoBehaviour
             roads,
             distanceFromCrossroad,
             roadWidth,
+            adherence,
             roadSegmentMeshData,
             crossroadPrefab);
 

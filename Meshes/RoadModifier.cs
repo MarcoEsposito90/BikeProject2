@@ -11,23 +11,32 @@ public class RoadModifier : IMeshModifier
     bool relative;
     float from;
     float to;
-    int adherence;
+    public int adherence;
+    private bool relativeHeight;
+    public float startHeight;
+    public float endHeight;
     private int index;
     private int index2;
 
 
+    /* -------------------------------------------------------------------------------------- */
+    /* -------------------------------- CONSTRUCTORS ---------------------------------------- */
+    /* -------------------------------------------------------------------------------------- */
+
+    #region CONSTRUCTORS
+
     public RoadModifier(
-        ICurve curve, 
-        Axis axis, 
+        ICurve curve,
+        Axis axis,
         bool relative,
-        int adherence,
-        float from, 
+        bool relativeHeight,
+        float from,
         float to)
     {
         this.axis = axis;
         this.curve = curve;
         this.relative = relative;
-        this.adherence = adherence;
+        this.relativeHeight = relativeHeight;
 
         if (from < 0) from = 0;
         else if (from > 1) from = 1;
@@ -35,22 +44,26 @@ public class RoadModifier : IMeshModifier
         else if (to > 1) to = 1;
 
         this.from = from;
-        this.to = to;   
+        this.to = to;
         setIndex();
+
+        //AnimationCurve heightCurve = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
+        //float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
+        //startHeight = getHeight(curve.pointOnCurve(from), heightCurve, mul);
+        //endHeight = getHeight(curve.pointOnCurve(to), heightCurve, mul);
+        startHeight = GlobalInformation.Instance.getHeight(curve.pointOnCurve(from));
+        endHeight = GlobalInformation.Instance.getHeight(curve.pointOnCurve(to));
+        adherence = (int)GlobalInformation.Instance.getData(RoadsGenerator.ROAD_ADHERENCE);
     }
 
+
+    /* -------------------------------------------------------------------------------------- */
     public RoadModifier(ICurve curve, Axis axis, bool relative)
-        : this(curve, axis, relative, 0, 1, 1)
-    {
-        //this.axis = axis;
-        //this.curve = curve;
-        //this.relative = relative;
-        //setIndex();
-    }
+        : this(curve, axis, relative, false, 0, 1)
+    { }
 
     
-
-
+    /* -------------------------------------------------------------------------------------- */
     private void setIndex()
     {
         switch (axis)
@@ -65,18 +78,25 @@ public class RoadModifier : IMeshModifier
                 break;
             default:
                 index = 0;
-                index2 = 0;
+                index2 = 2;
                 break;
         }
     }
 
 
+    #endregion
+
+
+    /* -------------------------------------------------------------------------------------- */
+    /* -------------------------------- APPLY ----------------------------------------------- */
+    /* -------------------------------------------------------------------------------------- */
+
+    #region APPLY
+
     public void Apply(MeshData mesh)
     {
-        AnimationCurve heightCurve = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
-        float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
-        float startHeight = getHeight(curve.startPoint(), heightCurve, mul);
-        float endHeight = getHeight(curve.endPoint(), heightCurve, mul);
+        int maxAdherence = (int)GlobalInformation.Instance.getData(RoadsGenerator.MAX_ROAD_ADHERENCE);
+        float coeff = (adherence - 1) / (float)(maxAdherence - 1);
         float denom = 1.0f / (float)adherence;
 
         Vector3[] vertices = mesh.vertices;
@@ -86,21 +106,24 @@ public class RoadModifier : IMeshModifier
         for (int i = 0; i < vertices.Length; i++)
         {
             Vector3 v = vertices[i];
-
-
             float l = v[index] / dims[index];
             float t = curve.parameterOnCurveArchLength(l);
-            t = from + (to - from) * t;
+            float tRemap = from + (to - from) * t;
 
-            Vector2 p = curve.pointOnCurve(t);
-            Vector3 right = curve.getRightVector(t, true) * v[index2];
-            float h = getHeight(p, heightCurve, mul);
+            Vector2 p = curve.pointOnCurve(tRemap);
+            Vector3 right = curve.getRightVector(tRemap, true) * v[index2];
+
+            float n = NoiseGenerator.Instance.highestPointOnZone(p, 1, 0.5f, 1);
+            float terrainH = GlobalInformation.Instance.getHeight(n);
             float medH = startHeight + (endHeight - startHeight) * t;
-            h = medH + denom * (h - medH);
+            float height = medH + (1.0f - coeff) * (terrainH - medH);
+
+            if (height < terrainH) height = terrainH;
+            if (relativeHeight) height = height - startHeight;
 
             vertices[i] = new Vector3(
-                (p.x - start.x) - right.x, 
-                h + v.y,
+                (p.x - start.x) - right.x,
+                height + v.y,
                 (p.y - start.y) - right.y);
 
         }
@@ -108,11 +131,8 @@ public class RoadModifier : IMeshModifier
         mesh.vertices = vertices;
     }
 
+    #endregion
 
-    private float getHeight(Vector2 point, AnimationCurve heightCurve, float multiplier)
-    {
-        float n = NoiseGenerator.Instance.highestPointOnZone(point, 1, 0.5f, 1);
-        return heightCurve.Evaluate(n) * multiplier;
-    }
+    
 
 }

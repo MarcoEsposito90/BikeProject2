@@ -80,5 +80,5 @@ public class MapDisplay : MonoBehaviour
 
         return new MapSector.SectorData(levelOfDetail, newMesh, colliderMesh, colorMap, ColorAlphaMap);
     }
-
+    
 }

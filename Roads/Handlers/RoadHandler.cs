@@ -13,4 +13,11 @@ public class RoadHandler : MonoBehaviour {
         GetComponent<MeshCollider>().sharedMesh = mesh;
         GetComponent<MeshCollider>().enabled = true;
     }
+
+    public void reset()
+    {
+        GetComponent<MeshFilter>().mesh = null;
+        GetComponent<MeshCollider>().sharedMesh = null;
+        GetComponent<MeshCollider>().enabled = false;
+    }
 }

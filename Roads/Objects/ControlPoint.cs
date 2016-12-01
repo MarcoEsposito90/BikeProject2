@@ -17,17 +17,9 @@ public class ControlPoint
 
     #region ATTRIBUTES
 
-    public Vector2 gridPosition
-    {
-        get;
-        private set;
-    }
-
-    public Vector2 position
-    {
-        get;
-        private set;
-    }
+    public Vector2 gridPosition { get; private set; }
+    public Vector2 position { get; private set; }
+    public float height { get; private set; }
 
     public float AreaSize;
     public Bounds bounds;
@@ -80,6 +72,9 @@ public class ControlPoint
         // 4) create point --------------------------------------------
         this.position = new Vector2(X, Y);
 
+        // 5) compute height ------------------------------------------
+        float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 2, 1);
+        height = GlobalInformation.Instance.getHeight(y);
     }
 
 
@@ -157,15 +152,10 @@ public class ControlPoint
     /* ------------------------------------------------------------------------------------------------- */
     private void initializePrefab()
     {
-        AnimationCurve heightCurve = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
-        float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
-
-        float y = NoiseGenerator.Instance.getNoiseValue(1, position.x, position.y);
-        y = heightCurve.Evaluate(y) * mul * scale;
         float x = position.x * scale;
         float z = position.y * scale;
 
-        Vector3 prefabPos = new Vector3(x, y, z);
+        Vector3 prefabPos = new Vector3(x, height * scale, z);
         //Debug.Log(prefabPos);
         prefabObject.transform.position = prefabPos;
         prefabObject.name = "ControlPoint " + gridPosition;

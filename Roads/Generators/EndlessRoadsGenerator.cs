@@ -57,6 +57,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
     private PoolManager<Vector2> controlPointsPoolManager;
     public BlockingQueue<Road.RoadData> roadsResultsQueue { get; private set; }
     public BlockingQueue<ControlPoint.ControlPointData> cpsResultsQueue { get; private set; }
+    public BlockingQueue<Graph<Vector2, ControlPoint>.Link> roadsRemoveQueue { get; private set; }
 
     #endregion
 
@@ -80,6 +81,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         roads = new Dictionary<Graph<Vector2, ControlPoint>.Link, Road>();
         roadsResultsQueue = new BlockingQueue<Road.RoadData>();
         cpsResultsQueue = new BlockingQueue<ControlPoint.ControlPointData>();
+        roadsRemoveQueue = new BlockingQueue<Graph<Vector2, ControlPoint>.Link>();
 
         roadsPoolManager = new PoolManager<Graph<Vector2, ControlPoint>.Link>(10, true, roadPrefab, roadsContainer);
         controlPointsPoolManager = new PoolManager<Vector2>(400, true, controlPointPrefab, controlPointsContainer);
@@ -99,6 +101,12 @@ public class EndlessRoadsGenerator : MonoBehaviour
         {
             ControlPoint.ControlPointData data = cpsResultsQueue.Dequeue();
             onCpDataReceived(data);
+        }
+
+        while (!roadsRemoveQueue.isEmpty())
+        {
+            Graph<Vector2, ControlPoint>.Link l = roadsRemoveQueue.Dequeue();
+            onRoadRemove(l);
         }
 
         float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
@@ -214,7 +222,10 @@ public class EndlessRoadsGenerator : MonoBehaviour
         }
 
         foreach (ControlPoint cp in toBeRemoved)
+        {
             controlPoints.Remove(cp.gridPosition);
+            roadsGenerator.removeControlPoint(cp);
+        }
     }
 
 
@@ -294,6 +305,20 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
         ControlPoint cp = controlPoints[data.gridPosition];
         cp.setData(data);
+    }
+
+    
+    /* ----------------------------------------------------------------------------------------- */
+    private void onRoadRemove(Graph<Vector2, ControlPoint>.Link link)
+    {
+        if (!roads.ContainsKey(link))
+            return;
+
+        Road r = roads[link];
+        r.resetPrefab();
+        roadsPoolManager.releaseObject(link);
+        roads.Remove(link);
+        r = null;
     }
 
     #endregion

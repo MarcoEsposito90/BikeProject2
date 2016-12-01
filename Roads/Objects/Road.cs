@@ -52,7 +52,15 @@ public class Road {
         prefab.GetComponent<RoadHandler>().SetMesh(mesh, texture);
     }
 
-    
+
+    /* ----------------------------------------------------------------------------------- */
+    public void resetPrefab()
+    {
+        prefab.GetComponent<RoadHandler>().reset();
+    }
+
+
+
     /* ----------------------------------------------------------------------------------- */
     public class RoadData
     {
