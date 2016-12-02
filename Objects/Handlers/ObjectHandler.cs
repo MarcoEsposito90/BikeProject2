@@ -27,7 +27,13 @@ public class ObjectHandler : MonoBehaviour {
         float height = GlobalInformation.Instance.getHeight(new Vector2(X, Y));
         this.transform.position = new Vector3(X * scale, height * scale, Y * scale);
 
+        System.Random r = new System.Random();
+        float y = (1.0f / r.Next(100)) * 100 * 360;
+        Vector3 rot = new Vector3(0, y, 0);
+        this.transform.Rotate(rot);
+
         this.gameObject.SetActive(true);
+        this.gameObject.name += " " + gridPos;
         Debug.Log("position = " + this.transform.position);
     }
 }

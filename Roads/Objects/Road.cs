@@ -37,8 +37,9 @@ public class Road {
     {
         Vector2 start = curve.startPoint();
         prefab.name = "road " + start + " - " + curve.endPoint();
+        float height = GlobalInformation.Instance.getHeight(start) * scale;
         prefab.transform.position = new Vector3(start.x * scale, 0, start.y * scale);
-        prefab.transform.localScale = new Vector3(scale, scale, scale);
+        //prefab.transform.localScale = new Vector3(scale, scale, scale);
         prefab.SetActive(true);
     }
 

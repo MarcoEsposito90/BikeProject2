@@ -21,17 +21,17 @@ public class RoadsGenerator : MonoBehaviour
 
     public ControlPoint.Neighborhood neighborhood;
 
-    [Range(1, 6)]
-    public int largeRoads;
-    private float roadWidth;
+    //[Range(1, 6)]
+    //public int largeRoads;
+    //private float roadWidth;
 
-    [Range(0, 6)]
-    public int croassRoadsDimension;
+    [Range(0, 10)]
+    public int crossRoadsDimension;
     private float distanceFromCrossroad;
 
-    [Range(1, 8)]
-    public int baseSegmentDimension;
-    private float segmentLength;
+    //[Range(1, 8)]
+    //public int baseSegmentDimension;
+    //private float segmentLength;
 
     [Range(1, 6)]
     public int sinuosity;
@@ -88,9 +88,7 @@ public class RoadsGenerator : MonoBehaviour
         Mesh m = roadSegment.GetComponent<MeshFilter>().sharedMesh;
         roadSegmentMeshData = new MeshData(m.vertices, m.triangles, m.uv, m.normals, 0);
 
-        roadWidth = largeRoads * 0.25f;
-        distanceFromCrossroad = croassRoadsDimension;
-        segmentLength = 0.5f * baseSegmentDimension;
+        distanceFromCrossroad = crossRoadsDimension;
         tangentRescale = 0.25f * sinuosity - 0.25f;
 
         GlobalInformation.Instance.addData(ROAD_ADHERENCE, adherence);
@@ -103,15 +101,6 @@ public class RoadsGenerator : MonoBehaviour
     }
 
     #endregion
-
-
-    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
-    /* ///-------------------------------------------------------------------------------------------/// */
-    /* ///----------------------------- METHODS -----------------------------------------------------/// */
-    /* ///-------------------------------------------------------------------------------------------/// */
-    /* ///////////////////////////////////////////////////////////////////////////////////////////////// */
-
-    #region METHODS
 
     /* -------------------------------------------------------------------------------------- */
     /* -------------------------------- CONTROL POINTS -------------------------------------- */
@@ -219,8 +208,6 @@ public class RoadsGenerator : MonoBehaviour
     }
 
 
-
-
     /* -------------------------------------------------------------------------------------- */
     private bool checkLinkFeasibility(ControlPoint a, ControlPoint b)
     {
@@ -241,7 +228,6 @@ public class RoadsGenerator : MonoBehaviour
     /* -------------------------------------------------------------------------------------- */
     public void removeControlPoint(ControlPoint cp)
     {
-        //Debug.Log("must remove " + cp.gridPosition);
         Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph[cp.gridPosition];
 
         foreach (Graph<Vector2, ControlPoint>.Link l in gi.links)
@@ -282,10 +268,7 @@ public class RoadsGenerator : MonoBehaviour
         RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(
             link,
             c,
-            roadWidth,
             distanceFromCrossroad,
-            segmentLength,
-            adherence,
             roadSegmentMeshData);
         Road.RoadData data = new Road.RoadData(rmd, link, c, roadSegmentTexture);
         parent.roadsResultsQueue.Enqueue(data);
@@ -293,7 +276,9 @@ public class RoadsGenerator : MonoBehaviour
 
 
     /* -------------------------------------------------------------------------------------- */
-    private Vector2 getTangent(Graph<Vector2, ControlPoint>.GraphItem point, Graph<Vector2, ControlPoint>.Link exclude)
+    private Vector2 getTangent(
+        Graph<Vector2, ControlPoint>.GraphItem point, 
+        Graph<Vector2, ControlPoint>.Link exclude)
     {
         List<Vector2> linksPositions = new List<Vector2>();
 
@@ -344,8 +329,6 @@ public class RoadsGenerator : MonoBehaviour
             center,
             roads,
             distanceFromCrossroad,
-            roadWidth,
-            adherence,
             roadSegmentMeshData,
             crossroadPrefab);
 
@@ -359,7 +342,5 @@ public class RoadsGenerator : MonoBehaviour
     }
 
     #endregion
-
-    #endregion  // METHODS
 
 }

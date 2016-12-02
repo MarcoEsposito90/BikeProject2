@@ -16,17 +16,16 @@ public static class RoadMeshGenerator
     public static RoadMeshData generateMeshData(
         Graph<Vector2, ControlPoint>.Link link,
         ICurve curve,
-        float roadWidth,
         float distanceFromCP,
-        float segmentLength,
-        int adherence,
         MeshData segmentMeshData)
     {
         bool localDebug = debug;
         debug = false;
 
+        int scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
         float curveLength = curve.length();
-        float div = (curveLength - 2.0f * distanceFromCP) / segmentLength;
+        float meshLength = GeometryUtilities.calculateDimensions(segmentMeshData.vertices).x;
+        float div = (curveLength - 2.0f * distanceFromCP) / meshLength * scale;
         int numberOfSegments = (int)div + 1;
         ArrayModifier arrayMod = new ArrayModifier(numberOfSegments, true, false, false);
 

@@ -73,7 +73,7 @@ public class ControlPoint
         this.position = new Vector2(X, Y);
 
         // 5) compute height ------------------------------------------
-        float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 2, 1);
+        float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 1, 1);
         height = GlobalInformation.Instance.getHeight(y);
     }
 
@@ -159,13 +159,14 @@ public class ControlPoint
         //Debug.Log(prefabPos);
         prefabObject.transform.position = prefabPos;
         prefabObject.name = "ControlPoint " + gridPosition;
-        prefabObject.transform.localScale = new Vector3(scale, scale, scale);
-        prefabObject.SetActive(true);
+        //prefabObject.transform.localScale = new Vector3(scale, scale, scale);
+        //prefabObject.SetActive(true);
     }
 
     /* ------------------------------------------------------------------------------------------------- */
     public void setData(ControlPoint.ControlPointData data)
     {
+        prefabObject.SetActive(true);
         prefabObject.GetComponent<CrossroadHandler>().setData(data);
         //mesh.name = "Crossroad " + gridPosition;
         //prefabObject.GetComponent<MeshFilter>().mesh = mesh;

@@ -47,10 +47,6 @@ public class RoadModifier : IMeshModifier
         this.to = to;
         setIndex();
 
-        //AnimationCurve heightCurve = (AnimationCurve)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_CURVE);
-        //float mul = (float)GlobalInformation.Instance.getData(MapDisplay.MESH_HEIGHT_MUL);
-        //startHeight = getHeight(curve.pointOnCurve(from), heightCurve, mul);
-        //endHeight = getHeight(curve.pointOnCurve(to), heightCurve, mul);
         startHeight = GlobalInformation.Instance.getHeight(curve.pointOnCurve(from));
         endHeight = GlobalInformation.Instance.getHeight(curve.pointOnCurve(to));
         adherence = (int)GlobalInformation.Instance.getData(RoadsGenerator.ROAD_ADHERENCE);
@@ -62,7 +58,7 @@ public class RoadModifier : IMeshModifier
         : this(curve, axis, relative, false, 0, 1)
     { }
 
-    
+
     /* -------------------------------------------------------------------------------------- */
     private void setIndex()
     {
@@ -96,6 +92,7 @@ public class RoadModifier : IMeshModifier
     public void Apply(MeshData mesh)
     {
         int maxAdherence = (int)GlobalInformation.Instance.getData(RoadsGenerator.MAX_ROAD_ADHERENCE);
+        int scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
         float coeff = (adherence - 1) / (float)(maxAdherence - 1);
         float denom = 1.0f / (float)adherence;
 
@@ -108,23 +105,23 @@ public class RoadModifier : IMeshModifier
             Vector3 v = vertices[i];
             float l = v[index] / dims[index];
             float t = curve.parameterOnCurveArchLength(l);
-            float tRemap = from + (to - from) * t;
+            t = from + (to - from) * t;
 
-            Vector2 p = curve.pointOnCurve(tRemap);
-            Vector3 right = curve.getRightVector(tRemap, true) * v[index2];
+            Vector2 p = curve.pointOnCurve(t);
+            Vector2 right = curve.getRightVector(t, true) * v[index2];
 
             float n = NoiseGenerator.Instance.highestPointOnZone(p, 1, 0.5f, 1);
             float terrainH = GlobalInformation.Instance.getHeight(n);
             float medH = startHeight + (endHeight - startHeight) * t;
             float height = medH + (1.0f - coeff) * (terrainH - medH);
-
             if (height < terrainH) height = terrainH;
+            //float height = terrainH;
             if (relativeHeight) height = height - startHeight;
 
             vertices[i] = new Vector3(
-                (p.x - start.x) - right.x,
-                height + v.y,
-                (p.y - start.y) - right.y);
+                (p.x - start.x) * scale - right.x,
+                (height) * scale + v.y,
+                (p.y - start.y) * scale - right.y);
 
         }
 
@@ -133,6 +130,6 @@ public class RoadModifier : IMeshModifier
 
     #endregion
 
-    
+
 
 }

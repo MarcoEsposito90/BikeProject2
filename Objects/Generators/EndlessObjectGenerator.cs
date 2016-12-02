@@ -76,7 +76,7 @@ public class EndlessObjectGenerator : MonoBehaviour
             density + 1 - DENSITY_ONE :
             1.0f / (DENSITY_ONE - density + 1);
 
-        area = sectorSize * multiplier;
+        area = sectorSize / multiplier;
         scaledArea = area * scale;
         distanceThreshold = sectorSize * scale * radius * 2;
 
@@ -111,7 +111,6 @@ public class EndlessObjectGenerator : MonoBehaviour
                 int gridX = Mathf.RoundToInt(x / (float)scaledArea + 0.1f);
                 int gridY = Mathf.RoundToInt(y / (float)scaledArea + 0.1f);
                 Vector2 gridPos = new Vector2(gridX, gridY);
-                Debug.Log("creating obj in " + gridPos);
 
                 GameObject newObj = objectPoolManagers.acquireObject(gridPos);
                 ObjectHandler oh = newObj.GetComponent<ObjectHandler>();

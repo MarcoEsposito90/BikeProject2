@@ -10,8 +10,6 @@ public static class CrossroadsMeshGenerator
         ControlPoint center,
         List<Road> roads,
         float distanceFromCenter,
-        float roadWidth,
-        int adherence,
         MeshData segmentMeshData,
         GameObject crossroadPrefab)
     {
@@ -58,6 +56,8 @@ public static class CrossroadsMeshGenerator
         float distanceFromCenter, 
         CrossroadHandler ch)
     {
+        int scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
+
         // 1) get connection point with road --------------------------------
         bool isStart = curve.startPoint().Equals(center.position);
         float d = isStart ? distanceFromCenter : curve.length() - distanceFromCenter;
@@ -66,13 +66,13 @@ public static class CrossroadsMeshGenerator
         Vector2 curveEnd = curve.pointOnCurve(t);
         Vector2 derivate = curve.derivate1(t, true);
         if (isStart) derivate *= -1;
-        Vector2 controlEnd = curveEnd + derivate;
+        Vector2 controlEnd = curveEnd + derivate * 5;
 
         // 2) get start point from crossroad --------------------------------
         Transform startPoint = ch.getStartPoint(relativePosition);
         Vector2 localPos = new Vector2(startPoint.localPosition.x, startPoint.localPosition.z);
-        Vector2 curveStart = center.position + localPos;
-        Vector2 controlStart = curveStart + localPos * 2;
+        Vector2 curveStart = center.position + localPos / scale;
+        Vector2 controlStart = curveStart + localPos * 5 / scale;
 
         BezierCurve c = new BezierCurve(curveStart, controlStart, curveEnd, controlEnd);
         return c;
