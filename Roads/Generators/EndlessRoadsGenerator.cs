@@ -87,6 +87,24 @@ public class EndlessRoadsGenerator : MonoBehaviour
         controlPointsPoolManager = new PoolManager<Vector2>(400, true, controlPointPrefab, controlPointsContainer);
     }
 
+
+    /* ----------------------------------------------------------------------------------------- */
+    void Start()
+    {
+        sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
+        viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);
+        viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
+
+        float denom = (DENSITY_ONE + 1) - controlPointsDensity;
+        if (denom <= 0) denom = 1.0f / Mathf.Pow(2, -denom + 1);
+        float multiplier = 1.0f / denom;
+        controlPointArea = (float)sectorSize / multiplier;
+        scaledControlPointArea = controlPointArea * scale;
+        threshold = ((float)radius + 0.5f) * scaledControlPointArea;
+        removeThreshold = ((float)(radius + removeRadius) + 0.5f) * scaledControlPointArea;
+    }
+
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
@@ -131,27 +149,14 @@ public class EndlessRoadsGenerator : MonoBehaviour
     #region METHODS
 
     /* ----------------------------------------------------------------------------------------- */
-    public void initialize
+    private void initialize
         (int sectorSize,
         int scale,
         float viewerDistanceUpdate,
         Transform viewer,
         float[] LODThresholds)
     {
-        this.sectorSize = sectorSize;
-        float denom = (DENSITY_ONE + 1) - controlPointsDensity;
-        if (denom <= 0) denom = 1.0f / Mathf.Pow(2, -denom + 1); 
-        float multiplier = 1.0f / denom;
-        controlPointArea = (float)sectorSize / multiplier;
-        scaledControlPointArea = controlPointArea * scale;
-
-        this.scale = scale;
-        this.viewerDistanceUpdate = viewerDistanceUpdate;
-        this.viewer = viewer;
-        //this.LODThresholds = LODThresholds;
-
-        threshold = ((float)radius + 0.5f) * scaledControlPointArea;
-        removeThreshold = ((float)(radius + removeRadius) + 0.5f) * scaledControlPointArea;
+        
     }
 
 

@@ -5,6 +5,18 @@ using System.Collections.Generic;
 public class EndlessTerrainGenerator : MonoBehaviour
 {
 
+    public static readonly string VIEWER_DIST_UPDATE = "EndlessTerrainGenerator.ViewerDistanceUpdate";
+    public static readonly string VIEWER = "EndlessTerrainGenerator.Viewer";
+    public static readonly string SCALE = "EndlessTerrainGenerator.Scale";
+    public static readonly string SECTOR_SIZE = "EndlessTerrainGenerator.SectorSize";
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- ATTRIBUTES --------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region ATTRIBUTES
+
     [Range(1, 3)]
     public int sectorDimension;
     public static int sectorRate = 8;
@@ -17,7 +29,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     private int scaledChunkSize;
 
-    [Range(1, 10)]
+    [Range(1, 20)]
     public int scale;
 
     [Range(1, 8)]
@@ -63,6 +75,8 @@ public class EndlessTerrainGenerator : MonoBehaviour
     private float seedX, seedY;
 
 
+    #endregion
+
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- UNITY CALLBACKS ---------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
@@ -93,7 +107,12 @@ public class EndlessTerrainGenerator : MonoBehaviour
         mapSectors = new Dictionary<Vector2, MapSector>();
         sectorsPoolManager = new PoolManager<Vector2>(50, true, mapSectorPrefab, sectorsContainer);
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
-        roadsGenerator.initialize(sectorSize, scale, viewerDistanceUpdate, viewer, LODThresholds);
+        //roadsGenerator.initialize(sectorSize, scale, viewerDistanceUpdate, viewer, LODThresholds);
+
+        GlobalInformation.Instance.addData(SECTOR_SIZE, sectorSize);
+        GlobalInformation.Instance.addData(VIEWER, viewer);
+        GlobalInformation.Instance.addData(SCALE, scale);
+        GlobalInformation.Instance.addData(VIEWER_DIST_UPDATE, viewerDistanceUpdate);
     }
 
 
