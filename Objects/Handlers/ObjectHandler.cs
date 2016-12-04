@@ -3,14 +3,10 @@ using System.Collections;
 
 public class ObjectHandler : MonoBehaviour {
 
-    public Material material;
-    public Texture2D texture;
+    public string name;
 
 	void Start()
     {
-        Material m = new Material(material);
-        m.mainTexture = texture;
-        this.GetComponent<MeshRenderer>().material = m;
     }
 	
 	void Update () {
@@ -33,7 +29,15 @@ public class ObjectHandler : MonoBehaviour {
         this.transform.Rotate(rot);
 
         this.gameObject.SetActive(true);
-        this.gameObject.name += " " + gridPos;
-        Debug.Log("position = " + this.transform.position);
+        this.gameObject.name = name + " " + gridPos;
+    }
+
+
+    public void reset()
+    {
+        this.gameObject.name = name + " (available)";
+        this.gameObject.transform.position = Vector3.zero;
+        this.gameObject.transform.rotation = Quaternion.identity;
+        this.gameObject.SetActive(false);
     }
 }

@@ -38,9 +38,10 @@ public class SubMeshHandler : MonoBehaviour {
     /* ----------------------------------------------------------------------------------------- */
     void Start ()
     {
-        texturesSize = EndlessTerrainGenerator.sectorSize + 1;
+        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        texturesSize = sectorSize + 1;
         Vector3 scale = water.transform.localScale;
-        scale *= (float)EndlessTerrainGenerator.sectorRate / 2;
+        scale *= 4;
         water.transform.localScale = scale;
     }
 

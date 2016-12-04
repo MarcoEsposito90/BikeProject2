@@ -14,7 +14,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     [Range(1, 1000)]
     public int seed;
 
-    private const int DENSITY_ONE = 10;
+    private const int DENSITY_ONE = 15;
     [Range(1, DENSITY_ONE * 2)]
     public int density;
 
@@ -36,7 +36,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     private int sectorSize;
     private int scale;
     private Transform viewer;
-    private Vector3 latestViewerRecordedPosition;
+    private Vector2 latestViewerRecordedPosition;
     private float viewerDistanceUpdate;
     private float seedX, seedY;
 
@@ -87,7 +87,14 @@ public class EndlessObjectGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
-        
+        Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
+
+        if(Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
+        {
+            createObjects();
+            updateObjects();
+            latestViewerRecordedPosition = pos;
+        }
     }
 
     #endregion
@@ -111,12 +118,40 @@ public class EndlessObjectGenerator : MonoBehaviour
                 int gridX = Mathf.RoundToInt(x / (float)scaledArea + 0.1f);
                 int gridY = Mathf.RoundToInt(y / (float)scaledArea + 0.1f);
                 Vector2 gridPos = new Vector2(gridX, gridY);
+                Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
 
-                GameObject newObj = objectPoolManagers.acquireObject(gridPos);
-                ObjectHandler oh = newObj.GetComponent<ObjectHandler>();
-                currentObjects.Add(gridPos, oh);
-                oh.computePosition(gridPos, seedX, seedY, area, scale);
+                if (Vector2.Distance(gridPos * scaledArea, viewerPos) > distanceThreshold)
+                    continue;
+
+                if (!currentObjects.ContainsKey(gridPos))
+                {
+                    GameObject newObj = objectPoolManagers.acquireObject(gridPos);
+                    ObjectHandler oh = newObj.GetComponent<ObjectHandler>();
+                    currentObjects.Add(gridPos, oh);
+                    oh.computePosition(gridPos, seedX, seedY, area, scale);
+                }
             }
+        }
+    }
+
+
+    private void updateObjects()
+    {
+        List<Vector2> toRemove = new List<Vector2>();
+        foreach(Vector2 pos in currentObjects.Keys)
+        {
+            Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
+
+            if (Vector2.Distance(pos * scaledArea, viewerPos) > distanceThreshold)
+                toRemove.Add(pos);
+        }
+
+        for(int i = 0; i < toRemove.Count; i++)
+        {
+            ObjectHandler oh = currentObjects[toRemove[i]];
+            oh.reset();
+            objectPoolManagers.releaseObject(toRemove[i]);
+            currentObjects.Remove(toRemove[i]);
         }
     }
 

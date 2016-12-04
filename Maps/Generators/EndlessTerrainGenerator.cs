@@ -19,14 +19,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     [Range(1, 3)]
     public int sectorDimension;
-    public static int sectorRate = 8;
-
-    public static int sectorSize
-    {
-        get;
-        private set;
-    }
-
+    private int sectorSize;
     private int scaledChunkSize;
 
     [Range(1, 20)]
@@ -50,7 +43,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public int colliderAccuracy;
 
     public Transform viewer;
-    private Vector3 latestViewerRecordedPosition;
+    private Vector2 latestViewerRecordedPosition;
 
     [Range(1, 20)]
     public int viewerDistanceUpdateFrequency;
@@ -92,7 +85,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public void initialize()
     {
         LODThresholds = new float[NumberOfLods];
-        sectorSize = ((int)Mathf.Pow(2, sectorDimension) * sectorRate);
+        sectorSize = ((int)Mathf.Pow(2, sectorDimension) * 8);
         scaledChunkSize = sectorSize * scale;
         viewerDistanceUpdate = scaledChunkSize / (float)(viewerDistanceUpdateFrequency + 3);
 
@@ -107,7 +100,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
         mapSectors = new Dictionary<Vector2, MapSector>();
         sectorsPoolManager = new PoolManager<Vector2>(50, true, mapSectorPrefab, sectorsContainer);
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
-        //roadsGenerator.initialize(sectorSize, scale, viewerDistanceUpdate, viewer, LODThresholds);
 
         GlobalInformation.Instance.addData(SECTOR_SIZE, sectorSize);
         GlobalInformation.Instance.addData(VIEWER, viewer);
@@ -134,12 +126,13 @@ public class EndlessTerrainGenerator : MonoBehaviour
             onSectorDataReceived(data);
         }
 
-        float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
+        Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
+        float distance = Vector2.Distance(latestViewerRecordedPosition, pos);
         if (distance >= viewerDistanceUpdate)
         {
             createNewSectors();
             updateSectors();
-            latestViewerRecordedPosition = viewer.position;
+            latestViewerRecordedPosition = pos;
         }
     }
 

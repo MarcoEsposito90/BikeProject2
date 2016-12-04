@@ -46,7 +46,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
     private int sectorSize;
     private int scale;
     private Transform viewer;
-    private Vector3 latestViewerRecordedPosition;
+    private Vector2 latestViewerRecordedPosition;
     private float viewerDistanceUpdate;
     private float seedX, seedY;
     //private float[] LODThresholds;
@@ -127,12 +127,12 @@ public class EndlessRoadsGenerator : MonoBehaviour
             onRoadRemove(l);
         }
 
-        float distance = Vector3.Distance(latestViewerRecordedPosition, viewer.position);
+        Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
+        float distance = Vector3.Distance(latestViewerRecordedPosition, pos);
         if (distance >= viewerDistanceUpdate)
         {
             createControlPoints();
-            updateControlPoints();
-            latestViewerRecordedPosition = viewer.position;
+            latestViewerRecordedPosition = pos;
         }
 
     }
