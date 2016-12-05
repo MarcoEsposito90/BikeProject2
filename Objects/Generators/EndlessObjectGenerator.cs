@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class EndlessObjectGenerator : MonoBehaviour
 {
 
-    public static readonly string DIST_THRESHOLD = "EndlessObjectGenerator.DistanceThreshold";
+    //public static readonly string DIST_THRESHOLD = "EndlessObjectGenerator.DistanceThreshold";
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
@@ -83,7 +83,7 @@ public class EndlessObjectGenerator : MonoBehaviour
         sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
         viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);
-        //viewerDistanceUpdate /= 10.0f;
+        viewerDistanceUpdate *= 10.0f;
         viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
 
         float multiplier = density >= DENSITY_ONE ?
@@ -163,13 +163,10 @@ public class EndlessObjectGenerator : MonoBehaviour
         float randomY = Mathf.PerlinNoise((gridPos.x + seedY) * 200, (gridPos.y + seedY) * 200) * randomness;
         float X = (gridPos.x + randomX) * area;
         float Y = (gridPos.y + randomY) * area;
-        //Debug.Log(gridPos + " - rand = " + randomX + "," + randomY);
-        //Debug.Log(gridPos + " - pos = " + X + "," + Y);
 
         // 2) check the probability ------------------------------------------------
         float noisescale = uniformness == 1 ? 0 : 1.0f / uniformness;
         float prob = Mathf.PerlinNoise((X + seedX) * noisescale, (Y + seedY) * noisescale);
-        //Debug.Log(gridPos + " - prob = " + prob);
 
         if (probability >= prob)
         {

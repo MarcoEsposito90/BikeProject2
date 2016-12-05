@@ -70,9 +70,10 @@ public class ObjectHandler : MonoBehaviour
     private void updateLOD()
     {
         Transform viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
+        float dist = Vector3.Distance(viewer.position, this.transform.position);
 
         for (int i = 0; i < LODDistances.Length; i++)
-            if (Vector3.Distance(viewer.position, this.transform.position) < LODDistances[i])
+            if (dist < LODDistances[i])
             {
                 //Debug.Log("LOD! " + i);
                 int j = Mathf.Min(i, lods.Length - 1);
@@ -86,6 +87,14 @@ public class ObjectHandler : MonoBehaviour
                 }
                 break;
             }
+
+        /* activate collider only if close to player */
+        if(currentLOD == 0)
+        {
+            BoxCollider bc = lods[0].GetComponent<BoxCollider>();
+            if (bc != null)
+                bc.isTrigger = dist <= 2;
+        }
 
     }
 
