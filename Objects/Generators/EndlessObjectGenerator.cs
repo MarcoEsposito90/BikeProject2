@@ -14,9 +14,18 @@ public class EndlessObjectGenerator : MonoBehaviour
     [Range(1, 1000)]
     public int seed;
 
-    private const int DENSITY_ONE = 15;
-    [Range(1, DENSITY_ONE * 2)]
+    private const int DENSITY_ONE = 10;
+    [Range(1, 50)]
     public int density;
+
+    [Range(1, 30)]
+    public int randomness;
+
+    [Range(1, 20)]
+    public int uniformness;
+
+    [Range(0.0f, 1.0f)]
+    public float probability;
 
     [Range(1, 5)]
     public int radius;
@@ -64,8 +73,8 @@ public class EndlessObjectGenerator : MonoBehaviour
     void Start()
     {
         System.Random random = new System.Random(seed);
-        seedX = ((float)random.NextDouble()) * random.Next(100);
-        seedY = ((float)random.NextDouble()) * random.Next(100);
+        seedX = ((float)random.NextDouble()) * random.Next(1000);
+        seedY = ((float)random.NextDouble()) * random.Next(1000);
 
         sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
@@ -101,8 +110,10 @@ public class EndlessObjectGenerator : MonoBehaviour
 
 
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- METHODS ------------------------------------------------------- */
+    /* -------------------------- METHODS ------------------------------------------------------ */
     /* ----------------------------------------------------------------------------------------- */
+
+    #region CREATE_AND_UPDATE
 
     private void createObjects()
     {
@@ -124,19 +135,63 @@ public class EndlessObjectGenerator : MonoBehaviour
                     continue;
 
                 if (!currentObjects.ContainsKey(gridPos))
-                {
-                    GameObject newObj = objectPoolManagers.acquireObject(gridPos);
-                    ObjectHandler oh = newObj.GetComponent<ObjectHandler>();
-                    currentObjects.Add(gridPos, oh);
-                    oh.computePosition(gridPos, seedX, seedY, area, scale);
-                }
+                    createObject(gridPos);
             }
         }
     }
 
 
+    /* ----------------------------------------------------------------------------------------- */
+    private void createObject(Vector2 gridPos)
+    {
+        ObjectHandler oh = null;
+
+        // 1) calculate position ---------------------------------------------------
+        float randomX = Mathf.PerlinNoise((gridPos.x + seedX) * 200, (gridPos.y + seedX) * 200) * randomness;
+        float randomY = Mathf.PerlinNoise((gridPos.x + seedY) * 200, (gridPos.y + seedY) * 200) * randomness;
+        float X = (gridPos.x + randomX) * area;
+        float Y = (gridPos.y + randomY) * area;
+        //Debug.Log(gridPos + " - rand = " + randomX + "," + randomY);
+        //Debug.Log(gridPos + " - pos = " + X + "," + Y);
+
+        // 2) check the probability ------------------------------------------------
+        float noisescale = uniformness == 1 ? 0 : 1.0f / (uniformness * 100);
+        float prob = Mathf.PerlinNoise((X + seedX) * noisescale, (Y + seedY) * noisescale);
+        //Debug.Log(gridPos + " - prob = " + prob);
+
+        if (probability >= prob)
+        {
+            /* create the object only if it is in the height range */
+            float n = NoiseGenerator.Instance.getNoiseValue(1, X, Y);
+
+            if(n >= minHeight && n <= maxHeight)
+            {
+                /* calculate height */
+                float height = GlobalInformation.Instance.getHeight(n);
+                Vector3 pos = new Vector3(X * scale, height * scale, Y * scale);
+
+                /* calculate rotation */
+                System.Random r = new System.Random();
+                float y = (1.0f / r.Next(100)) * 100 * 360;
+                Vector3 rot = new Vector3(0, y, 0);
+
+                /* instantiate and initialize */
+                GameObject newObj = objectPoolManagers.acquireObject(gridPos);
+                oh = newObj.GetComponent<ObjectHandler>();
+                oh.initialize(pos, rot);
+            }
+        }
+
+        // 4) add it anyway to the list, to avoid continous updates --------------------
+        currentObjects.Add(gridPos, oh);
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
     private void updateObjects()
     {
+
+        // 1) find objects to be removed -----------------------------------------
         List<Vector2> toRemove = new List<Vector2>();
         foreach(Vector2 pos in currentObjects.Keys)
         {
@@ -146,14 +201,22 @@ public class EndlessObjectGenerator : MonoBehaviour
                 toRemove.Add(pos);
         }
 
-        for(int i = 0; i < toRemove.Count; i++)
+        // 2) remove actually ----------------------------------------------------
+        for (int i = 0; i < toRemove.Count; i++)
         {
             ObjectHandler oh = currentObjects[toRemove[i]];
-            oh.reset();
-            objectPoolManagers.releaseObject(toRemove[i]);
+
+            if(oh != null)
+            {
+                oh.reset();
+                objectPoolManagers.releaseObject(toRemove[i]);
+            }
+
             currentObjects.Remove(toRemove[i]);
         }
     }
+
+    #endregion
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- OBJECT ------------------------------------------------------- */

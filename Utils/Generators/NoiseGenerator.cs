@@ -137,6 +137,9 @@ public class NoiseGenerator
     /* ----------------------------------------------------------------------------------------- */
     public float getNoiseValue(float scaleMultiply, float x, float y)
     {
+        if (scaleMultiply == 0)
+            return 0;
+
         float sampleX = (x + offsetX) / (noiseScale * scaleMultiply);
         float sampleY = (y + offsetY) / (noiseScale * scaleMultiply);
 
