@@ -6,6 +6,9 @@ public class ObjectHandler : MonoBehaviour
 
     public string objectName;
     public GameObject[] lods;
+    private Transform viewer;
+    private float viewerDistanceUpdate;
+    //private float colliderDistanceUpdate;
     private Vector2 latestViewerUpdate;
     private float[] LODDistances;
     private int currentLOD;
@@ -16,23 +19,32 @@ public class ObjectHandler : MonoBehaviour
 
     #region UNITY
 
-    void Start()
+    void OnEnable()
     {
+        //Debug.Log("onEnable");
+        viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
+        viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);
+        //colliderDistanceUpdate = 10.0f;
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
-        Transform viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
-        float viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);
-
         Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
-        if (Vector2.Distance(latestViewerUpdate, pos) > viewerDistanceUpdate)
+        float dist = Vector2.Distance(latestViewerUpdate, pos);
+
+        if (dist > viewerDistanceUpdate)
         {
             updateLOD();
             latestViewerUpdate = pos;
+
+            /* activate collider if enough close */
+            //float dist2 = Vector3.Distance(viewer.position, transform.position);
+            //GetComponent<BoxCollider>().enabled = (currentLOD == 0 && dist2 <= viewerDistanceUpdate);
         }
+
+        
     }
 
     #endregion
@@ -79,7 +91,7 @@ public class ObjectHandler : MonoBehaviour
                 int j = Mathf.Min(i, lods.Length - 1);
                 if (j != currentLOD)
                 {
-                    if(currentLOD >= 0)
+                    if (currentLOD >= 0)
                         lods[currentLOD].SetActive(false);
 
                     lods[j].SetActive(true);
@@ -87,14 +99,6 @@ public class ObjectHandler : MonoBehaviour
                 }
                 break;
             }
-
-        /* activate collider only if close to player */
-        if(currentLOD == 0)
-        {
-            BoxCollider bc = lods[0].GetComponent<BoxCollider>();
-            if (bc != null)
-                bc.isTrigger = dist <= 2;
-        }
 
     }
 

@@ -78,12 +78,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     void Awake()
     {
-        initialize();
-    }
-
-    /* ----------------------------------------------------------------------------------------- */
-    public void initialize()
-    {
         LODThresholds = new float[NumberOfLods];
         sectorSize = ((int)Mathf.Pow(2, sectorDimension) * 8);
         scaledChunkSize = sectorSize * scale;
@@ -106,7 +100,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
         GlobalInformation.Instance.addData(SCALE, scale);
         GlobalInformation.Instance.addData(VIEWER_DIST_UPDATE, viewerDistanceUpdate);
     }
-
 
     /* ----------------------------------------------------------------------------------------- */
     void Start()
