@@ -1,49 +1,93 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class ObjectHandler : MonoBehaviour {
+public class ObjectHandler : MonoBehaviour
+{
 
     public string objectName;
+    public GameObject[] lods;
+    private Vector2 latestViewerUpdate;
+    private float[] LODDistances;
+    private int currentLOD;
 
-	void Start()
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- UNITY -------------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region UNITY
+
+    void Start()
     {
     }
-	
-	void Update () {
-
-        Transform v = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
-        //if(Vector3.Distance(v.position, this.transform.position) > 10)
-        
-	}
 
 
-    public void initialize(Vector3 position, Vector3 rotation)
+    /* ----------------------------------------------------------------------------------------- */
+    void Update()
     {
-        //float randomX = Mathf.PerlinNoise((gridPos.x + seedX) * 200, (gridPos.y + seedX) * 200) * randomness;
-        //float randomY = Mathf.PerlinNoise((gridPos.x + seedY) * 200, (gridPos.y + seedY) * 200) * randomness;
-        ////Debug.Log(gridPos + " - random = " + randomX + ";" + randomY);
-        //float X = (gridPos.x + randomX) * areaSize;
-        //float Y = (gridPos.y + randomY) * areaSize;
-        //float height = GlobalInformation.Instance.getHeight(new Vector2(X, Y));
-        //this.transform.position = new Vector3(X * scale, height * scale, Y * scale);
+        Transform viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
+        float viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);
+
+        Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
+        if (Vector2.Distance(latestViewerUpdate, pos) > viewerDistanceUpdate)
+        {
+            updateLOD();
+            latestViewerUpdate = pos;
+        }
+    }
+
+    #endregion
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- METHODS ------------------------------------------------------ */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region METHODS
+
+    public void initialize(Vector3 position, Vector3 rotation, float[] LODDistances)
+    {
+        this.LODDistances = LODDistances;
         transform.position = position;
-
-        //System.Random r = new System.Random();
-        //float y = (1.0f / r.Next(100)) * 100 * 360;
-        //Vector3 rot = new Vector3(0, y, 0);
-        //this.transform.Rotate(rot);
         transform.Rotate(rotation);
-
-        this.gameObject.SetActive(true);
-        this.gameObject.name = objectName + " " + position;
+        gameObject.SetActive(true);
+        gameObject.name = objectName + " " + position;
+        currentLOD = -1;
+        updateLOD();
     }
 
 
+    /* ----------------------------------------------------------------------------------------- */
     public void reset()
     {
-        this.gameObject.name = objectName + " (available)";
-        this.gameObject.transform.position = Vector3.zero;
-        this.gameObject.transform.rotation = Quaternion.identity;
-        this.gameObject.SetActive(false);
+        gameObject.name = objectName + " (available)";
+        gameObject.transform.position = Vector3.zero;
+        gameObject.transform.rotation = Quaternion.identity;
+        gameObject.SetActive(false);
     }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void updateLOD()
+    {
+        Transform viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
+
+        for (int i = 0; i < LODDistances.Length; i++)
+            if (Vector3.Distance(viewer.position, this.transform.position) < LODDistances[i])
+            {
+                //Debug.Log("LOD! " + i);
+                int j = Mathf.Min(i, lods.Length - 1);
+                if (j != currentLOD)
+                {
+                    if(currentLOD >= 0)
+                        lods[currentLOD].SetActive(false);
+
+                    lods[j].SetActive(true);
+                    currentLOD = j;
+                }
+                break;
+            }
+
+    }
+
+    #endregion
 }

@@ -5,6 +5,8 @@ using System.Collections.Generic;
 public class EndlessObjectGenerator : MonoBehaviour
 {
 
+    public static readonly string DIST_THRESHOLD = "EndlessObjectGenerator.DistanceThreshold";
+
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
@@ -21,7 +23,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     [Range(1, 30)]
     public int randomness;
 
-    [Range(1, 20)]
+    [Range(1, 100)]
     public int uniformness;
 
     [Range(0.0f, 1.0f)]
@@ -36,11 +38,13 @@ public class EndlessObjectGenerator : MonoBehaviour
     [Range(0.0f, 1.0f)]
     public float maxHeight;
 
-    public GenerableObject[] prefabs;
+    [Range(1, 5)]
+    public int numberOfLods;
+
+    public GameObject prefab;
 
     private Dictionary<Vector2, ObjectHandler> currentObjects;
-    public BlockingQueue<Vector2> destroyRequestQueues { get; private set; }
-    private PoolManager<Vector2> objectPoolManagers;
+    private PoolManager<Vector2> objectPoolManager;
 
     private int sectorSize;
     private int scale;
@@ -52,6 +56,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     private float area;
     private float scaledArea;
     private float distanceThreshold;
+    private float[] LODDistances;
 
     #endregion
 
@@ -64,8 +69,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     void Awake()
     {
         currentObjects = new Dictionary<Vector2, ObjectHandler>();
-        destroyRequestQueues = new BlockingQueue<Vector2>();
-        objectPoolManagers = new PoolManager<Vector2>(20, true, prefabs[0].prefab, this.gameObject);
+        objectPoolManager = new PoolManager<Vector2>(20, true, prefab, this.gameObject);
     }
 
 
@@ -79,6 +83,7 @@ public class EndlessObjectGenerator : MonoBehaviour
         sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
         viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);
+        //viewerDistanceUpdate /= 10.0f;
         viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
 
         float multiplier = density >= DENSITY_ONE ?
@@ -88,6 +93,13 @@ public class EndlessObjectGenerator : MonoBehaviour
         area = sectorSize / multiplier;
         scaledArea = area * scale;
         distanceThreshold = sectorSize * scale * radius * 2;
+
+        LODDistances = new float[numberOfLods];
+        for (int i = 0; i < LODDistances.Length; i++)
+        {
+            float dist = (distanceThreshold / (float)numberOfLods) * (float)(i + 1);
+            LODDistances[i] = dist;
+        }
 
         createObjects();
     }
@@ -155,7 +167,7 @@ public class EndlessObjectGenerator : MonoBehaviour
         //Debug.Log(gridPos + " - pos = " + X + "," + Y);
 
         // 2) check the probability ------------------------------------------------
-        float noisescale = uniformness == 1 ? 0 : 1.0f / (uniformness * 100);
+        float noisescale = uniformness == 1 ? 0 : 1.0f / uniformness;
         float prob = Mathf.PerlinNoise((X + seedX) * noisescale, (Y + seedY) * noisescale);
         //Debug.Log(gridPos + " - prob = " + prob);
 
@@ -176,9 +188,9 @@ public class EndlessObjectGenerator : MonoBehaviour
                 Vector3 rot = new Vector3(0, y, 0);
 
                 /* instantiate and initialize */
-                GameObject newObj = objectPoolManagers.acquireObject(gridPos);
+                GameObject newObj = objectPoolManager.acquireObject(gridPos);
                 oh = newObj.GetComponent<ObjectHandler>();
-                oh.initialize(pos, rot);
+                oh.initialize(pos, rot, LODDistances);
             }
         }
 
@@ -209,27 +221,11 @@ public class EndlessObjectGenerator : MonoBehaviour
             if(oh != null)
             {
                 oh.reset();
-                objectPoolManagers.releaseObject(toRemove[i]);
+                objectPoolManager.releaseObject(toRemove[i]);
             }
 
             currentObjects.Remove(toRemove[i]);
         }
-    }
-
-    #endregion
-
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- OBJECT ------------------------------------------------------- */
-    /* ----------------------------------------------------------------------------------------- */
-
-    #region OBJECT
-
-    [System.Serializable]
-    public class GenerableObject
-    {
-        public string name;
-        public GameObject prefab;
-        public int subDensity;
     }
 
     #endregion
