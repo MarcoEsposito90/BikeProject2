@@ -17,6 +17,13 @@ public class PoolManager<Key>
     private GameObject parent;
     private Dictionary<Key, GameObject> objectsMap;
     private Queue<GameObject> freeObjectsList;
+    public int currentSize
+    {
+        get
+        {
+            return objectsMap.Count + freeObjectsList.Count;
+        }
+    }
 
     #endregion
 
@@ -52,6 +59,7 @@ public class PoolManager<Key>
     /* ------------------------------------------------------------------------------------------------- */
     private void addObject()
     {
+        //Debug.Log("create new!");
         GameObject newObj = (GameObject)Object.Instantiate(prefab, Vector3.zero, Quaternion.identity);
         newObj.SetActive(false);
         newObj.transform.parent = this.parent.transform;
@@ -93,11 +101,12 @@ public class PoolManager<Key>
         GameObject oldObj = objectsMap[key];
         objectsMap.Remove(key);
 
-        if (oldObj.activeInHierarchy)
-            oldObj.SetActive(false);
+        //if (oldObj.activeInHierarchy)
+            //oldObj.SetActive(false);
 
         freeObjectsList.Enqueue(oldObj);
     }
+
 
     #endregion
 }

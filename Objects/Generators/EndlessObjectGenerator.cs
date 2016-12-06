@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 
 public class EndlessObjectGenerator : MonoBehaviour
 {
@@ -43,6 +44,7 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     public GameObject prefab;
 
+    BlockingQueue<ObjectData> resultsQueue;
     private Dictionary<Vector2, ObjectHandler> currentObjects;
     private PoolManager<Vector2> objectPoolManager;
 
@@ -56,7 +58,10 @@ public class EndlessObjectGenerator : MonoBehaviour
     private float area;
     private float scaledArea;
     private float distanceThreshold;
-    private float[] LODDistances;
+    private float noiseScale;
+    private int maxObjsForLoop = 25;
+    private bool start = true;
+    //private float[] LODDistances;
 
     #endregion
 
@@ -69,7 +74,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     void Awake()
     {
         currentObjects = new Dictionary<Vector2, ObjectHandler>();
-        objectPoolManager = new PoolManager<Vector2>(20, true, prefab, this.gameObject);
+        resultsQueue = new BlockingQueue<ObjectData>();
     }
 
 
@@ -93,29 +98,43 @@ public class EndlessObjectGenerator : MonoBehaviour
         area = sectorSize / multiplier;
         scaledArea = area * scale;
         distanceThreshold = sectorSize * scale * radius * 2;
+        noiseScale = uniformness == 1 ? 0 : 1.0f / uniformness;
 
-        LODDistances = new float[numberOfLods];
-        for (int i = 0; i < LODDistances.Length; i++)
-        {
-            float dist = (distanceThreshold / (float)numberOfLods) * (float)(i + 1);
-            LODDistances[i] = dist;
-        }
+        int startNum = (int)(Mathf.Pow(distanceThreshold / scaledArea, 2) * 1.5f);
+        objectPoolManager = new PoolManager<Vector2>(startNum, true, prefab, this.gameObject);
 
-        createObjects();
+        requestUpdate(viewer.position);
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
-        Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
 
-        if(Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
+        /* create objects that are ready */
+        int counter = 0;
+        while (!resultsQueue.isEmpty() && counter <= maxObjsForLoop)
         {
-            createObjects();
-            updateObjects();
-            latestViewerRecordedPosition = pos;
+            if(!start) counter++;
+            ObjectData data = resultsQueue.Dequeue();
+            if (!currentObjects.ContainsKey(data.gridPosition))
+                createObject(data);
         }
+
+        Debug.Log("created " + counter + " objects");
+
+        /* create new requests and update current objects */
+        Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
+        if (Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
+        {
+            requestUpdate(viewer.position);
+            updateObjects();
+
+            latestViewerRecordedPosition = pos;
+            Debug.Log("current size = " + objectPoolManager.currentSize);
+        }
+
+        start = false;
     }
 
     #endregion
@@ -127,72 +146,106 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     #region CREATE_AND_UPDATE
 
-    private void createObjects()
+    private void requestUpdate(Vector3 viewerPosition)
     {
-        float startX = viewer.position.x - distanceThreshold;
-        float endX = viewer.position.x + distanceThreshold;
-        float startY = viewer.position.z - distanceThreshold;
-        float endY = viewer.position.z + distanceThreshold;
-
-        for (float x = startX; x <= endX; x += scaledArea)
+        ThreadStart ts = delegate
         {
-            for (float y = startY; y <= endY; y += scaledArea)
+            createObjects(viewerPosition);
+        };
+
+        Thread t = new Thread(ts);
+        t.Start();
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void createObjects(Vector3 viewerPosition)
+    {
+        float startX = viewerPosition.x - distanceThreshold;
+        float endX = viewerPosition.x + distanceThreshold;
+        float startY = viewerPosition.z - distanceThreshold;
+        float endY = viewerPosition.z + distanceThreshold;
+        int startGridX = Mathf.RoundToInt(startX / (float)scaledArea + 0.1f);
+        int endGridX = Mathf.RoundToInt(endX / (float)scaledArea + 0.1f);
+        int startGridY = Mathf.RoundToInt(startY / (float)scaledArea + 0.1f);
+        int endGridY = Mathf.RoundToInt(endY / (float)scaledArea + 0.1f);
+
+        for (int x = startGridX; x <= endGridX; x++)
+        {
+            for (int y = startGridY; y <= endGridY; y++)
             {
-                int gridX = Mathf.RoundToInt(x / (float)scaledArea + 0.1f);
-                int gridY = Mathf.RoundToInt(y / (float)scaledArea + 0.1f);
-                Vector2 gridPos = new Vector2(gridX, gridY);
-                Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
+                Vector2 gridPos = new Vector2(x, y);
+                Vector2 viewerPos = new Vector2(viewerPosition.x, viewerPosition.z);
 
                 if (Vector2.Distance(gridPos * scaledArea, viewerPos) > distanceThreshold)
                     continue;
 
-                if (!currentObjects.ContainsKey(gridPos))
-                    createObject(gridPos);
+                ObjectData data = getObjectData(gridPos);
+                resultsQueue.Enqueue(data);
             }
         }
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
-    private void createObject(Vector2 gridPos)
+    private ObjectData getObjectData(Vector2 gridPos)
     {
-        ObjectHandler oh = null;
+        //ObjectHandler oh = null;
 
         // 1) calculate position ---------------------------------------------------
+        Vector3 position = Vector3.zero;
+        Vector3 rotation = Vector3.zero;
+        bool feasibility = false;
+
         float randomX = Mathf.PerlinNoise((gridPos.x + seedX) * 200, (gridPos.y + seedX) * 200) * randomness;
         float randomY = Mathf.PerlinNoise((gridPos.x + seedY) * 200, (gridPos.y + seedY) * 200) * randomness;
         float X = (gridPos.x + randomX) * area;
         float Y = (gridPos.y + randomY) * area;
 
-        // 2) check the probability ------------------------------------------------
-        float noisescale = uniformness == 1 ? 0 : 1.0f / uniformness;
-        float prob = Mathf.PerlinNoise((X + seedX) * noisescale, (Y + seedY) * noisescale);
+        float prob = Mathf.PerlinNoise((X + seedX) * noiseScale, (Y + seedY) * noiseScale);
 
         if (probability >= prob)
         {
-            /* create the object only if it is in the height range */
             float n = NoiseGenerator.Instance.getNoiseValue(1, X, Y);
 
-            if(n >= minHeight && n <= maxHeight)
+            if (n >= minHeight && n <= maxHeight)
             {
+                feasibility = true;
+
                 /* calculate height */
                 float height = GlobalInformation.Instance.getHeight(n);
-                Vector3 pos = new Vector3(X * scale, height * scale, Y * scale);
+                position = new Vector3(X * scale, height * scale, Y * scale);
 
                 /* calculate rotation */
                 System.Random r = new System.Random();
-                float y = (1.0f / r.Next(100)) * 100 * 360;
-                Vector3 rot = new Vector3(0, y, 0);
+                float y = (float)(r.NextDouble() * 360);
+                rotation = new Vector3(0, y, 0);
 
                 /* instantiate and initialize */
-                GameObject newObj = objectPoolManager.acquireObject(gridPos);
-                oh = newObj.GetComponent<ObjectHandler>();
-                oh.initialize(pos, rot, LODDistances);
+                //GameObject newObj = objectPoolManager.acquireObject(gridPos);
+                //oh = newObj.GetComponent<ObjectHandler>();
+                //oh.initialize(pos, rot);
             }
         }
 
         // 4) add it anyway to the list, to avoid continous updates --------------------
-        currentObjects.Add(gridPos, oh);
+        //currentObjects.Add(gridPos, oh);
+        ObjectData data = new ObjectData(gridPos, feasibility, position, rotation);
+        return data;
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void createObject(ObjectData data)
+    {
+        ObjectHandler oh = null;
+        if (data.feasible)
+        {
+            oh = objectPoolManager.acquireObject(data.gridPosition).GetComponent<ObjectHandler>();
+            oh.initialize(data.position, data.rotation);
+        }
+
+        currentObjects.Add(data.gridPosition, oh);
     }
 
 
@@ -202,7 +255,7 @@ public class EndlessObjectGenerator : MonoBehaviour
 
         // 1) find objects to be removed -----------------------------------------
         List<Vector2> toRemove = new List<Vector2>();
-        foreach(Vector2 pos in currentObjects.Keys)
+        foreach (Vector2 pos in currentObjects.Keys)
         {
             Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
 
@@ -215,7 +268,7 @@ public class EndlessObjectGenerator : MonoBehaviour
         {
             ObjectHandler oh = currentObjects[toRemove[i]];
 
-            if(oh != null)
+            if (oh != null)
             {
                 oh.reset();
                 objectPoolManager.releaseObject(toRemove[i]);
@@ -227,4 +280,29 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     #endregion
 
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- OBJECT DATA -------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region OBJECT_DATA
+
+    public class ObjectData
+    {
+        public Vector2 gridPosition;
+        public bool feasible;
+        public Vector3 position;
+        public Vector3 rotation;
+
+        public ObjectData(Vector2 gridPosition, bool feasible, Vector3 position, Vector3 rotation)
+        {
+            this.gridPosition = gridPosition;
+            this.feasible = feasible;
+            this.position = position;
+            this.rotation = rotation;
+        }
+    }
+
+
+    #endregion
 }
