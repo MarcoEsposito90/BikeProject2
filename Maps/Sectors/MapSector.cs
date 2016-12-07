@@ -11,84 +11,31 @@ public class MapSector
 
     #region ATTRIBUTES
 
-    public Vector2 position
-    {
-        get;
-        private set;
-    }
-
-    public int size
-    {
-        get;
-        private set;
-    }
-
-    public int scale
-    {
-        get;
-        private set;
-    }
-
-    public int subdivisions
-    {
-        get;
-        private set;
-    }
-
-    public int numberOfLods
-    {
-        get;
-        private set;
-    }
-
-    public GameObject prefabObject
-    {
-        get;
-        private set;
-    }
-
-    public Bounds bounds
-    {
-        get;
-        private set;
-    }
+    public Vector2 position { get; private set; }
+    public int size { get; private set; }
+    public int scale { get; private set; }
+    public int subdivisions { get; private set; }
+    public int numberOfLods { get; private set; }
+    public GameObject prefabObject { get; private set; }
+    //public Bounds bounds { get; private set; }
 
     private int _currentLOD;
     public int currentLOD
     {
-        get { return _currentLOD;  }
+        get { return _currentLOD; }
         set
         {
             _currentLOD = value;
-            if(prefabObject != null)
+            if (prefabObject != null)
                 prefabObject.GetComponent<SubMeshHandler>().currentLOD = _currentLOD;
         }
     }
 
-    public int latestLODRequest
-    {
-        get;
-        set;
-    }
-
-    public bool isVisible
-    {
-        get;
-        private set;
-    }
-
-    public Mesh[] meshes
-    {
-        get;
-        private set;
-    }
-
+    public int latestLODRequest;
+    public bool isVisible { get; private set; }
+    public Mesh[] meshes { get; private set; }
     public float[,] heightMap = null;
     public float[,] alphaMap = null;
-
-    //public Dictionary<Vector2, Quadrant> quadrants;
-
-    public bool roadsComputed;
     public bool mapComputed;
 
     #endregion
@@ -99,9 +46,15 @@ public class MapSector
 
     #region CONSTRUCTORS 
 
-    public MapSector(int x, int y, int size, int scale, int subdivisions, int numberOfLods, GameObject prefabObject)
+    public MapSector(
+        Vector2 position, 
+        int size, 
+        int scale, 
+        int subdivisions, 
+        int numberOfLods, 
+        GameObject prefabObject)
     {
-        this.position = new Vector2(x, y);
+        this.position = position;
         this.size = size;
         this.scale = scale;
         this.subdivisions = subdivisions;
@@ -109,19 +62,15 @@ public class MapSector
         currentLOD = -1;
         latestLODRequest = -1;
         isVisible = true;
-        roadsComputed = false;
 
         mapComputed = false;
-        bounds = new Bounds(
-            new Vector3(x * size * scale, 0, y * size * scale),
-            new Vector3(size * scale, size * scale * 10, size * scale));
+        //bounds = new Bounds(
+        //    new Vector3(x * size * scale, 0, y * size * scale),
+        //    new Vector3(size * scale, size * scale * 10, size * scale));
 
         meshes = new Mesh[numberOfLods];
         this.prefabObject = prefabObject;
-        initializePrefabObject(x, y);
-
-        //quadrants = new Dictionary<Vector2, Quadrant>();
-        //createQuadrants();
+        initializePrefabObject();
     }
 
     #endregion
@@ -134,14 +83,14 @@ public class MapSector
     #region METHODS
 
     /* ------------------------------------------------------------------------------------------------- */
-    private void initializePrefabObject(int x, int y)
+    private void initializePrefabObject()
     {
-        //prefabObject.AddComponent<MeshFilter>();
-        //prefabObject.AddComponent<MeshRenderer>();
-        //prefabObject.AddComponent<MeshCollider>();
-        prefabObject.name = "sector (" + x + "," + y + ")";
-        prefabObject.transform.position = new Vector3(x * size * scale, 0, y * size * scale);
-        prefabObject.SetActive(true);
+        prefabObject.name = "sector " + position;
+        prefabObject.transform.position = new Vector3(position.x * size * scale, 0, position.y * size * scale);
+
+        if (!prefabObject.activeInHierarchy)
+            prefabObject.SetActive(true);
+
         prefabObject.GetComponent<MeshCollider>().enabled = false;
     }
 
@@ -171,7 +120,7 @@ public class MapSector
         prefabObject.transform.position = Vector3.zero;
         prefabObject.name = "sector (available)";
         prefabObject.transform.localScale = Vector3.one;
-        prefabObject.SetActive(false);
+        //prefabObject.SetActive(false);
         this.prefabObject = null;
     }
 
@@ -231,10 +180,10 @@ public class MapSector
         //public readonly Color[] roadsMap;
 
         public SectorData
-            (int LOD, 
-            MeshData meshData, 
-            MeshData colliderMeshData, 
-            Color[] colorMap, 
+            (int LOD,
+            MeshData meshData,
+            MeshData colliderMeshData,
+            Color[] colorMap,
             Color[] alphaMap)
         {
             this.meshData = meshData;

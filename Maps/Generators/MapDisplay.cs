@@ -45,7 +45,8 @@ public class MapDisplay : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
 
     public MapSector.SectorData getSectorData
-        (MapSector sector,
+        (float[,] heightMap,
+        float[,] alphaMap,
         int levelOfDetail,
         bool colliderRequested,
         int colliderAccuracy)
@@ -53,13 +54,13 @@ public class MapDisplay : MonoBehaviour
     {
         AnimationCurve meshHeightCurve = new AnimationCurve(this.meshHeightCurve.keys);
 
-        float[,] heightMap = sector.heightMap;
-        float[,] alphaMap = sector.alphaMap;
+        //float[,] heightMap = sector.heightMap;
+        //float[,] alphaMap = sector.alphaMap;
 
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
 
-        Color[] colorMap = TextureGenerator.generateColorHeightMap((float[,])heightMap.Clone());
+        Color[] colorMap = TextureGenerator.generateColorHeightMap(heightMap);
         Color[] ColorAlphaMap = TextureGenerator.generateColorHeightMap(alphaMap);
 
         MapMeshGenerator.MapMeshData newMesh = null;

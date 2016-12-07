@@ -59,7 +59,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     private float scaledArea;
     private float distanceThreshold;
     private float noiseScale;
-    private int maxObjsForLoop = 25;
+    private int maxObjsForLoop = 50;
     private bool start = true;
     //private float[] LODDistances;
 
@@ -113,26 +113,29 @@ public class EndlessObjectGenerator : MonoBehaviour
 
         /* create objects that are ready */
         int counter = 0;
-        while (!resultsQueue.isEmpty() && counter <= maxObjsForLoop)
-        {
-            if(!start) counter++;
-            ObjectData data = resultsQueue.Dequeue();
-            if (!currentObjects.ContainsKey(data.gridPosition))
-                createObject(data);
-        }
+        if(start)
+            while (!resultsQueue.isEmpty() && counter <= maxObjsForLoop)
+            {
+                if (!start) counter++;
+                float init = Time.time;
+                ObjectData data = resultsQueue.Dequeue();
+                float diff = Time.time - init;
+                if (!currentObjects.ContainsKey(data.gridPosition))
+                    createObject(data);
+            }
 
-        Debug.Log("created " + counter + " objects");
+        //Debug.Log("created " + counter + " objects");
 
         /* create new requests and update current objects */
-        Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
-        if (Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
-        {
-            requestUpdate(viewer.position);
-            updateObjects();
+        //Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
+        //if (Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
+        //{
+        //    //requestUpdate(viewer.position);
+        //    //updateObjects();
 
-            latestViewerRecordedPosition = pos;
-            Debug.Log("current size = " + objectPoolManager.currentSize);
-        }
+        //    latestViewerRecordedPosition = pos;
+        //    Debug.Log("current size = " + objectPoolManager.currentSize);
+        //}
 
         start = false;
     }
@@ -241,8 +244,13 @@ public class EndlessObjectGenerator : MonoBehaviour
         ObjectHandler oh = null;
         if (data.feasible)
         {
-            oh = objectPoolManager.acquireObject(data.gridPosition).GetComponent<ObjectHandler>();
-            oh.initialize(data.position, data.rotation);
+            GameObject obj = objectPoolManager.acquireObject(data.gridPosition);
+            obj.transform.position = data.position;
+            obj.transform.Rotate(data.rotation);
+
+            if (!obj.activeInHierarchy)
+                obj.SetActive(true);
+            obj.name = " " + data.position;
         }
 
         currentObjects.Add(data.gridPosition, oh);
@@ -268,11 +276,13 @@ public class EndlessObjectGenerator : MonoBehaviour
         {
             ObjectHandler oh = currentObjects[toRemove[i]];
 
-            if (oh != null)
-            {
-                oh.reset();
+            //if (oh != null)
+            //{
+            //    oh.reset();
+            //}
+
+            if (currentObjects.ContainsKey(toRemove[i]))
                 objectPoolManager.releaseObject(toRemove[i]);
-            }
 
             currentObjects.Remove(toRemove[i]);
         }

@@ -66,9 +66,9 @@ public class MapGenerator : MonoBehaviour
         alphaOffsetY = (float)random.NextDouble() * multiplier;
 
         NoiseGenerator.Initialize(
-            noiseScale, 
-            numberOfFrequencies, 
-            frequencyMultiplier, 
+            noiseScale,
+            numberOfFrequencies,
+            frequencyMultiplier,
             amplitudeDemultiplier,
             offsetX,
             offsetY);
@@ -76,7 +76,7 @@ public class MapGenerator : MonoBehaviour
 
     void Start()
     {
-        
+
     }
 
 
@@ -90,14 +90,14 @@ public class MapGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
 
     public void requestSectorData
-        (MapSector sector,
+        (Vector2 sectorPosition,
         int LOD,
         bool colliderRequested,
         int colliderAccuracy)
     {
         ThreadStart ts = delegate
        {
-           GenerateMap(sector, LOD, colliderRequested, colliderAccuracy);
+           GenerateMap(sectorPosition, LOD, colliderRequested, colliderAccuracy);
        };
 
         Thread t = new Thread(ts);
@@ -107,41 +107,41 @@ public class MapGenerator : MonoBehaviour
 
     /* ----------------------------------------------------------------------------------------- */
     private void GenerateMap
-        (MapSector sector,
+        (Vector2 sectorPosition,
         int LOD,
         bool colliderRequested,
         int colliderAccuracy)
     {
         // 1) generate noise maps
-        if (!sector.mapComputed)
-        {
-            sector.mapComputed = true;
-            float[,] heightMap = NoiseGenerator.Instance.GenerateNoiseMap(
-                sector.size + 1,
-                1, 
-                (sector.position.x - 0.5f) * sector.size,
-                (sector.position.y + 0.5f) * sector.size);
+        //sector.mapComputed = true;
 
-            float[,] alphaMap = NoiseGenerator.Instance.GenerateNoiseMap(
-                sector.size + 1,
-                1.0f / alphaScale,
-                (sector.position.x - 0.5f) * sector.size + alphaOffsetX,
-                (sector.position.y + 0.5f) * sector.size + alphaOffsetY);
+        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        float[,] heightMap = NoiseGenerator.Instance.GenerateNoiseMap(
+            sectorSize + 1,
+            1,
+            (sectorPosition.x - 0.5f) * sectorSize,
+            (sectorPosition.y + 0.5f) * sectorSize);
 
-            sector.heightMap = heightMap;
-            sector.alphaMap = alphaMap;
-            sector.mapComputed = true;
-        }
+        float[,] alphaMap = NoiseGenerator.Instance.GenerateNoiseMap(
+            sectorSize + 1,
+            1.0f / alphaScale,
+            (sectorPosition.x - 0.5f) * sectorSize + alphaOffsetX,
+            (sectorPosition.y + 0.5f) * sectorSize + alphaOffsetY);
+
+        //sector.heightMap = heightMap;
+        //sector.alphaMap = alphaMap;
+        //sector.mapComputed = true;
 
         // 2) generate meshes and textures
         MapSector.SectorData sectorData = mapDisplayer.getSectorData(
-            sector, 
-            LOD, 
-            colliderRequested, 
+            heightMap,
+            alphaMap,
+            LOD,
+            colliderRequested,
             colliderAccuracy);
 
-        sectorData.sectorPosition = sector.position;
-        
+        sectorData.sectorPosition = sectorPosition;
+
         // 3) enqueue results
         parent.sectorResultsQueue.Enqueue(sectorData);
     }
