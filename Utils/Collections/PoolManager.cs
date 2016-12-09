@@ -61,7 +61,7 @@ public class PoolManager<Key>
     {
         //Debug.Log("create new!");
         GameObject newObj = (GameObject)Object.Instantiate(prefab, Vector3.zero, Quaternion.identity);
-        newObj.SetActive(false);
+        //newObj.SetActive(tr);
         newObj.transform.parent = this.parent.transform;
         freeObjectsList.Enqueue(newObj);
     }

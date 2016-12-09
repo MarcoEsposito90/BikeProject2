@@ -103,6 +103,8 @@ public class EndlessRoadsGenerator : MonoBehaviour
         scaledControlPointArea = controlPointArea * scale;
         threshold = ((float)radius + 0.5f) * scaledControlPointArea;
         removeThreshold = ((float)(radius + removeRadius) + 0.5f) * scaledControlPointArea;
+
+        createControlPoints();
     }
 
     /* ----------------------------------------------------------------------------------------- */
@@ -292,7 +294,9 @@ public class EndlessRoadsGenerator : MonoBehaviour
             roads.Add(roadData.key, r);
         }
 
-        r.setMesh(roadData.meshData.createMesh(), roadData.texture);
+        Mesh mesh = roadData.meshData.createMesh();
+        mesh.name = "road " + roadData.key.from.item.position + " - " + roadData.key.to.item.position;
+        r.setMesh(mesh, roadData.texture);
         createCrossRoad(roadData.key.from);
         createCrossRoad(roadData.key.to);
     }
@@ -301,12 +305,8 @@ public class EndlessRoadsGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void onCpDataReceived(ControlPoint.ControlPointData data)
     {
-        //Debug.Log("data received for " + data.gridPosition);
         if (!controlPoints.ContainsKey(data.gridPosition))
-        {
-            //Debug.Log("request deceased for control point " + data.gridPosition);
             return;
-        }
 
         ControlPoint cp = controlPoints[data.gridPosition];
         cp.setData(data);

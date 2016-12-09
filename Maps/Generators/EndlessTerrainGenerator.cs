@@ -21,7 +21,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     [Range(1, 3)]
     public int sectorDimension;
     private int sectorSize;
-    private int scaledChunkSize;
+    private int scaledSectorSize;
 
     [Range(1, 20)]
     public int scale;
@@ -36,10 +36,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public int accuracy;
     private float[] LODThresholds;
 
-    //[Range(1, 3)]
-    //public int keepUnvisible;
-    //private float removeThreshold;
-
     [Range(0, 2)]
     public int colliderAccuracy;
 
@@ -52,21 +48,14 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     public Material terrainMaterial;
     public GameObject mapSectorPrefab;
-    //public GameObject roadPrefab;
-    //public GameObject roadsContainer;
 
     private Dictionary<Vector2, MapSector> mapSectors;
     private PoolManager<Vector2> sectorsPoolManager;
     public BlockingQueue<MapSector.SectorData> sectorResultsQueue;
 
-    //private Dictionary<Road.Key, Road> roads;
-    //private PoolManager<Road.Key> roadsPoolManager;
-
     public GameObject sectorsContainer;
     public MapGenerator mapGenerator;
     public EndlessRoadsGenerator roadsGenerator;
-    //public RoadsGenerator roadsGenerator;
-    //private float seedX, seedY;
     private bool start = true;
 
     #endregion
@@ -81,20 +70,19 @@ public class EndlessTerrainGenerator : MonoBehaviour
     {
         LODThresholds = new float[NumberOfLods];
         sectorSize = ((int)Mathf.Pow(2, sectorDimension) * 8);
-        scaledChunkSize = sectorSize * scale;
-        viewerDistanceUpdate = scaledChunkSize / (float)(viewerDistanceUpdateFrequency + 3);
+        scaledSectorSize = sectorSize * scale;
+        viewerDistanceUpdate = scaledSectorSize / (float)(viewerDistanceUpdateFrequency + 3);
 
         int multiply = accuracy;
         for (int i = 0; i < LODThresholds.Length; i++)
         {
             if (i > 3) multiply *= 2;
-            LODThresholds[i] = (2.0f * scaledChunkSize + i * scaledChunkSize * multiply) / 2.0f;
+            LODThresholds[i] = (2.5f * scaledSectorSize + i * scaledSectorSize * multiply) / 2.0f;
         }
         //removeThreshold = LODThresholds[LODThresholds.Length - 1] * keepUnvisible;
 
         mapSectors = new Dictionary<Vector2, MapSector>();
-        int startSize = (int)LODThresholds[LODThresholds.Length - 1] * 2 / scaledChunkSize;
-        Debug.Log("startSize = " + startSize);
+        int startSize = (int)LODThresholds[LODThresholds.Length - 1] * 2 / scaledSectorSize;
         sectorsPoolManager = new PoolManager<Vector2>(startSize, true, mapSectorPrefab, sectorsContainer);
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
 
@@ -110,6 +98,10 @@ public class EndlessTerrainGenerator : MonoBehaviour
         viewer.position = new Vector3(0, viewer.position.y, 0);
         createNewSectors(viewer.position);
         updateSectors();
+        //StartCoroutine(checkForNewSectors());
+
+        //StartCoroutine(checkForUpdates());
+        //checkForUpdates();
     }
 
 
@@ -117,12 +109,13 @@ public class EndlessTerrainGenerator : MonoBehaviour
     void Update()
     {
         int counter = 0;
-        while (!sectorResultsQueue.isEmpty() && counter < 50)
+        while (!sectorResultsQueue.isEmpty() && counter < 1)
         {
             if (!start) counter++;
             MapSector.SectorData data = sectorResultsQueue.Dequeue();
             onSectorDataReceived(data);
         }
+
 
         Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
         float distance = Vector2.Distance(latestViewerRecordedPosition, pos);
@@ -132,13 +125,50 @@ public class EndlessTerrainGenerator : MonoBehaviour
             ThreadStart ts = delegate { createNewSectors(position); };
             Thread t = new Thread(ts);
             t.Start();
-            //createNewSectors();
             updateSectors();
             latestViewerRecordedPosition = pos;
         }
 
         start = false;
     }
+
+    /* ----------------------------------------------------------------------------------------- */
+    //IEnumerator checkForUpdates()
+    //{
+    //    while(true)
+    //    {
+    //        Debug.Log("update cycle");
+    //        Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
+    //        float distance = Vector2.Distance(latestViewerRecordedPosition, pos);
+    //        if (distance >= viewerDistanceUpdate)
+    //        {
+    //            Vector3 position = viewer.position;
+    //            ThreadStart ts = delegate { createNewSectors(position); };
+    //            Thread t = new Thread(ts);
+    //            t.Start();
+    //            updateSectors();
+    //            latestViewerRecordedPosition = pos;
+    //        }
+    //        yield return new WaitForSeconds(1);
+    //    }
+    //}
+
+    //IEnumerator checkForNewSectors()
+    //{
+    //    while (true)
+    //    {
+    //        int counter = 0;
+    //        while (!sectorResultsQueue.isEmpty() && counter < 10)
+    //        {
+    //            if (!start) counter++;
+    //            MapSector.SectorData data = sectorResultsQueue.Dequeue();
+    //            onSectorDataReceived(data);
+    //            yield return new WaitForSeconds(0.1f);
+    //        }
+
+    //        yield return new WaitForSeconds(1);
+    //    }
+    //}
 
     #endregion
 
@@ -158,7 +188,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
             colliderAccuracy);
     }
 
-
+    
     // checks the list of chunks for updates ------------------------------------------------------
     public void updateSectors()
     {
@@ -169,16 +199,13 @@ public class EndlessTerrainGenerator : MonoBehaviour
             MapSector sector = currentSectors[index];
             float dist = Vector2.Distance(
                 new Vector2(viewer.position.x, viewer.position.z),
-                sector.position * scaledChunkSize);
+                sector.position * scaledSectorSize);
 
             // check which is the correct load ---------------
             for (int i = 0; i < LODThresholds.Length; i++)
             {
                 if (dist < LODThresholds[i])
                 {
-                    //if (sector.currentLOD == i)
-                    //    break;
-
                     updateSector(sector, i);
                     break;
                 }
@@ -206,7 +233,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
         if (sector.meshes[LOD] != null)
         {
-            //Debug.Log("chunk " + chunk.position + " with mesh " + LOD + "available");
             Mesh collider = null;
             if (LOD == 0 && sector.meshes[colliderAccuracy] != null)
                 collider = sector.meshes[colliderAccuracy];
@@ -216,11 +242,10 @@ public class EndlessTerrainGenerator : MonoBehaviour
             return;
         }
 
-        bool colliderRequested = LOD == 0 ? true : false;
         mapGenerator.requestSectorData
             (sector.position,
             LOD,
-            colliderRequested,
+            LOD == 0,
             colliderAccuracy);
     }
 
@@ -232,10 +257,10 @@ public class EndlessTerrainGenerator : MonoBehaviour
         float endX = position.x + LODThresholds[LODThresholds.Length - 1];
         float startY = position.z - LODThresholds[LODThresholds.Length - 1];
         float endY = position.z + LODThresholds[LODThresholds.Length - 1];
-        int startGridX = Mathf.RoundToInt(startX / scaledChunkSize + 0.1f);
-        int endGridX = Mathf.RoundToInt(endX / scaledChunkSize + 0.1f);
-        int startGridY = Mathf.RoundToInt(startY / scaledChunkSize + 0.1f);
-        int endGridY = Mathf.RoundToInt(endY / scaledChunkSize + 0.1f);
+        int startGridX = Mathf.RoundToInt(startX / scaledSectorSize + 0.1f);
+        int endGridX = Mathf.RoundToInt(endX / scaledSectorSize + 0.1f);
+        int startGridY = Mathf.RoundToInt(startY / scaledSectorSize + 0.1f);
+        int endGridY = Mathf.RoundToInt(endY / scaledSectorSize + 0.1f);
         Vector2 viewerPos = new Vector2(position.x, position.z);
 
         for (int x = startGridX; x <= endGridX; x++)
@@ -248,7 +273,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
                 //float realChunkX = x * scaledChunkSize;
                 //float realChunkY = y * scaledChunkSize;
 
-                Vector3 center = sectorPosition * scaledChunkSize;
+                Vector3 center = sectorPosition * scaledSectorSize;
                 float dist = Vector2.Distance(viewerPos, center);
 
                 for (int i = 0; i < LODThresholds.Length; i++)
@@ -260,7 +285,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
                         break;
                     }
                 }
-                    
+
             }
     }
 
@@ -273,7 +298,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     public void onSectorDataReceived(MapSector.SectorData sectorData)
     {
-        //Debug.Log(sectorData.sectorPosition + " data received");
         MapSector sector = null;
 
         if (mapSectors.ContainsKey(sectorData.sectorPosition))
@@ -290,7 +314,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
                 newSectorObj);
 
             sector.latestLODRequest = sectorData.meshData.LOD;
-            sector.currentLOD = LODThresholds.Length - 1;
             mapSectors.Add(sectorData.sectorPosition, sector);
         }
 
@@ -309,16 +332,14 @@ public class EndlessTerrainGenerator : MonoBehaviour
         Mesh colliderMesh = null;
         if (sectorData.colliderMeshData != null)
         {
-            colliderMesh = sectorData.colliderMeshData.createMesh();
-
             if (sector.meshes[sectorData.colliderMeshData.LOD] == null)
+            {
+                colliderMesh = sectorData.colliderMeshData.createMesh();
                 sector.meshes[sectorData.colliderMeshData.LOD] = colliderMesh;
-            //else
-                //colliderMesh = sector.meshes[sectorData.colliderMeshData.LOD];
+            }
+            else
+                colliderMesh = sector.meshes[sectorData.colliderMeshData.LOD];
         }
-
-        if (sectorData.meshData.LOD == 0 && colliderMesh == null)
-            Debug.Log("no collider!");
 
         /* ----------------------------------------------------------------- 
             means we came back to a previous LOD before the response of this
@@ -328,17 +349,9 @@ public class EndlessTerrainGenerator : MonoBehaviour
         */
 
         if (sector.latestLODRequest != sectorData.meshData.LOD)
-        {
-            //Debug.Log("chunk " + chunk.position + " not updated due to deceased request");
             return;
-        }
 
-        List<Color[]> alphaMaps = new List<Color[]>();
-        alphaMaps.Add(sectorData.alphaMap);
-        alphaMaps.Add(sectorData.alphaMap);
-        sector.setPrefabObject(colliderMesh, mesh, sectorData.colorMap, alphaMaps);
-
-        // scaling -----------------------------------------------------------
+        sector.setPrefabObject(colliderMesh, mesh, sectorData.colorMap, null);
         sector.prefabObject.transform.localScale = new Vector3(scale, scale, scale);
         sector.currentLOD = sectorData.meshData.LOD;
     }

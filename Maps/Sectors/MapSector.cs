@@ -100,7 +100,7 @@ public class MapSector
 
         SubMeshHandler handler = prefabObject.GetComponent<SubMeshHandler>();
         updateMeshes(collider, mesh);
-        handler.setTextures(heightMap, alphaMaps, size + 1);
+        handler.setTextures(heightMap, alphaMaps);
     }
 
 

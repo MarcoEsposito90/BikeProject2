@@ -16,6 +16,8 @@ public class SubMeshHandler : MonoBehaviour {
     private bool hasHeightMap;
     private int texturesSize;
     private int sectorDimension;
+    private Texture2D texture;
+    private Material material;
 
     private int _currentLOD;
     public int currentLOD
@@ -43,21 +45,7 @@ public class SubMeshHandler : MonoBehaviour {
         Vector3 scale = water.transform.localScale;
         scale *= 4;
         water.transform.localScale = scale;
-    }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    void OnEnable()
-    {
         hasHeightMap = false;
-        setObjectsVisibility(false);
-    }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    void Update ()
-    {
-
     }
 
     #endregion
@@ -80,38 +68,36 @@ public class SubMeshHandler : MonoBehaviour {
         else
             GetComponent<MeshCollider>().enabled = false;
 
-        foreach (GameObject c in children)
-            c.GetComponent<MeshFilter>().sharedMesh = mesh;
+        children[0].GetComponent<MeshFilter>().sharedMesh = mesh;
+        //foreach (GameObject c in children)
+            //c.GetComponent<MeshFilter>().sharedMesh = mesh;
     }
 
     
 
 
     /* ------------------------------------------------------------------------------------------- */
-    public void setTextures(Color[] heightMap, List<Color[]> alphaMaps, int textureSize)
+    public void setTextures(Color[] heightMap, List<Color[]> alphaMaps)
     {
         if (hasHeightMap)
             return;
 
-        this.texturesSize = textureSize;
-        Texture2D heightMapTexture = new Texture2D(texturesSize, texturesSize);
-        heightMapTexture.wrapMode = TextureWrapMode.Clamp;
-        heightMapTexture.SetPixels(heightMap);
-        heightMapTexture.Apply();
-
-        for (int i = 0; i < children.Length; i++)
+        if(texture == null)
         {
-
-            Material mat = new Material(materials[i]);
-            children[i].GetComponent<Renderer>().material = mat;
-            mat.SetTexture("_HeightMap", heightMapTexture);
-
-            Texture2D alphaMapTexture = new Texture2D(texturesSize, texturesSize);
-            alphaMapTexture.SetPixels(alphaMaps[i]);
-            alphaMapTexture.wrapMode = TextureWrapMode.Clamp;
-            alphaMapTexture.Apply();
-            mat.SetTexture("_AlphaMap", alphaMapTexture);
+            int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+            texturesSize = sectorSize + 1;
+            texture = new Texture2D(texturesSize, texturesSize);
+            texture.wrapMode = TextureWrapMode.Clamp;
         }
+
+        if(material == null)
+            material = new Material(materials[0]);
+
+        texture.SetPixels(heightMap);
+        texture.Apply();
+
+        children[0].GetComponent<Renderer>().material = material;
+        material.SetTexture("_HeightMap", texture);
 
         hasHeightMap = true;
     }
@@ -121,11 +107,12 @@ public class SubMeshHandler : MonoBehaviour {
     public void reset()
     {
         GetComponent<MeshCollider>().sharedMesh = null;
-        GetComponent<MeshCollider>().enabled = false;
+        //GetComponent<MeshCollider>().enabled = false;
 
-        foreach (GameObject c in children)
-            c.GetComponent<MeshFilter>().sharedMesh = null;
+        //foreach (GameObject c in children)
+        //c.GetComponent<MeshFilter>().sharedMesh = null;
 
+        children[0].GetComponent<MeshFilter>().sharedMesh = null;
         hasHeightMap = false;
     }
 

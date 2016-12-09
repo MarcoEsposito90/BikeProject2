@@ -6,13 +6,14 @@ using System.Threading;
 public class EndlessObjectGenerator : MonoBehaviour
 {
 
-    //public static readonly string DIST_THRESHOLD = "EndlessObjectGenerator.DistanceThreshold";
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
     #region ATTRIBUTES
+
+    public string ObjectName;
 
     [Range(1, 1000)]
     public int seed;
@@ -42,10 +43,16 @@ public class EndlessObjectGenerator : MonoBehaviour
     [Range(1, 5)]
     public int numberOfLods;
 
+    [Range(20, 500)]
+    public int maxObjsForLoop;
+
+    //[Range(1, 10)]
+    //public int priority;
+
     public GameObject prefab;
 
     BlockingQueue<ObjectData> resultsQueue;
-    private Dictionary<Vector2, ObjectHandler> currentObjects;
+    private Dictionary<Vector2, ObjectData> currentObjects;
     private PoolManager<Vector2> objectPoolManager;
 
     private int sectorSize;
@@ -58,9 +65,13 @@ public class EndlessObjectGenerator : MonoBehaviour
     private float area;
     private float scaledArea;
     private float distanceThreshold;
+    private float overlapsCheckDistanceThreshold;
     private float noiseScale;
-    private int maxObjsForLoop = 50;
     private bool start = true;
+
+    private Vector3 colliderLocalPosition;
+    private Vector3 colliderSizes;
+    private int priority;
     //private float[] LODDistances;
 
     #endregion
@@ -73,8 +84,21 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     void Awake()
     {
-        currentObjects = new Dictionary<Vector2, ObjectHandler>();
+        currentObjects = new Dictionary<Vector2, ObjectData>();
         resultsQueue = new BlockingQueue<ObjectData>();
+
+        BoxCollider collider = prefab.GetComponent<BoxCollider>();
+        colliderLocalPosition = collider.center;
+        colliderSizes = collider.size;
+        priority = GlobalInformation.getPriority(prefab.tag);
+
+        if (priority == -1)
+        {
+            Debug.Log("ATTENTION! you have to select a tag for " + prefab);
+            priority = 0;
+        }
+
+        Debug.Log("priority = " + priority);
     }
 
 
@@ -98,6 +122,7 @@ public class EndlessObjectGenerator : MonoBehaviour
         area = sectorSize / multiplier;
         scaledArea = area * scale;
         distanceThreshold = sectorSize * scale * radius * 2;
+        overlapsCheckDistanceThreshold = sectorSize * scale * 0.5f;
         noiseScale = uniformness == 1 ? 0 : 1.0f / uniformness;
 
         int startNum = (int)(Mathf.Pow(distanceThreshold / scaledArea, 2) * 1.5f);
@@ -113,29 +138,31 @@ public class EndlessObjectGenerator : MonoBehaviour
 
         /* create objects that are ready */
         int counter = 0;
-        if(start)
-            while (!resultsQueue.isEmpty() && counter <= maxObjsForLoop)
-            {
-                if (!start) counter++;
-                float init = Time.time;
-                ObjectData data = resultsQueue.Dequeue();
-                float diff = Time.time - init;
-                if (!currentObjects.ContainsKey(data.gridPosition))
-                    createObject(data);
-            }
+        while (!resultsQueue.isEmpty() && counter <= maxObjsForLoop)
+        {
+            if (!start) counter++;
+            float init = Time.time;
+            ObjectData data = resultsQueue.Dequeue();
+            float diff = Time.time - init;
+            if (!currentObjects.ContainsKey(data.gridPosition))
+                createObject(data);
+        }
 
         //Debug.Log("created " + counter + " objects");
 
         /* create new requests and update current objects */
-        //Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
-        //if (Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
-        //{
-        //    //requestUpdate(viewer.position);
-        //    //updateObjects();
+        Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
+        if (Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
+        {
+            requestUpdate(viewer.position);
+            updateObjects();
 
-        //    latestViewerRecordedPosition = pos;
-        //    Debug.Log("current size = " + objectPoolManager.currentSize);
-        //}
+            latestViewerRecordedPosition = pos;
+            Debug.Log("current size = " + objectPoolManager.currentSize);
+        }
+
+        if (start)
+            StartCoroutine(checkOverlapsCoroutine());
 
         start = false;
     }
@@ -144,10 +171,10 @@ public class EndlessObjectGenerator : MonoBehaviour
 
 
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- METHODS ------------------------------------------------------ */
+    /* -------------------------- CREATE ------------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    #region CREATE_AND_UPDATE
+    #region CREATE
 
     private void requestUpdate(Vector3 viewerPosition)
     {
@@ -223,25 +250,51 @@ public class EndlessObjectGenerator : MonoBehaviour
                 System.Random r = new System.Random();
                 float y = (float)(r.NextDouble() * 360);
                 rotation = new Vector3(0, y, 0);
-
-                /* instantiate and initialize */
-                //GameObject newObj = objectPoolManager.acquireObject(gridPos);
-                //oh = newObj.GetComponent<ObjectHandler>();
-                //oh.initialize(pos, rot);
             }
         }
 
-        // 4) add it anyway to the list, to avoid continous updates --------------------
-        //currentObjects.Add(gridPos, oh);
         ObjectData data = new ObjectData(gridPos, feasibility, position, rotation);
         return data;
     }
 
+    #endregion
+
 
     /* ----------------------------------------------------------------------------------------- */
+    /* ------------------------------- UPDATE -------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region UPDATE
+
+    private void updateObjects()
+    {
+        // 1) find objects to be removed -----------------------------------------
+        List<Vector2> toRemove = new List<Vector2>(currentObjects.Keys);
+        foreach (Vector2 pos in toRemove)
+        {
+            Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
+
+            if (Vector2.Distance(pos * scaledArea, viewerPos) > distanceThreshold)
+            {
+                if (currentObjects[pos].feasible)
+                    objectPoolManager.releaseObject(pos);
+
+                currentObjects.Remove(pos);
+            }
+        }
+    }
+
+    #endregion
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- DATA RECEIVED ------------------------------------------------ */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region DATA_RECEIVED
+
     private void createObject(ObjectData data)
     {
-        ObjectHandler oh = null;
         if (data.feasible)
         {
             GameObject obj = objectPoolManager.acquireObject(data.gridPosition);
@@ -251,45 +304,92 @@ public class EndlessObjectGenerator : MonoBehaviour
             if (!obj.activeInHierarchy)
                 obj.SetActive(true);
             obj.name = " " + data.position;
+            data.obj = obj;
         }
 
-        currentObjects.Add(data.gridPosition, oh);
-    }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    private void updateObjects()
-    {
-
-        // 1) find objects to be removed -----------------------------------------
-        List<Vector2> toRemove = new List<Vector2>();
-        foreach (Vector2 pos in currentObjects.Keys)
-        {
-            Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
-
-            if (Vector2.Distance(pos * scaledArea, viewerPos) > distanceThreshold)
-                toRemove.Add(pos);
-        }
-
-        // 2) remove actually ----------------------------------------------------
-        for (int i = 0; i < toRemove.Count; i++)
-        {
-            ObjectHandler oh = currentObjects[toRemove[i]];
-
-            //if (oh != null)
-            //{
-            //    oh.reset();
-            //}
-
-            if (currentObjects.ContainsKey(toRemove[i]))
-                objectPoolManager.releaseObject(toRemove[i]);
-
-            currentObjects.Remove(toRemove[i]);
-        }
+        currentObjects.Add(data.gridPosition, data);
     }
 
     #endregion
 
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- DATA RECEIVED ------------------------------------------------ */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region OVERLAPS_CHECK
+
+    IEnumerator checkOverlapsCoroutine()
+    {
+        while (true)
+        {
+            Debug.Log("overlaps coroutine!");
+
+            float startX = viewer.position.x - overlapsCheckDistanceThreshold;
+            float endX = viewer.position.x + overlapsCheckDistanceThreshold;
+            float startY = viewer.position.z - overlapsCheckDistanceThreshold;
+            float endY = viewer.position.z + overlapsCheckDistanceThreshold;
+            int startGridX = Mathf.RoundToInt(startX / (float)scaledArea + 0.1f);
+            int endGridX = Mathf.RoundToInt(endX / (float)scaledArea + 0.1f);
+            int startGridY = Mathf.RoundToInt(startY / (float)scaledArea + 0.1f);
+            int endGridY = Mathf.RoundToInt(endY / (float)scaledArea + 0.1f);
+            Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
+
+            for (int x = startGridX; x <= endGridX; x++)
+                for(int y = startGridY; y <= endGridY; y++)
+                {
+                    Vector2 gridPos = new Vector2(x, y);
+
+                    if (!currentObjects.ContainsKey(gridPos))
+                        continue;
+
+                    ObjectData data = currentObjects[gridPos];
+                    if (!data.feasible)
+                        continue;
+
+                    Vector2 objPos = new Vector2(data.position.x, data.position.z);
+                    if (Vector2.Distance(viewerPos, objPos) > overlapsCheckDistanceThreshold)
+                        continue;
+
+                    checkOverlaps(data);
+
+                    if (!data.feasible)
+                    {
+                        data.obj.SetActive(false);
+                        objectPoolManager.releaseObject(gridPos);
+                    }
+                }
+
+            yield return new WaitForSeconds(5);
+        }
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void checkOverlaps(ObjectData data)
+    {
+        Collider[] intersects = Physics.OverlapBox(
+                data.position + colliderLocalPosition,
+                colliderSizes * 0.5f);
+
+        foreach (Collider overlap in intersects)
+        {
+            if (!overlap.gameObject.activeInHierarchy)
+                continue;
+
+            string tag = overlap.gameObject.tag;
+            int p = GlobalInformation.getPriority(tag);
+
+            if (priority < p)
+            {
+                Debug.Log("must remove " + ObjectName + " " + data.position + 
+                    " because overlaps with " + tag);
+                data.feasible = false;
+                return;
+            }
+        }
+    }
+
+    #endregion
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- OBJECT DATA -------------------------------------------------- */
@@ -303,6 +403,7 @@ public class EndlessObjectGenerator : MonoBehaviour
         public bool feasible;
         public Vector3 position;
         public Vector3 rotation;
+        public GameObject obj;
 
         public ObjectData(Vector2 gridPosition, bool feasible, Vector3 position, Vector3 rotation)
         {
