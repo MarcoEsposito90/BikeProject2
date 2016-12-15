@@ -91,6 +91,9 @@ public class RoadsGenerator : MonoBehaviour
         distanceFromCrossroad = crossRoadsDimension;
         tangentRescale = 0.25f * sinuosity - 0.25f;
 
+        roadSegmentTexture.filterMode = FilterMode.Bilinear;
+        roadSegmentTexture.wrapMode = TextureWrapMode.Clamp;
+
         GlobalInformation.Instance.addData(ROAD_ADHERENCE, adherence);
         GlobalInformation.Instance.addData(MAX_ROAD_ADHERENCE, MAX_ADHERENCE);
     }

@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class SubMeshHandler : MonoBehaviour {
+public class MapSectorHandler : MonoBehaviour {
 
     public GameObject[] children;
 
@@ -125,7 +125,15 @@ public class SubMeshHandler : MonoBehaviour {
 
     private void setObjectsVisibility(bool visibility)
     {
-        if(waterEnabled)
+        if (waterEnabled)
+        {
+            float wl = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.WATER_LEVEL);
+            float h = GlobalInformation.Instance.getHeight(wl);
+            water.transform.position = new Vector3(
+                water.transform.position.x,
+                h,
+                water.transform.position.z);
             water.SetActive(visibility);
+        }
     }
 }

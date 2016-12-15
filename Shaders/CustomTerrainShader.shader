@@ -111,7 +111,7 @@ Shader "Custom/CustomTerrainShader" {
 
 		CGPROGRAM
 		// Physically based Standard lighting model, and enable shadows on all light types
-		#pragma surface surf Standard fullforwardshadows /*keepalpha*/
+		#pragma surface surf Standard addshadow /*fullforwardshadows*/ /*keepalpha*/
 		//#pragma surface surf Standard alpha:fade
 		//#pragma vertex vert
 
@@ -206,7 +206,8 @@ Shader "Custom/CustomTerrainShader" {
 
 				o.Albedo = interpolate(coefficients, rgbs[level], rgbs[upperIndex], rgbs[lowerIndex]);
 				o.Normal = interpolate(coefficients, normals[level], normals[upperIndex], normals[lowerIndex]);
-				//o.Metallic = 1;
+				o.Metallic = 0;
+				o.Smoothness = 1;
 
 				fixed alpha = luminanceFromRGB(tex2D(_AlphaMap, IN.uv_HeightMap).rgb);
 				//alpha *= alpha;

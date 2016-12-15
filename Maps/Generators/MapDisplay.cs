@@ -46,7 +46,6 @@ public class MapDisplay : MonoBehaviour
 
     public MapSector.SectorData getSectorData
         (float[,] heightMap,
-        float[,] alphaMap,
         int levelOfDetail,
         bool colliderRequested,
         int colliderAccuracy)
@@ -61,7 +60,7 @@ public class MapDisplay : MonoBehaviour
         int height = heightMap.GetLength(1);
 
         Color[] colorMap = TextureGenerator.generateColorHeightMap(heightMap);
-        Color[] ColorAlphaMap = TextureGenerator.generateColorHeightMap(alphaMap);
+        //Color[] ColorAlphaMap = TextureGenerator.generateColorHeightMap(alphaMap);
 
         MapMeshGenerator.MapMeshData newMesh = null;
         if (renderingMode == RenderingMode.Mesh)
@@ -79,7 +78,7 @@ public class MapDisplay : MonoBehaviour
                 colliderMesh = MapMeshGenerator.generateMesh(width, height);
         }
 
-        return new MapSector.SectorData(levelOfDetail, newMesh, colliderMesh, colorMap, ColorAlphaMap);
+        return new MapSector.SectorData(levelOfDetail, heightMap, newMesh, colliderMesh, colorMap);
     }
     
 }

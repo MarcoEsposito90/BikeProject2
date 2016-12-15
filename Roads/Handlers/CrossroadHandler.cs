@@ -31,17 +31,6 @@ public class CrossroadHandler : MonoBehaviour {
 
     #region UNITY
 
-    void Start () {
-	
-	}
-	
-
-    /* ------------------------------------------------------------------------------ */
-	void Update ()
-    {
-
-    }
-
     #endregion
 
 
@@ -65,20 +54,17 @@ public class CrossroadHandler : MonoBehaviour {
         LeftSegment.SetActive(crmd.hasLeft);
         LeftSegment.GetComponent<MeshRenderer>().material = rm;
         LeftBorder.SetActive(!crmd.hasLeft);
-        LeftBorder.GetComponent<MeshRenderer>().material = cm;
         if (crmd.hasLeft)
         {
             Mesh m = crmd.left.createMesh();
             m.name = "LeftSegment";
             LeftSegment.GetComponent<MeshFilter>().sharedMesh = m;
             LeftSegment.GetComponent<MeshCollider>().sharedMesh = m;
-
         }
 
         RightSegment.SetActive(crmd.hasRight);
         RightSegment.GetComponent<MeshRenderer>().material = rm;
         RightBorder.SetActive(!crmd.hasRight);
-        RightBorder.GetComponent<MeshRenderer>().material = cm;
         if (crmd.hasRight)
         {
             Mesh m = crmd.right.createMesh();
@@ -91,23 +77,17 @@ public class CrossroadHandler : MonoBehaviour {
         UpSegment.SetActive(crmd.hasUp);
         UpSegment.GetComponent<MeshRenderer>().material = rm;
         UpBorder.SetActive(!crmd.hasUp);
-        UpBorder.GetComponent<MeshRenderer>().material = cm;
         if (crmd.hasUp)
         {
             Mesh m = crmd.up.createMesh();
             m.name = "UpSegment";
             UpSegment.GetComponent<MeshFilter>().mesh = m;
             UpSegment.GetComponent<MeshCollider>().sharedMesh = m;
-
-            //Debug.Log("printing mesh ------------------ ");
-            //foreach (Vector3 v in m.vertices)
-            //    Debug.Log(v);
         }
 
         DownSegment.SetActive(crmd.hasDown);
         DownSegment.GetComponent<MeshRenderer>().material = rm;
         DownBorder.SetActive(!crmd.hasDown);
-        DownBorder.GetComponent<MeshRenderer>().material = cm;
         if (crmd.hasDown)
         {
             Mesh m = crmd.down.createMesh();

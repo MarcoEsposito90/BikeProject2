@@ -27,7 +27,7 @@ public class MapSector
         {
             _currentLOD = value;
             if (prefabObject != null)
-                prefabObject.GetComponent<SubMeshHandler>().currentLOD = _currentLOD;
+                prefabObject.GetComponent<MapSectorHandler>().currentLOD = _currentLOD;
         }
     }
 
@@ -35,8 +35,9 @@ public class MapSector
     public bool isVisible { get; private set; }
     public Mesh[] meshes { get; private set; }
     public float[,] heightMap = null;
-    public float[,] alphaMap = null;
+    //public float[,] alphaMap = null;
     public bool mapComputed;
+    public bool needRedraw;
 
     #endregion
 
@@ -64,6 +65,7 @@ public class MapSector
         isVisible = true;
 
         mapComputed = false;
+        needRedraw = false;
         //bounds = new Bounds(
         //    new Vector3(x * size * scale, 0, y * size * scale),
         //    new Vector3(size * scale, size * scale * 10, size * scale));
@@ -98,7 +100,7 @@ public class MapSector
     public void setPrefabObject(Mesh collider, Mesh mesh, Color[] heightMap, List<Color[]> alphaMaps)
     {
 
-        SubMeshHandler handler = prefabObject.GetComponent<SubMeshHandler>();
+        MapSectorHandler handler = prefabObject.GetComponent<MapSectorHandler>();
         updateMeshes(collider, mesh);
         handler.setTextures(heightMap, alphaMaps);
     }
@@ -107,7 +109,7 @@ public class MapSector
     /* ------------------------------------------------------------------------------------------------- */
     public void updateMeshes(Mesh collider, Mesh mesh)
     {
-        SubMeshHandler handler = prefabObject.GetComponent<SubMeshHandler>();
+        MapSectorHandler handler = prefabObject.GetComponent<MapSectorHandler>();
         handler.setMeshes(collider, mesh);
     }
 
@@ -115,7 +117,7 @@ public class MapSector
     /* ------------------------------------------------------------------------------------------------- */
     public void resetPrefabObject()
     {
-        prefabObject.GetComponent<SubMeshHandler>().reset();
+        prefabObject.GetComponent<MapSectorHandler>().reset();
 
         prefabObject.transform.position = Vector3.zero;
         prefabObject.name = "sector (available)";
@@ -135,31 +137,6 @@ public class MapSector
     }
 
 
-    /* ------------------------------------------------------------------------------------------------- */
-    //public void createQuadrants()
-    //{
-    //    int quadrantWidth = (int)(size / (float)subdivisions);
-    //    int quadrantHeight = (int)(size / (float)subdivisions);
-
-    //    for (int j = 0; j < subdivisions; j++)
-    //    {
-    //        for (int i = 0; i < subdivisions; i++)
-    //        {
-    //            // 1) compute normalized coordinates of quadrant -------------
-    //            float quadrantX = (position.x - 0.5f + (1.0f / (float)subdivisions) * i);
-    //            float quadrantY = (position.y - 0.5f + (1.0f / (float)subdivisions) * j);
-
-    //            Vector2 quadrantCoordinates = new Vector2(quadrantX, quadrantY);
-    //            Vector2 localCoordinates = new Vector2(i, j);
-
-    //            // 1) create quadrant and add it to list ---------------------
-    //            Quadrant q = new Quadrant(new Vector2(i, j), quadrantCoordinates, quadrantWidth, quadrantHeight, this.subdivisions);
-    //            quadrants.Add(localCoordinates, q);
-    //        }
-    //    }
-    //}
-
-
     #endregion
 
 
@@ -173,25 +150,23 @@ public class MapSector
     {
         public Vector2 sectorPosition;
         public readonly int LOD;
+        public readonly float[,] heightMap;
         public readonly MeshData meshData;
         public readonly MeshData colliderMeshData;
         public readonly Color[] colorMap;
-        public readonly Color[] alphaMap;
-        //public readonly Color[] roadsMap;
 
         public SectorData
             (int LOD,
+            float[,] heightMap,
             MeshData meshData,
             MeshData colliderMeshData,
-            Color[] colorMap,
-            Color[] alphaMap)
+            Color[] colorMap)
         {
             this.meshData = meshData;
-            //this.roadsMap = roadsMap;
             this.colorMap = colorMap;
-            this.alphaMap = alphaMap;
             this.colliderMeshData = colliderMeshData;
             this.LOD = LOD;
+            this.heightMap = heightMap;
         }
     }
 

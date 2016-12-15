@@ -96,6 +96,9 @@ public class RoadModifier : IMeshModifier
         float coeff = (adherence - 1) / (float)(maxAdherence - 1);
         float denom = 1.0f / (float)adherence;
 
+        float wl = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.WATER_LEVEL);
+        float waterH = GlobalInformation.Instance.getHeight(wl);
+
         Vector3[] vertices = mesh.vertices;
         Vector3 dims = GeometryUtilities.calculateDimensions(vertices);
         Vector2 start = relative ? curve.startPoint() : Vector2.zero;
@@ -115,6 +118,7 @@ public class RoadModifier : IMeshModifier
             float medH = startHeight + (endHeight - startHeight) * t;
             float height = medH + (1.0f - coeff) * (terrainH - medH);
             if (height < terrainH) height = terrainH;
+            if (height < waterH) height = waterH;
             //float height = terrainH;
             if (relativeHeight) height = height - startHeight;
 

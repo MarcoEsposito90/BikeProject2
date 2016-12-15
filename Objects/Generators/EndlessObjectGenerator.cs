@@ -23,7 +23,10 @@ public class EndlessObjectGenerator : MonoBehaviour
     public int density;
 
     [Range(1, 30)]
-    public int randomness;
+    public int positionRandomness;
+
+    [Range(0, 0.9f)]
+    public float scaleRandomness;
 
     [Range(1, 100)]
     public int uniformness;
@@ -31,8 +34,8 @@ public class EndlessObjectGenerator : MonoBehaviour
     [Range(0.0f, 1.0f)]
     public float probability;
 
-    [Range(1, 5)]
-    public int radius;
+    [Range(0.1f, 5)]
+    public float radius;
 
     [Range(0.0f, 1.0f)]
     public float minHeight;
@@ -40,17 +43,15 @@ public class EndlessObjectGenerator : MonoBehaviour
     [Range(0.0f, 1.0f)]
     public float maxHeight;
 
-    [Range(1, 5)]
-    public int numberOfLods;
-
     [Range(20, 500)]
     public int maxObjsForLoop;
 
-    //[Range(1, 10)]
-    //public int priority;
-
+    public bool acceptsSelfIntersection;
+    public bool flatteningRequested;
     public GameObject prefab;
+    public EndlessTerrainGenerator terrainGenerator;
 
+    /* ----------------------------------------------------------------------------------------- */
     BlockingQueue<ObjectData> resultsQueue;
     private Dictionary<Vector2, ObjectData> currentObjects;
     private PoolManager<Vector2> objectPoolManager;
@@ -71,8 +72,8 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     private Vector3 colliderLocalPosition;
     private Vector3 colliderSizes;
+    private bool hasCollider;
     private int priority;
-    //private float[] LODDistances;
 
     #endregion
 
@@ -88,9 +89,14 @@ public class EndlessObjectGenerator : MonoBehaviour
         resultsQueue = new BlockingQueue<ObjectData>();
 
         BoxCollider collider = prefab.GetComponent<BoxCollider>();
-        colliderLocalPosition = collider.center;
-        colliderSizes = collider.size;
-        priority = GlobalInformation.getPriority(prefab.tag);
+        hasCollider = collider != null;
+        if(hasCollider)
+        {
+            colliderLocalPosition = collider.center;
+            colliderSizes = collider.size;
+            priority = GlobalInformation.getPriority(prefab.tag);
+        }
+        
 
         if (priority == -1)
         {
@@ -98,7 +104,6 @@ public class EndlessObjectGenerator : MonoBehaviour
             priority = 0;
         }
 
-        Debug.Log("priority = " + priority);
     }
 
 
@@ -111,8 +116,8 @@ public class EndlessObjectGenerator : MonoBehaviour
 
         sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
-        viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);
-        viewerDistanceUpdate *= 10.0f;
+        //viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);
+        //viewerDistanceUpdate *= 10.0f;
         viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
 
         float multiplier = density >= DENSITY_ONE ?
@@ -122,7 +127,8 @@ public class EndlessObjectGenerator : MonoBehaviour
         area = sectorSize / multiplier;
         scaledArea = area * scale;
         distanceThreshold = sectorSize * scale * radius * 2;
-        overlapsCheckDistanceThreshold = sectorSize * scale * 0.5f;
+        viewerDistanceUpdate = distanceThreshold * 0.5f;
+        overlapsCheckDistanceThreshold = sectorSize * scale;
         noiseScale = uniformness == 1 ? 0 : 1.0f / uniformness;
 
         int startNum = (int)(Mathf.Pow(distanceThreshold / scaledArea, 2) * 1.5f);
@@ -148,8 +154,6 @@ public class EndlessObjectGenerator : MonoBehaviour
                 createObject(data);
         }
 
-        //Debug.Log("created " + counter + " objects");
-
         /* create new requests and update current objects */
         Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
         if (Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
@@ -158,10 +162,9 @@ public class EndlessObjectGenerator : MonoBehaviour
             updateObjects();
 
             latestViewerRecordedPosition = pos;
-            Debug.Log("current size = " + objectPoolManager.currentSize);
         }
 
-        if (start)
+        if (start && hasCollider)
             StartCoroutine(checkOverlapsCoroutine());
 
         start = false;
@@ -220,15 +223,14 @@ public class EndlessObjectGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private ObjectData getObjectData(Vector2 gridPos)
     {
-        //ObjectHandler oh = null;
-
         // 1) calculate position ---------------------------------------------------
         Vector3 position = Vector3.zero;
         Vector3 rotation = Vector3.zero;
+        Vector3 objectScale = Vector3.one;
         bool feasibility = false;
 
-        float randomX = Mathf.PerlinNoise((gridPos.x + seedX) * 200, (gridPos.y + seedX) * 200) * randomness;
-        float randomY = Mathf.PerlinNoise((gridPos.x + seedY) * 200, (gridPos.y + seedY) * 200) * randomness;
+        float randomX = Mathf.PerlinNoise((gridPos.x + seedX) * 200, (gridPos.y + seedX) * 200) * positionRandomness;
+        float randomY = Mathf.PerlinNoise((gridPos.x + seedY) * 200, (gridPos.y + seedY) * 200) * positionRandomness;
         float X = (gridPos.x + randomX) * area;
         float Y = (gridPos.y + randomY) * area;
 
@@ -247,13 +249,18 @@ public class EndlessObjectGenerator : MonoBehaviour
                 position = new Vector3(X * scale, height * scale, Y * scale);
 
                 /* calculate rotation */
-                System.Random r = new System.Random();
+                System.Random r = new System.Random((int)(X * Y));
                 float y = (float)(r.NextDouble() * 360);
                 rotation = new Vector3(0, y, 0);
+
+                /* calculate scale */
+                float s = (float)(r.NextDouble() * 2.0 - 1.0);
+                s = s * scaleRandomness;
+                objectScale = new Vector3(s, s, s);
             }
         }
 
-        ObjectData data = new ObjectData(gridPos, feasibility, position, rotation);
+        ObjectData data = new ObjectData(gridPos, feasibility, position, rotation, objectScale);
         return data;
     }
 
@@ -300,11 +307,25 @@ public class EndlessObjectGenerator : MonoBehaviour
             GameObject obj = objectPoolManager.acquireObject(data.gridPosition);
             obj.transform.position = data.position;
             obj.transform.Rotate(data.rotation);
+            obj.transform.localScale += data.scale;
 
             if (!obj.activeInHierarchy)
                 obj.SetActive(true);
-            obj.name = " " + data.position;
+            obj.name = ObjectName + " " + data.position;
             data.obj = obj;
+
+            // eventually send redraw request to the terrain generator
+            if (flatteningRequested)
+            {
+                Vector3 pos = data.position + (colliderLocalPosition * obj.transform.localScale.x);
+                Vector2 sizes = new Vector2(colliderSizes.x, colliderSizes.z) * obj.transform.localScale.x * 0.5f;
+                float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
+                
+                EndlessTerrainGenerator.RedrawRequest r = new EndlessTerrainGenerator.RedrawRequest(
+                    new Vector2(pos.x, pos.z),
+                    radius);
+                terrainGenerator.sectorRedrawRequests.Enqueue(r);
+            }
         }
 
         currentObjects.Add(data.gridPosition, data);
@@ -322,8 +343,6 @@ public class EndlessObjectGenerator : MonoBehaviour
     {
         while (true)
         {
-            Debug.Log("overlaps coroutine!");
-
             float startX = viewer.position.x - overlapsCheckDistanceThreshold;
             float endX = viewer.position.x + overlapsCheckDistanceThreshold;
             float startY = viewer.position.z - overlapsCheckDistanceThreshold;
@@ -368,21 +387,25 @@ public class EndlessObjectGenerator : MonoBehaviour
     private void checkOverlaps(ObjectData data)
     {
         Collider[] intersects = Physics.OverlapBox(
-                data.position + colliderLocalPosition,
-                colliderSizes * 0.5f);
+                data.position + (colliderLocalPosition * data.obj.transform.localScale.x),
+                colliderSizes * 0.5f * (data.obj.transform.localScale.x + 1));
 
         foreach (Collider overlap in intersects)
         {
+            if (overlap.Equals(data.obj.GetComponent<BoxCollider>()))
+                continue;
+
             if (!overlap.gameObject.activeInHierarchy)
                 continue;
 
             string tag = overlap.gameObject.tag;
             int p = GlobalInformation.getPriority(tag);
 
-            if (priority < p)
+            if (priority <= p)
             {
-                Debug.Log("must remove " + ObjectName + " " + data.position + 
-                    " because overlaps with " + tag);
+                if (priority == p && acceptsSelfIntersection)
+                    continue;
+
                 data.feasible = false;
                 return;
             }
@@ -403,14 +426,21 @@ public class EndlessObjectGenerator : MonoBehaviour
         public bool feasible;
         public Vector3 position;
         public Vector3 rotation;
+        public Vector3 scale;
         public GameObject obj;
 
-        public ObjectData(Vector2 gridPosition, bool feasible, Vector3 position, Vector3 rotation)
+        public ObjectData(
+            Vector2 gridPosition, 
+            bool feasible, 
+            Vector3 position, 
+            Vector3 rotation,
+            Vector3 scale)
         {
             this.gridPosition = gridPosition;
             this.feasible = feasible;
             this.position = position;
             this.rotation = rotation;
+            this.scale = scale;
         }
     }
 

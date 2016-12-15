@@ -75,6 +75,10 @@ public class ControlPoint
         // 5) compute height ------------------------------------------
         float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 1, 1);
         height = GlobalInformation.Instance.getHeight(y);
+
+        float wl = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.WATER_LEVEL);
+        float waterH = GlobalInformation.Instance.getHeight(wl);
+        if (height < waterH) height = waterH;
     }
 
 

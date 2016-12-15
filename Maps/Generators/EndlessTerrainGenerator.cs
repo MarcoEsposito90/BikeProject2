@@ -10,6 +10,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public static readonly string VIEWER = "EndlessTerrainGenerator.Viewer";
     public static readonly string SCALE = "EndlessTerrainGenerator.Scale";
     public static readonly string SECTOR_SIZE = "EndlessTerrainGenerator.SectorSize";
+    public static readonly string WATER_LEVEL = "EndlessTerrainGenerator.WaterLevel";
 
 
     /* ----------------------------------------------------------------------------------------- */
@@ -46,12 +47,16 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public int viewerDistanceUpdateFrequency;
     private float viewerDistanceUpdate;
 
+    [Range(0, 1)]
+    public float waterLevel;
+
     public Material terrainMaterial;
     public GameObject mapSectorPrefab;
 
     private Dictionary<Vector2, MapSector> mapSectors;
     private PoolManager<Vector2> sectorsPoolManager;
     public BlockingQueue<MapSector.SectorData> sectorResultsQueue;
+    public BlockingQueue<RedrawRequest> sectorRedrawRequests;
 
     public GameObject sectorsContainer;
     public MapGenerator mapGenerator;
@@ -85,11 +90,13 @@ public class EndlessTerrainGenerator : MonoBehaviour
         int startSize = (int)LODThresholds[LODThresholds.Length - 1] * 2 / scaledSectorSize;
         sectorsPoolManager = new PoolManager<Vector2>(startSize, true, mapSectorPrefab, sectorsContainer);
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
+        sectorRedrawRequests = new BlockingQueue<RedrawRequest>();
 
         GlobalInformation.Instance.addData(SECTOR_SIZE, sectorSize);
         GlobalInformation.Instance.addData(VIEWER, viewer);
         GlobalInformation.Instance.addData(SCALE, scale);
         GlobalInformation.Instance.addData(VIEWER_DIST_UPDATE, viewerDistanceUpdate);
+        GlobalInformation.Instance.addData(WATER_LEVEL, waterLevel);
     }
 
     /* ----------------------------------------------------------------------------------------- */
@@ -98,10 +105,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
         viewer.position = new Vector3(0, viewer.position.y, 0);
         createNewSectors(viewer.position);
         updateSectors();
-        //StartCoroutine(checkForNewSectors());
-
-        //StartCoroutine(checkForUpdates());
-        //checkForUpdates();
     }
 
 
@@ -109,13 +112,18 @@ public class EndlessTerrainGenerator : MonoBehaviour
     void Update()
     {
         int counter = 0;
-        while (!sectorResultsQueue.isEmpty() && counter < 1)
+        while (!sectorResultsQueue.isEmpty() && counter < 100)
         {
             if (!start) counter++;
             MapSector.SectorData data = sectorResultsQueue.Dequeue();
             onSectorDataReceived(data);
         }
 
+        while (!sectorRedrawRequests.isEmpty())
+        {
+            RedrawRequest r = sectorRedrawRequests.Dequeue();
+            OnRedrawRequestReceived(r);
+        }
 
         Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
         float distance = Vector2.Distance(latestViewerRecordedPosition, pos);
@@ -132,43 +140,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
         start = false;
     }
 
-    /* ----------------------------------------------------------------------------------------- */
-    //IEnumerator checkForUpdates()
-    //{
-    //    while(true)
-    //    {
-    //        Debug.Log("update cycle");
-    //        Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
-    //        float distance = Vector2.Distance(latestViewerRecordedPosition, pos);
-    //        if (distance >= viewerDistanceUpdate)
-    //        {
-    //            Vector3 position = viewer.position;
-    //            ThreadStart ts = delegate { createNewSectors(position); };
-    //            Thread t = new Thread(ts);
-    //            t.Start();
-    //            updateSectors();
-    //            latestViewerRecordedPosition = pos;
-    //        }
-    //        yield return new WaitForSeconds(1);
-    //    }
-    //}
-
-    //IEnumerator checkForNewSectors()
-    //{
-    //    while (true)
-    //    {
-    //        int counter = 0;
-    //        while (!sectorResultsQueue.isEmpty() && counter < 10)
-    //        {
-    //            if (!start) counter++;
-    //            MapSector.SectorData data = sectorResultsQueue.Dequeue();
-    //            onSectorDataReceived(data);
-    //            yield return new WaitForSeconds(0.1f);
-    //        }
-
-    //        yield return new WaitForSeconds(1);
-    //    }
-    //}
 
     #endregion
 
@@ -188,7 +159,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
             colliderAccuracy);
     }
 
-    
+
     // checks the list of chunks for updates ------------------------------------------------------
     public void updateSectors()
     {
@@ -206,7 +177,8 @@ public class EndlessTerrainGenerator : MonoBehaviour
             {
                 if (dist < LODThresholds[i])
                 {
-                    updateSector(sector, i);
+                    if (sector.latestLODRequest != i || sector.needRedraw)
+                        updateSector(sector, i);
                     break;
                 }
             }
@@ -214,7 +186,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
             // check if the object should be removed ---------
             if (dist >= LODThresholds[LODThresholds.Length - 1] * 1.1f)
             {
-                //Debug.Log("must destroy chunk " + chunk.position);
                 sector.resetPrefabObject();
                 sectorsPoolManager.releaseObject(sector.position);
                 mapSectors.Remove(sector.position);
@@ -226,12 +197,9 @@ public class EndlessTerrainGenerator : MonoBehaviour
     // updates a single chunk to the specified LOD --------------------------------------------------
     private void updateSector(MapSector sector, int LOD)
     {
-        if (sector.latestLODRequest == LOD)
-            return;
-
         sector.latestLODRequest = LOD;
 
-        if (sector.meshes[LOD] != null)
+        if (sector.meshes[LOD] != null && !sector.needRedraw)
         {
             Mesh collider = null;
             if (LOD == 0 && sector.meshes[colliderAccuracy] != null)
@@ -243,10 +211,13 @@ public class EndlessTerrainGenerator : MonoBehaviour
         }
 
         mapGenerator.requestSectorData
-            (sector.position,
+            (sector.heightMap,
+            sector.position,
             LOD,
             LOD == 0,
             colliderAccuracy);
+
+        sector.needRedraw = false;
     }
 
 
@@ -270,9 +241,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
                 if (mapSectors.ContainsKey(sectorPosition))
                     continue;
 
-                //float realChunkX = x * scaledChunkSize;
-                //float realChunkY = y * scaledChunkSize;
-
                 Vector3 center = sectorPosition * scaledSectorSize;
                 float dist = Vector2.Distance(viewerPos, center);
 
@@ -280,7 +248,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
                 {
                     if (dist < LODThresholds[i])
                     {
-                        //Debug.Log("lod " + i);
                         createSector(sectorPosition, i);
                         break;
                     }
@@ -354,6 +321,81 @@ public class EndlessTerrainGenerator : MonoBehaviour
         sector.setPrefabObject(colliderMesh, mesh, sectorData.colorMap, null);
         sector.prefabObject.transform.localScale = new Vector3(scale, scale, scale);
         sector.currentLOD = sectorData.meshData.LOD;
+
+        if (!sector.mapComputed)
+        {
+            sector.mapComputed = true;
+            sector.heightMap = sectorData.heightMap;
+        }
     }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void OnRedrawRequestReceived(RedrawRequest request)
+    {
+        HashSet<MapSector> toRedraw = new HashSet<MapSector>();
+
+        float X = request.worldPosition.x / (float)scale;
+        float Y = request.worldPosition.y / (float)scale;
+        int radius = Mathf.RoundToInt(request.radius / (float)scale);
+        float n = NoiseGenerator.Instance.getNoiseValue(1, X, Y);
+
+        for (int i = -1; i <= 1; i++)
+            for (int j = -1; j <= 1; j++)
+            {
+                int gridX = Mathf.RoundToInt((request.worldPosition.x + i * request.radius * 2.0f) / scaledSectorSize);
+                int gridY = Mathf.RoundToInt((request.worldPosition.y + j * request.radius * 2.0f) / scaledSectorSize);
+                Vector2 gridPos = new Vector2(gridX, gridY);
+                MapSector s = mapSectors[gridPos];
+                toRedraw.Add(s);
+            }
+
+
+        // imageprocessing on heightmaps
+        ThreadStart ts = delegate
+        {
+
+            foreach (MapSector sector in toRedraw)
+            {
+                int centerX = (int)((X - (sector.position.x - 0.5f) * sectorSize));
+                int centerY = (int)(((sector.position.y + 0.5f) * sectorSize - Y));
+                lock (sector)
+                {
+                    sector.heightMap = ImageProcessing.radialFlattening(
+                        sector.heightMap,
+                        radius,
+                        centerX + 1,
+                        centerY + 1,
+                        n);
+
+                    sector.needRedraw = true;
+                }
+            }
+
+        };
+        Thread t = new Thread(ts);
+        t.Start();
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- SUBCLASSES --------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region REDRAW_REQUEST
+
+    public class RedrawRequest
+    {
+        public readonly Vector2 worldPosition;
+        public readonly float radius;
+
+        public RedrawRequest(Vector2 worldPosition, float radius)
+        {
+            this.worldPosition = worldPosition;
+            this.radius = radius;
+        }
+    }
+
+    #endregion
 
 }
