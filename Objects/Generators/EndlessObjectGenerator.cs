@@ -90,13 +90,13 @@ public class EndlessObjectGenerator : MonoBehaviour
 
         BoxCollider collider = prefab.GetComponent<BoxCollider>();
         hasCollider = collider != null;
-        if(hasCollider)
+        if (hasCollider)
         {
             colliderLocalPosition = collider.center;
             colliderSizes = collider.size;
             priority = GlobalInformation.getPriority(prefab.tag);
         }
-        
+
 
         if (priority == -1)
         {
@@ -127,8 +127,8 @@ public class EndlessObjectGenerator : MonoBehaviour
         area = sectorSize / multiplier;
         scaledArea = area * scale;
         distanceThreshold = sectorSize * scale * radius * 2;
-        viewerDistanceUpdate = distanceThreshold * 0.5f;
-        overlapsCheckDistanceThreshold = sectorSize * scale;
+        viewerDistanceUpdate = distanceThreshold * 0.25f;
+        overlapsCheckDistanceThreshold = sectorSize * scale * 2.0f;
         noiseScale = uniformness == 1 ? 0 : 1.0f / uniformness;
 
         int startNum = (int)(Mathf.Pow(distanceThreshold / scaledArea, 2) * 1.5f);
@@ -165,7 +165,7 @@ public class EndlessObjectGenerator : MonoBehaviour
         }
 
         if (start && hasCollider)
-            StartCoroutine(checkOverlapsCoroutine());
+            StartCoroutine(checkOverlapsAndFlatteningCoroutine());
 
         start = false;
     }
@@ -245,7 +245,7 @@ public class EndlessObjectGenerator : MonoBehaviour
                 feasibility = true;
 
                 /* calculate height */
-                float height = GlobalInformation.Instance.getHeight(n);
+                float height = GlobalInformation.Instance.getHeight(new Vector2(X, Y));
                 position = new Vector3(X * scale, height * scale, Y * scale);
 
                 /* calculate rotation */
@@ -314,18 +314,7 @@ public class EndlessObjectGenerator : MonoBehaviour
             obj.name = ObjectName + " " + data.position;
             data.obj = obj;
 
-            // eventually send redraw request to the terrain generator
-            if (flatteningRequested)
-            {
-                Vector3 pos = data.position + (colliderLocalPosition * obj.transform.localScale.x);
-                Vector2 sizes = new Vector2(colliderSizes.x, colliderSizes.z) * obj.transform.localScale.x * 0.5f;
-                float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
-                
-                EndlessTerrainGenerator.RedrawRequest r = new EndlessTerrainGenerator.RedrawRequest(
-                    new Vector2(pos.x, pos.z),
-                    radius);
-                terrainGenerator.sectorRedrawRequests.Enqueue(r);
-            }
+
         }
 
         currentObjects.Add(data.gridPosition, data);
@@ -339,7 +328,7 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     #region OVERLAPS_CHECK
 
-    IEnumerator checkOverlapsCoroutine()
+    IEnumerator checkOverlapsAndFlatteningCoroutine()
     {
         while (true)
         {
@@ -354,7 +343,7 @@ public class EndlessObjectGenerator : MonoBehaviour
             Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
 
             for (int x = startGridX; x <= endGridX; x++)
-                for(int y = startGridY; y <= endGridY; y++)
+                for (int y = startGridY; y <= endGridY; y++)
                 {
                     Vector2 gridPos = new Vector2(x, y);
 
@@ -375,6 +364,21 @@ public class EndlessObjectGenerator : MonoBehaviour
                     {
                         data.obj.SetActive(false);
                         objectPoolManager.releaseObject(gridPos);
+                        continue;
+                    }
+
+                    // flattening ----
+                    if (flatteningRequested && !data.flatteningDone)
+                    {
+                        Vector3 pos = data.position + (colliderLocalPosition * data.obj.transform.localScale.x);
+                        Vector2 sizes = new Vector2(colliderSizes.x, colliderSizes.z) * data.obj.transform.localScale.x * 0.5f;
+                        float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
+
+                        EndlessTerrainGenerator.RedrawRequest r = new EndlessTerrainGenerator.RedrawRequest(
+                            new Vector2(pos.x, pos.z),
+                            radius);
+                        terrainGenerator.sectorRedrawRequests.Enqueue(r);
+                        data.flatteningDone = true;
                     }
                 }
 
@@ -388,7 +392,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     {
         Collider[] intersects = Physics.OverlapBox(
                 data.position + (colliderLocalPosition * data.obj.transform.localScale.x),
-                colliderSizes * 0.5f * (data.obj.transform.localScale.x + 1));
+                colliderSizes * 0.5f * data.obj.transform.localScale.x);
 
         foreach (Collider overlap in intersects)
         {
@@ -428,11 +432,12 @@ public class EndlessObjectGenerator : MonoBehaviour
         public Vector3 rotation;
         public Vector3 scale;
         public GameObject obj;
+        public bool flatteningDone;
 
         public ObjectData(
-            Vector2 gridPosition, 
-            bool feasible, 
-            Vector3 position, 
+            Vector2 gridPosition,
+            bool feasible,
+            Vector3 position,
             Vector3 rotation,
             Vector3 scale)
         {
@@ -441,6 +446,7 @@ public class EndlessObjectGenerator : MonoBehaviour
             this.position = position;
             this.rotation = rotation;
             this.scale = scale;
+            flatteningDone = false;
         }
     }
 

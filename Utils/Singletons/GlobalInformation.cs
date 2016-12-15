@@ -108,7 +108,30 @@ public class GlobalInformation {
     /* ---------------------------------------------------------------------- */
     public float getHeight(Vector2 position)
     {
+        
+
         float n = NoiseGenerator.Instance.getNoiseValue(1, position.x, position.y);
+        return getHeight(n);
+
+    }
+
+
+    /* ---------------------------------------------------------------------- */
+    public float getHeightFromSector(Vector2 position)
+    {
+        int scale = (int)getData(EndlessTerrainGenerator.SCALE);
+        int sectorSize = (int)getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        int scaledSize = scale * sectorSize;
+
+        int gridX = Mathf.RoundToInt(position.x / scaledSize);
+        int gridY = Mathf.RoundToInt(position.y / scaledSize);
+        Vector2 gridPos = new Vector2(gridX, gridY);
+
+        MapSector s = EndlessTerrainGenerator.Instance[gridPos];
+        Vector2 pos = position / (float)scale;
+        int X = Mathf.RoundToInt(pos.x - (gridX - 0.5f) * sectorSize);
+        int Y = Mathf.RoundToInt((gridY + 0.5f) * sectorSize - pos.y);
+        float n = s.heightMap[X, Y];
         return getHeight(n);
     }
 

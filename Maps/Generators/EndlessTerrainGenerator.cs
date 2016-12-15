@@ -14,6 +14,23 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
 
     /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- INSTANCE ----------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region INSTANCE
+
+    private static EndlessTerrainGenerator _Instance;
+    public static EndlessTerrainGenerator Instance
+    {
+        get
+        {
+            return _Instance;
+        }
+    }
+
+    #endregion
+
+    /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- ATTRIBUTES --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
@@ -66,6 +83,26 @@ public class EndlessTerrainGenerator : MonoBehaviour
     #endregion
 
     /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- OPERATORS ---------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region OPERATORS
+
+    public MapSector this[Vector2 key]
+    {
+        get
+        {
+            return mapSectors[key];
+        }
+        private set
+        {
+            mapSectors[key] = value;
+        }
+    }
+
+    #endregion
+
+    /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- UNITY CALLBACKS ---------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
@@ -73,6 +110,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     void Awake()
     {
+        _Instance = this;
         LODThresholds = new float[NumberOfLods];
         sectorSize = ((int)Mathf.Pow(2, sectorDimension) * 8);
         scaledSectorSize = sectorSize * scale;
@@ -286,27 +324,18 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
         // store the mesh inside the object --------------------------------
         Mesh mesh = null;
-        if (sector.meshes[sectorData.meshData.LOD] == null)
-        {
-            mesh = sectorData.meshData.createMesh();
-            mesh.name = "mesh" + sectorData.sectorPosition.ToString();
-            sector.meshes[sectorData.meshData.LOD] = mesh;
-        }
-        else
-            mesh = sector.meshes[sectorData.meshData.LOD];
+        mesh = sectorData.meshData.createMesh();
+        mesh.name = "mesh" + sectorData.sectorPosition.ToString();
+        sector.meshes[sectorData.meshData.LOD] = mesh;
 
         // get the collider mesh --------------------------------------------
         Mesh colliderMesh = null;
         if (sectorData.colliderMeshData != null)
         {
-            if (sector.meshes[sectorData.colliderMeshData.LOD] == null)
-            {
-                colliderMesh = sectorData.colliderMeshData.createMesh();
-                sector.meshes[sectorData.colliderMeshData.LOD] = colliderMesh;
-            }
-            else
-                colliderMesh = sector.meshes[sectorData.colliderMeshData.LOD];
+            colliderMesh = sectorData.colliderMeshData.createMesh();
+            sector.meshes[sectorData.colliderMeshData.LOD] = colliderMesh;
         }
+
 
         /* ----------------------------------------------------------------- 
             means we came back to a previous LOD before the response of this
@@ -333,7 +362,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void OnRedrawRequestReceived(RedrawRequest request)
     {
-        HashSet<MapSector> toRedraw = new HashSet<MapSector>();
+        Dictionary<Vector2, int> toRedraw = new Dictionary<Vector2, int>();
 
         float X = request.worldPosition.x / (float)scale;
         float Y = request.worldPosition.y / (float)scale;
@@ -343,38 +372,41 @@ public class EndlessTerrainGenerator : MonoBehaviour
         for (int i = -1; i <= 1; i++)
             for (int j = -1; j <= 1; j++)
             {
-                int gridX = Mathf.RoundToInt((request.worldPosition.x + i * request.radius * 2.0f) / scaledSectorSize);
-                int gridY = Mathf.RoundToInt((request.worldPosition.y + j * request.radius * 2.0f) / scaledSectorSize);
+                float a = request.worldPosition.x + i * request.radius * 2.0f;
+                float b = request.worldPosition.y + j * request.radius * 2.0f;
+                a /= scaledSectorSize;
+                b /= scaledSectorSize;
+                int gridX = Mathf.RoundToInt(a);
+                int gridY = Mathf.RoundToInt(b);
+
                 Vector2 gridPos = new Vector2(gridX, gridY);
-                MapSector s = mapSectors[gridPos];
-                toRedraw.Add(s);
+                if (!toRedraw.ContainsKey(gridPos))
+                    toRedraw.Add(gridPos, 0);
+                
             }
 
-
-        // imageprocessing on heightmaps
-        ThreadStart ts = delegate
+        foreach (Vector2 v in toRedraw.Keys)
         {
-
-            foreach (MapSector sector in toRedraw)
+            MapSector sector = mapSectors[v];
+            ThreadStart ts = delegate
             {
+                Debug.Log("sector " + sector.position + "; request " + request.worldPosition);
                 int centerX = (int)((X - (sector.position.x - 0.5f) * sectorSize));
                 int centerY = (int)(((sector.position.y + 0.5f) * sectorSize - Y));
-                lock (sector)
-                {
-                    sector.heightMap = ImageProcessing.radialFlattening(
-                        sector.heightMap,
-                        radius,
-                        centerX + 1,
-                        centerY + 1,
-                        n);
 
-                    sector.needRedraw = true;
-                }
-            }
+                sector.heightMap = ImageProcessing.radialFlattening(
+                    sector.heightMap,
+                    radius,
+                    centerX + 1,
+                    centerY + 1,
+                    n);
 
-        };
-        Thread t = new Thread(ts);
-        t.Start();
+                sector.needRedraw = true;
+            };
+
+            Thread t = new Thread(ts);
+            t.Start();
+        }
     }
 
 
