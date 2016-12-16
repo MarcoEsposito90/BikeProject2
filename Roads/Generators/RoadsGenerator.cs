@@ -344,8 +344,8 @@ public class RoadsGenerator : MonoBehaviour
         int gridY = Mathf.RoundToInt(position.y / (controlPointArea * scale));
 
         Vector2 gridPos = new Vector2(gridX, gridY);
-        ControlPoint nearest = controlPointsGraph.nodes[gridPos].item;
-        float minDist = Vector2.Distance(nearest.position, position/(float)scale);
+        Graph<Vector2, ControlPoint>.GraphItem nearest = controlPointsGraph.nodes[gridPos];
+        float minDist = Vector2.Distance(nearest.item.position, position/(float)scale);
 
         for(int i = -1; i <= 1; i++)
             for(int j = -1; j <= 1; j++)
@@ -353,8 +353,8 @@ public class RoadsGenerator : MonoBehaviour
                 if (i == 0 && j == 0) continue;
 
                 Vector2 inc = new Vector2(i, j);
-                ControlPoint c = controlPointsGraph.nodes[gridPos + inc].item;
-                float d = Vector2.Distance(c.position, position/(float)scale);
+                Graph<Vector2, ControlPoint>.GraphItem c = controlPointsGraph.nodes[gridPos + inc];
+                float d = Vector2.Distance(c.item.position, position/(float)scale);
 
                 if(d < minDist)
                 {
@@ -363,7 +363,26 @@ public class RoadsGenerator : MonoBehaviour
                 }
             }
 
-        Debug.Log("nearest is " + nearest.gridPosition);
+        Debug.Log("nearest is " + nearest.item.gridPosition);
+
+        Graph<Vector2, ControlPoint>.Link toBeLinked = null;
+        float parameter = 0;
+        foreach(Graph<Vector2, ControlPoint>.Link l in nearest.links)
+        {
+            for(int i = 0; i <= 100; i++)
+            {
+                float t = curves[l].parameterOnCurveArchLength(i / 100.0f);
+                Vector2 point = curves[l].pointOnCurve(t);
+                float d = Vector2.Distance(point, position);
+
+                if (d < minDist)
+                {
+                    toBeLinked = l;
+                    minDist = d;
+                    parameter = t;
+                }
+            }
+        }
     }
 
     #endregion
