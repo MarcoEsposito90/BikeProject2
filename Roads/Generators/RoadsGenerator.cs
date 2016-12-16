@@ -16,29 +16,15 @@ public class RoadsGenerator : MonoBehaviour
 
     #region ATTRIBUTES
 
-    //[Range(0, 200)]
-    //public int sinuosity;
-
     public ControlPoint.Neighborhood neighborhood;
-
-    //[Range(1, 6)]
-    //public int largeRoads;
-    //private float roadWidth;
 
     [Range(0, 10)]
     public int crossRoadsDimension;
     private float distanceFromCrossroad;
 
-    //[Range(1, 8)]
-    //public int baseSegmentDimension;
-    //private float segmentLength;
-
     [Range(1, 6)]
     public int sinuosity;
     private float tangentRescale;
-
-    //[Range(10, 50)]
-    //public int roadsFlattening;
 
     [Range(1.0f, 2.0f)]
     public float maximumSegmentLength;
@@ -57,6 +43,9 @@ public class RoadsGenerator : MonoBehaviour
     const int MAX_ADHERENCE = 20;
     [Range(1, MAX_ADHERENCE)]
     public int adherence;
+
+    private int scale;
+    private float controlPointArea;
 
     public GameObject roadSegment;
     public Texture2D roadSegmentTexture;
@@ -98,11 +87,6 @@ public class RoadsGenerator : MonoBehaviour
         GlobalInformation.Instance.addData(MAX_ROAD_ADHERENCE, MAX_ADHERENCE);
     }
 
-
-    void Update()
-    {
-    }
-
     #endregion
 
     /* -------------------------------------------------------------------------------------- */
@@ -130,6 +114,8 @@ public class RoadsGenerator : MonoBehaviour
     {
         if (!initialized)
         {
+            scale = cp.scale;
+            controlPointArea = cp.AreaSize;
             maxLength = maximumSegmentLength * cp.AreaSize;
             minLength = minimumSegmentLength * cp.AreaSize;
             initialized = true;
@@ -163,7 +149,6 @@ public class RoadsGenerator : MonoBehaviour
                 float dist = cp.distance(toLink);
                 if (dist < maxLength && dist > minLength)
                 {
-                    //Debug.Log("creating link: " + cp.gridPosition + " - " + toLink.gridPosition);
                     if (!checkLinkFeasibility(cp, toLink))
                         continue;
 
@@ -326,7 +311,6 @@ public class RoadsGenerator : MonoBehaviour
 
     public void requestCrossroad(ControlPoint center, List<Road> roads)
     {
-
         CrossroadsMeshGenerator.CrossroadMeshData crmd;
         crmd = CrossroadsMeshGenerator.generateMeshData(
             center,
@@ -346,4 +330,43 @@ public class RoadsGenerator : MonoBehaviour
 
     #endregion
 
+
+
+    /* -------------------------------------------------------------------------- */
+    /* ---------------------- SPLIT --------------------------------------------- */
+    /* -------------------------------------------------------------------------- */
+
+    #region SPLIT
+
+    public void requestSplit(Vector2 position)
+    {
+        int gridX = Mathf.RoundToInt(position.x / (controlPointArea * scale));
+        int gridY = Mathf.RoundToInt(position.y / (controlPointArea * scale));
+
+        Vector2 gridPos = new Vector2(gridX, gridY);
+        ControlPoint nearest = controlPointsGraph.nodes[gridPos].item;
+        float minDist = Vector2.Distance(nearest.position, position/(float)scale);
+
+        for(int i = -1; i <= 1; i++)
+            for(int j = -1; j <= 1; j++)
+            {
+                if (i == 0 && j == 0) continue;
+
+                Vector2 inc = new Vector2(i, j);
+                ControlPoint c = controlPointsGraph.nodes[gridPos + inc].item;
+                float d = Vector2.Distance(c.position, position/(float)scale);
+
+                if(d < minDist)
+                {
+                    nearest = c;
+                    minDist = d;
+                }
+            }
+
+        Debug.Log("nearest is " + nearest.gridPosition);
+    }
+
+    #endregion
 }
+
+

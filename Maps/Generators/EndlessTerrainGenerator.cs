@@ -390,7 +390,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
             MapSector sector = mapSectors[v];
             ThreadStart ts = delegate
             {
-                Debug.Log("sector " + sector.position + "; request " + request.worldPosition);
                 int centerX = (int)((X - (sector.position.x - 0.5f) * sectorSize));
                 int centerY = (int)(((sector.position.y + 0.5f) * sectorSize - Y));
 

@@ -5,9 +5,9 @@ using System;
 
 public class EndlessRoadsGenerator : MonoBehaviour
 {
-
     public static readonly string MAP_SEEDX = "EndlessRoadsGenerator.SeedX";
     public static readonly string MAP_SEEDY = "EndlessRoadsGenerator.SeedY";
+    public static readonly string CP_AREA = "EndlessRoadsGenerator.ControlPointArea";
 
     /* ----------------------------------------------------------------------------------------- */
     /* ---------------------------- ATTRIBUTES ------------------------------------------------- */
@@ -58,6 +58,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
     public BlockingQueue<Road.RoadData> roadsResultsQueue { get; private set; }
     public BlockingQueue<ControlPoint.ControlPointData> cpsResultsQueue { get; private set; }
     public BlockingQueue<Graph<Vector2, ControlPoint>.Link> roadsRemoveQueue { get; private set; }
+    //public BlockingQueue<Vector2> roadsSplitRequests { get; private set; }
 
     #endregion
 
@@ -82,6 +83,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         roadsResultsQueue = new BlockingQueue<Road.RoadData>();
         cpsResultsQueue = new BlockingQueue<ControlPoint.ControlPointData>();
         roadsRemoveQueue = new BlockingQueue<Graph<Vector2, ControlPoint>.Link>();
+        //roadsSplitRequests = new BlockingQueue<Vector2>();
 
         roadsPoolManager = new PoolManager<Graph<Vector2, ControlPoint>.Link>(10, true, roadPrefab, roadsContainer);
         controlPointsPoolManager = new PoolManager<Vector2>(400, true, controlPointPrefab, controlPointsContainer);
@@ -104,6 +106,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         threshold = ((float)radius + 0.5f) * scaledControlPointArea;
         removeThreshold = ((float)(radius + removeRadius) + 0.5f) * scaledControlPointArea;
 
+        GlobalInformation.Instance.addData(CP_AREA, controlPointArea);
         createControlPoints();
     }
 
@@ -129,6 +132,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
             onRoadRemove(l);
         }
 
+
         Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
         float distance = Vector3.Distance(latestViewerRecordedPosition, pos);
         if (distance >= viewerDistanceUpdate)
@@ -149,17 +153,6 @@ public class EndlessRoadsGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
 
     #region METHODS
-
-    /* ----------------------------------------------------------------------------------------- */
-    private void initialize
-        (int sectorSize,
-        int scale,
-        float viewerDistanceUpdate,
-        Transform viewer,
-        float[] LODThresholds)
-    {
-        
-    }
 
 
     /* ----------------------------------------------------------------------------- */
@@ -324,6 +317,13 @@ public class EndlessRoadsGenerator : MonoBehaviour
         roadsPoolManager.releaseObject(link);
         roads.Remove(link);
         r = null;
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    public void splitRequest(Vector2 point)
+    {
+        roadsGenerator.requestSplit(point);
     }
 
     #endregion
