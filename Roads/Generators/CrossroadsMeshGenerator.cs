@@ -8,23 +8,22 @@ public static class CrossroadsMeshGenerator
 
     public static CrossroadMeshData generateMeshData(
         ControlPoint center,
-        List<Road> roads,
+        Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve> curves,
         float distanceFromCenter,
         MeshData segmentMeshData,
-        GameObject crossroadPrefab)
+        CrossroadHandler crossroadPrefab)
     {
-
-        CrossroadHandler ch = crossroadPrefab.GetComponent<CrossroadHandler>();
         CrossroadMeshData crmd = new CrossroadMeshData();
         int maxAdherence = (int)GlobalInformation.Instance.getData(RoadsGenerator.MAX_ROAD_ADHERENCE);
 
-        foreach (Road r in roads)
+        foreach (Graph<Vector2, ControlPoint>.Link link in curves.Keys)
         {
-            bool isStart = r.curve.startPoint().Equals(center.position);
-            ControlPoint other = isStart ? r.link.to.item : r.link.from.item;
-            Vector2 relativeGridPosition = other.gridPosition - center.gridPosition;
+            ICurve curve = curves[link];
+            ControlPoint other = link.from.item.Equals(center) ? link.to.item : link.from.item;
             Vector2 relativePosition = other.position - center.position;
-            ICurve c = getCurve(r.curve, center, relativePosition, distanceFromCenter, ch);
+            GeometryUtilities.QuadDirection dir = GeometryUtilities.getQuadDirection(relativePosition);
+            ICurve c = getCurve(curve, center, dir, distanceFromCenter, crossroadPrefab);
+
             float endHeight = GlobalInformation.Instance.getHeight(c.endPoint());
 
             ArrayModifier aMod = new ArrayModifier(20, true, false, false);
@@ -42,7 +41,7 @@ public static class CrossroadsMeshGenerator
             MeshData md = segmentMeshData.clone();
             aMod.Apply(md);
             rMod.Apply(md);
-            crmd.setSegment(relativeGridPosition, md);
+            crmd.setSegment(dir, md);
         }
 
         return crmd;
@@ -53,7 +52,7 @@ public static class CrossroadsMeshGenerator
     private static ICurve getCurve(
         ICurve curve, 
         ControlPoint center,
-        Vector2 relativePosition,
+        GeometryUtilities.QuadDirection direction,
         float distanceFromCenter, 
         CrossroadHandler ch)
     {
@@ -70,8 +69,8 @@ public static class CrossroadsMeshGenerator
         Vector2 controlEnd = curveEnd + derivate * 5;
 
         // 2) get start point from crossroad --------------------------------
-        Transform startPoint = ch.getStartPoint(relativePosition);
-        Vector2 localPos = new Vector2(startPoint.localPosition.x, startPoint.localPosition.z);
+        float localOffset = ch.localOffset;
+        Vector2 localPos = localOffset * GeometryUtilities.getVector2D(direction);
         Vector2 curveStart = center.position + localPos / scale;
         Vector2 controlStart = curveStart + localPos * 5 / scale;
 
@@ -106,29 +105,30 @@ public static class CrossroadsMeshGenerator
             hasDown = false;
         }
 
-        public void setSegment(Vector2 relativePosition, MeshData meshData)
+        public void setSegment(GeometryUtilities.QuadDirection direction, MeshData meshData)
         {
-            if (relativePosition.Equals(new Vector2(-1, 0)))
+            switch (direction)
             {
-                hasLeft = true;
-                left = meshData;
-            }
-            else if (relativePosition.Equals(new Vector2(1, 0)))
-            {
-                hasRight = true;
-                right = meshData;
-            }
-            else if (relativePosition.Equals(new Vector2(0, -1)))
-            {
-                hasDown = true;
-                down = meshData;
-            }
-            else if (relativePosition.Equals(new Vector2(0, 1)))
-            {
-                hasUp = true;
-                up = meshData;
-            }
+                case GeometryUtilities.QuadDirection.Left:
+                    hasLeft = true;
+                    left = meshData;
+                    break;
 
+                case GeometryUtilities.QuadDirection.Right:
+                    hasRight = true;
+                    right = meshData;
+                    break;
+
+                case GeometryUtilities.QuadDirection.Up:
+                    hasUp = true;
+                    up = meshData;
+                    break;
+
+                default:
+                    hasDown = true;
+                    down = meshData;
+                    break;
+            }
         }
     }
 

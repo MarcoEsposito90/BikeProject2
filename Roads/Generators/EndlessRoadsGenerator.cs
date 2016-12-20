@@ -231,31 +231,6 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
     #endregion
 
-    /* ----------------------------------------------------------------------------- */
-    /* ---------------------------- CONTROL POINTS --------------------------------- */
-    /* ----------------------------------------------------------------------------- */
-
-    #region CROSSROADS
-
-    private void createCrossRoad(Graph<Vector2, ControlPoint>.GraphItem node)
-    {
-        bool canCreateCrossroad = true;
-        List<Road> incomingRoads = new List<Road>();
-        foreach (Graph<Vector2, ControlPoint>.Link l in node.links)
-        {
-            if (!roads.ContainsKey(l))
-            {
-                canCreateCrossroad = false;
-                break;
-            }
-
-            incomingRoads.Add(roads[l]);
-        }
-
-        if (canCreateCrossroad)
-            roadsGenerator.requestCrossroad(node.item, incomingRoads);
-    }
-
     #endregion
 
     /* ------------------------------------------------------------------------------------ */
@@ -271,6 +246,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
         if (roads.ContainsKey(roadData.key))
         {
+            Debug.Log("updating road");
             r = roads[roadData.key];
         }
         else
@@ -290,8 +266,6 @@ public class EndlessRoadsGenerator : MonoBehaviour
         Mesh mesh = roadData.meshData.createMesh();
         mesh.name = "road " + roadData.key.from.item.position + " - " + roadData.key.to.item.position;
         r.setMesh(mesh, roadData.texture);
-        createCrossRoad(roadData.key.from);
-        createCrossRoad(roadData.key.to);
     }
 
 
@@ -323,10 +297,14 @@ public class EndlessRoadsGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     public void splitRequest(Vector2 point)
     {
-        roadsGenerator.requestSplit(point);
+        Vector2 gridPos = point / scaledControlPointArea;
+        GameObject prefab = controlPointsPoolManager.acquireObject(gridPos);
+        ControlPoint cp = new ControlPoint(gridPos, prefab, controlPointArea, scale);
+        //roadsGenerator.requestSplit(point);
+        controlPoints.Add(gridPos, cp);
+        roadsGenerator.sendNewControlPoint(cp);
     }
 
     #endregion
 
-    #endregion
 }

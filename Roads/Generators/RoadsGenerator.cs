@@ -22,9 +22,10 @@ public class RoadsGenerator : MonoBehaviour
     public int crossRoadsDimension;
     private float distanceFromCrossroad;
 
-    [Range(1, 6)]
+    [Range(1, 10)]
     public int sinuosity;
     private float tangentRescale;
+    private float tangentRotate;
 
     [Range(1.0f, 2.0f)]
     public float maximumSegmentLength;
@@ -49,7 +50,7 @@ public class RoadsGenerator : MonoBehaviour
 
     public GameObject roadSegment;
     public Texture2D roadSegmentTexture;
-    public GameObject crossroadPrefab;
+    public CrossroadHandler crossroadPrefab;
     public Texture2D crossroadTexture;
 
     private MeshData roadSegmentMeshData;
@@ -78,7 +79,9 @@ public class RoadsGenerator : MonoBehaviour
         roadSegmentMeshData = new MeshData(m.vertices, m.triangles, m.uv, m.normals, 0);
 
         distanceFromCrossroad = crossRoadsDimension;
-        tangentRescale = 0.25f * sinuosity - 0.25f;
+        //tangentRescale = 0.25f * sinuosity - 0.25f;
+        tangentRescale = (sinuosity - 1) * 30;
+        tangentRotate = (sinuosity - 1) * 10;
 
         roadSegmentTexture.filterMode = FilterMode.Bilinear;
         roadSegmentTexture.wrapMode = TextureWrapMode.Clamp;
@@ -138,7 +141,7 @@ public class RoadsGenerator : MonoBehaviour
         // create links with other control points -------------------
         foreach (Graph<Vector2, ControlPoint>.GraphItem targetItem in controlPointsGraph.nodes.Values)
         {
-            if (targetItem.Equals(gi))
+            if (targetItem.Equals(gi) || targetItem.links.Count >= 4)
                 continue;
 
             ControlPoint toLink = targetItem.item;
@@ -148,33 +151,26 @@ public class RoadsGenerator : MonoBehaviour
             float dist = cp.distance(toLink);
             if (dist < maxLength && dist > minLength)
             {
-                if (!checkLinkFeasibility(cp, toLink))
-                    continue;
-
                 Graph<Vector2, ControlPoint>.Link l =
                     controlPointsGraph.createLink(cp.position, toLink.position);
-                createCurve(l);
             }
         }
 
-    }
-
-
-    /* -------------------------------------------------------------------------------------- */
-    private bool checkLinkFeasibility(ControlPoint a, ControlPoint b)
-    {
-        int numberOfChecks = 10;
-        for (int i = 1; i < numberOfChecks; i++)
+        // create the crossroad ----------------
+        foreach (Graph<Vector2, ControlPoint>.Link link in gi.links)
         {
-            Vector2 checkPos = a.position + (b.position - a.position) / (float)numberOfChecks;
-            float n = NoiseGenerator.Instance.getNoiseValue(1, checkPos.x, checkPos.y);
-            if (n > maximumRoadsHeight || n < minimumRoadsHeight)
-                return false;
+            createCurve(link);
+            Graph<Vector2, ControlPoint>.GraphItem other = null;
+            if (link.from.Equals(gi))
+                other = link.to;
+            else
+                other = link.from;
+
+            createCrossroad(other);
         }
 
-        return true;
+        createCrossroad(gi);
     }
-
 
 
     /* -------------------------------------------------------------------------------------- */
@@ -201,8 +197,17 @@ public class RoadsGenerator : MonoBehaviour
 
     private void createCurve(Graph<Vector2, ControlPoint>.Link link)
     {
-        Vector2 startTangent = getTangent(link.from, link);
-        Vector2 endTangent = getTangent(link.to, link);
+        Vector2 difference = link.to.item.position - link.from.item.position;
+        difference = (difference / difference.magnitude) * tangentRescale;
+        System.Random r = new System.Random();
+
+        float angle = r.Next((int)tangentRotate) / 180.0f * (float)Math.PI;
+        Vector2 startTangent = GeometryUtilities.rotate(difference, angle);
+        startTangent += link.from.item.position;
+
+        angle = r.Next((int)tangentRotate) / 180.0f * (float)Math.PI;
+        Vector2 endTangent = GeometryUtilities.rotate(-difference, angle);
+        endTangent += link.to.item.position;
 
         BezierCurve c = new BezierCurve(
             link.from.item.position,
@@ -210,11 +215,7 @@ public class RoadsGenerator : MonoBehaviour
             link.to.item.position,
             endTangent);
 
-        lock (curves)
-        {
-            curves.Add(link, c);
-        }
-
+        curves.Add(link, c);
         RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(
             link,
             c,
@@ -225,43 +226,6 @@ public class RoadsGenerator : MonoBehaviour
     }
 
 
-    /* -------------------------------------------------------------------------------------- */
-    private Vector2 getTangent(
-        Graph<Vector2, ControlPoint>.GraphItem point,
-        Graph<Vector2, ControlPoint>.Link exclude)
-    {
-        List<Vector2> linksPositions = new List<Vector2>();
-
-        foreach (Graph<Vector2, ControlPoint>.Link l in point.links)
-        {
-            if (l.Equals(exclude))
-                continue;
-
-            ControlPoint cp = null;
-            if (l.from.Equals(point))
-                cp = l.to.item;
-            else
-                cp = l.from.item;
-
-            linksPositions.Add(cp.position);
-        }
-
-        Graph<Vector2, ControlPoint>.GraphItem toward = null;
-        if (exclude.from.Equals(point))
-            toward = exclude.to;
-        else
-            toward = exclude.from;
-
-        Vector2 tangent = point.item.getAverageVector(
-            linksPositions,
-            false,
-            false,
-            true,
-            toward.item.position);
-
-        return tangent * tangentRescale + point.item.position;
-    }
-
     #endregion
 
 
@@ -271,21 +235,22 @@ public class RoadsGenerator : MonoBehaviour
 
     #region CROSSROADS
 
-    public void requestCrossroad(ControlPoint center, List<Road> roads)
+    public void createCrossroad(Graph<Vector2, ControlPoint>.GraphItem node)
     {
-        CrossroadsMeshGenerator.CrossroadMeshData crmd;
-        crmd = CrossroadsMeshGenerator.generateMeshData(
-            center,
-            roads,
+        Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve> localCurves = new Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve>();
+        foreach (Graph<Vector2, ControlPoint>.Link link in node.links)
+            localCurves.Add(link, curves[link]);
+
+        CrossroadsMeshGenerator.CrossroadMeshData crmd = CrossroadsMeshGenerator.generateMeshData(
+            node.item,
+            localCurves,
             distanceFromCrossroad,
             roadSegmentMeshData,
             crossroadPrefab);
 
         ControlPoint.ControlPointData data = new ControlPoint.ControlPointData(
-            center.gridPosition,
-            crmd,
-            crossroadTexture,
-            roadSegmentTexture);
+            node.item.gridPosition,
+            crmd);
 
         parent.cpsResultsQueue.Enqueue(data);
     }
@@ -328,7 +293,7 @@ public class RoadsGenerator : MonoBehaviour
         Debug.Log("nearest is " + nearest.item.gridPosition);
 
         Graph<Vector2, ControlPoint>.Link toBeLinked = null;
-        float parameter = 0;
+        Vector2 connectionPoint = Vector2.zero;
         foreach (Graph<Vector2, ControlPoint>.Link l in nearest.links)
         {
             for (int i = 0; i <= 100; i++)
@@ -341,10 +306,12 @@ public class RoadsGenerator : MonoBehaviour
                 {
                     toBeLinked = l;
                     minDist = d;
-                    parameter = t;
+                    connectionPoint = point;
                 }
             }
         }
+
+
     }
 
     #endregion

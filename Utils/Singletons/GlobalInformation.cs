@@ -142,7 +142,10 @@ public class GlobalInformation {
         AnimationCurve heightCurve = (AnimationCurve)datas[MapDisplay.MESH_HEIGHT_CURVE];
         float mul = (float)datas[MapDisplay.MESH_HEIGHT_MUL];
 
-        return heightCurve.Evaluate(noiseValue) * mul;
+        lock (heightCurve)
+        {
+            return heightCurve.Evaluate(noiseValue) * mul;
+        }
     }
 
 

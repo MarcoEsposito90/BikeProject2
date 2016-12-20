@@ -229,20 +229,14 @@ public class ControlPoint
     public class ControlPointData
     {
         public readonly Vector2 gridPosition;
-        public readonly Texture2D crossroadTexture;
-        public readonly Texture2D roadTexture;
         public readonly CrossroadsMeshGenerator.CrossroadMeshData crossRoadMeshData;
         
         public ControlPointData(
             Vector2 gridPosition, 
-            CrossroadsMeshGenerator.CrossroadMeshData crossRoadMeshData,
-            Texture2D crossroadTexture,
-            Texture2D roadTexture)
+            CrossroadsMeshGenerator.CrossroadMeshData crossRoadMeshData)
         {
             this.gridPosition = gridPosition;
             this.crossRoadMeshData = crossRoadMeshData;
-            this.crossroadTexture = crossroadTexture;
-            this.roadTexture = roadTexture;
         }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
-public class CrossroadHandler : MonoBehaviour {
+public class CrossroadHandler : MonoBehaviour
+{
 
     #region ATTRIBUTES
 
@@ -9,6 +11,8 @@ public class CrossroadHandler : MonoBehaviour {
     public Transform RightStart;
     public Transform UpStart;
     public Transform DownStart;
+
+    public float localOffset;
 
     public GameObject center;
     public GameObject LeftSegment;
@@ -21,8 +25,9 @@ public class CrossroadHandler : MonoBehaviour {
     public GameObject UpBorder;
     public GameObject DownBorder;
 
-    public Material crossRoadMaterial;
-    public Material roadMaterial;
+    //public Material crossRoadMaterial;
+    //public Material roadMaterial;
+
     #endregion
 
     /* ------------------------------------------------------------------------------ */
@@ -30,7 +35,6 @@ public class CrossroadHandler : MonoBehaviour {
     /* ------------------------------------------------------------------------------ */
 
     #region UNITY
-
     #endregion
 
 
@@ -43,16 +47,16 @@ public class CrossroadHandler : MonoBehaviour {
     public void setData(ControlPoint.ControlPointData data)
     {
         CrossroadsMeshGenerator.CrossroadMeshData crmd = data.crossRoadMeshData;
-        Material cm = new Material(crossRoadMaterial);
-        cm.mainTexture = data.crossroadTexture;
-        Material rm = new Material(roadMaterial);
-        rm.mainTexture = data.roadTexture;
+        //Material cm = new Material(crossRoadMaterial);
+        //cm.mainTexture = data.crossroadTexture;
+        //Material rm = new Material(roadMaterial);
+        //rm.mainTexture = data.roadTexture;
 
         center.SetActive(true);
-        center.GetComponent<MeshRenderer>().material = cm;
+        //center.GetComponent<MeshRenderer>().material = cm;
 
         LeftSegment.SetActive(crmd.hasLeft);
-        LeftSegment.GetComponent<MeshRenderer>().material = rm;
+        //LeftSegment.GetComponent<MeshRenderer>().material = rm;
         LeftBorder.SetActive(!crmd.hasLeft);
         if (crmd.hasLeft)
         {
@@ -63,7 +67,7 @@ public class CrossroadHandler : MonoBehaviour {
         }
 
         RightSegment.SetActive(crmd.hasRight);
-        RightSegment.GetComponent<MeshRenderer>().material = rm;
+        //RightSegment.GetComponent<MeshRenderer>().material = rm;
         RightBorder.SetActive(!crmd.hasRight);
         if (crmd.hasRight)
         {
@@ -75,7 +79,7 @@ public class CrossroadHandler : MonoBehaviour {
         }
 
         UpSegment.SetActive(crmd.hasUp);
-        UpSegment.GetComponent<MeshRenderer>().material = rm;
+        //UpSegment.GetComponent<MeshRenderer>().material = rm;
         UpBorder.SetActive(!crmd.hasUp);
         if (crmd.hasUp)
         {
@@ -86,7 +90,7 @@ public class CrossroadHandler : MonoBehaviour {
         }
 
         DownSegment.SetActive(crmd.hasDown);
-        DownSegment.GetComponent<MeshRenderer>().material = rm;
+        //DownSegment.GetComponent<MeshRenderer>().material = rm;
         DownBorder.SetActive(!crmd.hasDown);
         if (crmd.hasDown)
         {
@@ -99,23 +103,24 @@ public class CrossroadHandler : MonoBehaviour {
 
 
     /* ------------------------------------------------------------------------------ */
-    public Transform getStartPoint(Vector2 relativePosition)
-    {
-        if(Mathf.Abs(relativePosition.x) > Mathf.Abs(relativePosition.y))
-        {
-            if (relativePosition.x > 0)
-                return RightStart;
-            else
-                return LeftStart;
-        }
-        else
-        {
-            if (relativePosition.y > 0)
-                return UpStart;
-            else
-                return DownStart;
-        }
-    }
+    //public Vector3 getStartPointLocalPosition(Vector2 relativePosition)
+    //{
+    //    if (Mathf.Abs(relativePosition.x) > Mathf.Abs(relativePosition.y))
+    //    {
+    //        if (relativePosition.x > 0)
+    //            return new Vector3(localOffset, 0, 0);
+    //        else
+    //            return new Vector3(-localOffset, 0, 0);
+    //    }
+    //    else
+    //    {
+    //        if (relativePosition.y > 0)
+    //            return new Vector3(0, 0, localOffset);
+    //        else
+    //            return new Vector3(0, 0, -localOffset);
+    //    }
+        
+    //}
 
 
     #endregion

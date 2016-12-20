@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public static class GeometryUtilities
 {
+    public enum QuadDirection { Right, Left, Up, Down};
 
 
     /* ----------------------------------------------------------------------- */
@@ -26,6 +27,18 @@ public static class GeometryUtilities
     /* -------------------------- 2D MATHS ----------------------------------- */
     /* ----------------------------------------------------------------------- */
 
+    #region 2DMATH
+
+    /* ----------------------------------------------------------------------- */
+    public static Vector2 rotate(Vector2 point, float angle)
+    {
+        return new Vector2(
+            Mathf.Cos(angle) * point.x - Mathf.Sin(angle) * point.y,
+            Mathf.Sin(angle) * point.x + Mathf.Cos(angle) * point.y);
+    }
+
+
+    /* ----------------------------------------------------------------------- */
     public static bool SegmentsIntersection2D(
         Vector2 segment1A,
         Vector2 segment1B,
@@ -66,8 +79,51 @@ public static class GeometryUtilities
 
 
     /* ----------------------------------------------------------------------- */
+    public static QuadDirection getQuadDirection(Vector2 position)
+    {
+        if (Mathf.Abs(position.x) > Mathf.Abs(position.y))
+        {
+            if (position.x > 0)
+                return QuadDirection.Right;
+            else
+                return QuadDirection.Left;
+        }
+        else
+        {
+            if (position.y > 0)
+                return QuadDirection.Up;
+            else
+                return QuadDirection.Down;
+        }
+    }
+
+
+    /* ----------------------------------------------------------------------- */
+    public static Vector2 getVector2D(QuadDirection direction)
+    {
+        switch (direction)
+        {
+            case QuadDirection.Right:
+                return Vector2.right;
+
+            case QuadDirection.Left:
+                return Vector2.left;
+
+            case QuadDirection.Up:
+                return Vector2.up;
+
+            default:
+                return Vector2.down;
+        }
+    }
+
+    #endregion
+
+    /* ----------------------------------------------------------------------- */
     /* -------------------------- 3D MATHS ----------------------------------- */
     /* ----------------------------------------------------------------------- */
+
+    #region 3DMATH
 
     public static Vector3 calculateDimensions(Vector3[] vertices)
     {
@@ -110,12 +166,23 @@ public static class GeometryUtilities
     }
 
 
+    public static float getAngle(Vector2 position)
+    {
+        float a = Vector2.Angle(new Vector2(1, 0), position);
+        float a2 = position.y >= 0 ? a : 360 - a;
+        return a2;
+    }
 
-    #region FILTERING
+
+    #endregion
+
 
     /* ----------------------------------------------------------------------- */
     /* -------------------------- FILTERING ---------------------------------- */
     /* ----------------------------------------------------------------------- */
+
+    #region FILTERING
+
 
     public static float[] averageFilterKernel(int kernelDimension)
     {
@@ -180,6 +247,7 @@ public static class GeometryUtilities
     {
         public Vector2 center;
         public bool clockwise;
+        public float startAngle;
 
         // -----------------------------------------------------------
         public ClockWiseComparer(Vector2 center, bool clockwise)
@@ -205,9 +273,8 @@ public static class GeometryUtilities
         public float getAngle(Vector2 other)
         {
             Vector2 d = other - center;
-            float a = Vector2.Angle(new Vector2(1, 0), d);
-            float a2 = d.y >= 0 ? a : 360 - a;
-            return a2;
+            float a = GeometryUtilities.getAngle(d);
+            return a - startAngle;
         }
 
     }
