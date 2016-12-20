@@ -22,7 +22,8 @@ public static class CrossroadsMeshGenerator
         {
             bool isStart = r.curve.startPoint().Equals(center.position);
             ControlPoint other = isStart ? r.link.to.item : r.link.from.item;
-            Vector2 relativePosition = other.gridPosition - center.gridPosition;
+            Vector2 relativeGridPosition = other.gridPosition - center.gridPosition;
+            Vector2 relativePosition = other.position - center.position;
             ICurve c = getCurve(r.curve, center, relativePosition, distanceFromCenter, ch);
             float endHeight = GlobalInformation.Instance.getHeight(c.endPoint());
 
@@ -41,7 +42,7 @@ public static class CrossroadsMeshGenerator
             MeshData md = segmentMeshData.clone();
             aMod.Apply(md);
             rMod.Apply(md);
-            crmd.setSegment(relativePosition, md);
+            crmd.setSegment(relativeGridPosition, md);
         }
 
         return crmd;

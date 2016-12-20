@@ -101,16 +101,20 @@ public class CrossroadHandler : MonoBehaviour {
     /* ------------------------------------------------------------------------------ */
     public Transform getStartPoint(Vector2 relativePosition)
     {
-        if (relativePosition.Equals(new Vector2(-1 , 0)))
-            return LeftStart;
-        else if (relativePosition.Equals(new Vector2(1, 0)))
-            return RightStart;
-        else if (relativePosition.Equals(new Vector2(0, -1)))
-            return DownStart;
-        else if (relativePosition.Equals(new Vector2(0, 1)))
-            return UpStart;
-
-        return null;
+        if(Mathf.Abs(relativePosition.x) > Mathf.Abs(relativePosition.y))
+        {
+            if (relativePosition.x > 0)
+                return RightStart;
+            else
+                return LeftStart;
+        }
+        else
+        {
+            if (relativePosition.y > 0)
+                return UpStart;
+            else
+                return DownStart;
+        }
     }
 
 

@@ -141,12 +141,16 @@ public class Graph<Key, Type>
             private set;
         }
 
+
+        /* -------------------------------------------------- */
         public GraphItem(Type item)
         {
             this.item = item;
             links = new List<Link>();
         }
 
+
+        /* -------------------------------------------------- */
         public bool isLinkedTo(GraphItem other)
         {
             foreach (Link l in links)
@@ -154,6 +158,19 @@ public class Graph<Key, Type>
                     return true;
 
             return false;
+        }
+
+
+        /* -------------------------------------------------- */
+        public Link getLinkTo(GraphItem other)
+        {
+            foreach(Link l in links)
+            {
+                if (l.from.Equals(other) || l.to.Equals(other))
+                    return l;
+            }
+
+            return null;
         }
     }
 

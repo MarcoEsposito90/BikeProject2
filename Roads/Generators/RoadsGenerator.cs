@@ -122,7 +122,7 @@ public class RoadsGenerator : MonoBehaviour
         }
 
         // add point to graph --------------------------------------
-        Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph.createItem(cp.gridPosition, cp);
+        Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph.createItem(cp.position, cp);
 
         // check if the point is not on water or on mountains ------
         float noiseValue = NoiseGenerator.Instance.getNoiseValue(
@@ -135,64 +135,28 @@ public class RoadsGenerator : MonoBehaviour
         if (!linkable)
             return;
 
-        // if the point is linkable to others, we will get here ----
-
-        // create links (if possible) ------------------------------
-        foreach (Vector2 target in cp.getNeighborsGridPositions(neighborhood))
+        // create links with other control points -------------------
+        foreach (Graph<Vector2, ControlPoint>.GraphItem targetItem in controlPointsGraph.nodes.Values)
         {
-            if (controlPointsGraph.containsItem(target))
-            {
-                ControlPoint toLink = controlPointsGraph[target].item;
-                if (!toLink.linkable)
-                    continue;
-
-                float dist = cp.distance(toLink);
-                if (dist < maxLength && dist > minLength)
-                {
-                    if (!checkLinkFeasibility(cp, toLink))
-                        continue;
-
-                    Graph<Vector2, ControlPoint>.Link l =
-                        controlPointsGraph.createLink(cp.gridPosition, toLink.gridPosition);
-                }
-            }
-        }
-
-
-        // create new curves, where it is possible ------------------
-        foreach (Graph<Vector2, ControlPoint>.Link l in controlPointsGraph.links)
-        {
-            lock (curves)
-            {
-                if (curves.ContainsKey(l))
-                    continue;
-            }
-
-            ControlPoint from = l.from.item;
-            ControlPoint to = l.to.item;
-
-            bool canCreateCurve = true;
-            foreach (Vector2 target in from.getNeighborsGridPositions(neighborhood))
-                if (!controlPointsGraph.containsItem(target))
-                {
-                    canCreateCurve = false;
-                    break;
-                }
-
-            if (!canCreateCurve)
+            if (targetItem.Equals(gi))
                 continue;
 
-            foreach (Vector2 target in to.getNeighborsGridPositions(neighborhood))
-                if (!controlPointsGraph.containsItem(target))
-                {
-                    canCreateCurve = false;
-                    break;
-                }
+            ControlPoint toLink = targetItem.item;
+            if (!toLink.linkable)
+                continue;
 
-            if (canCreateCurve)
+            float dist = cp.distance(toLink);
+            if (dist < maxLength && dist > minLength)
+            {
+                if (!checkLinkFeasibility(cp, toLink))
+                    continue;
+
+                Graph<Vector2, ControlPoint>.Link l =
+                    controlPointsGraph.createLink(cp.position, toLink.position);
                 createCurve(l);
-
+            }
         }
+
     }
 
 
@@ -216,7 +180,7 @@ public class RoadsGenerator : MonoBehaviour
     /* -------------------------------------------------------------------------------------- */
     public void removeControlPoint(ControlPoint cp)
     {
-        Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph[cp.gridPosition];
+        Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph[cp.position];
 
         foreach (Graph<Vector2, ControlPoint>.Link l in gi.links)
         {
@@ -224,7 +188,7 @@ public class RoadsGenerator : MonoBehaviour
             parent.roadsRemoveQueue.Enqueue(l);
         }
 
-        controlPointsGraph.removeItem(cp.gridPosition);
+        controlPointsGraph.removeItem(cp.position);
     }
 
     #endregion
@@ -237,8 +201,6 @@ public class RoadsGenerator : MonoBehaviour
 
     private void createCurve(Graph<Vector2, ControlPoint>.Link link)
     {
-
-        //Debug.Log("creating curve " + link.from.item.gridPosition + " - " + link.to.item.position);
         Vector2 startTangent = getTangent(link.from, link);
         Vector2 endTangent = getTangent(link.to, link);
 
@@ -265,7 +227,7 @@ public class RoadsGenerator : MonoBehaviour
 
     /* -------------------------------------------------------------------------------------- */
     private Vector2 getTangent(
-        Graph<Vector2, ControlPoint>.GraphItem point, 
+        Graph<Vector2, ControlPoint>.GraphItem point,
         Graph<Vector2, ControlPoint>.Link exclude)
     {
         List<Vector2> linksPositions = new List<Vector2>();
@@ -345,18 +307,18 @@ public class RoadsGenerator : MonoBehaviour
 
         Vector2 gridPos = new Vector2(gridX, gridY);
         Graph<Vector2, ControlPoint>.GraphItem nearest = controlPointsGraph.nodes[gridPos];
-        float minDist = Vector2.Distance(nearest.item.position, position/(float)scale);
+        float minDist = Vector2.Distance(nearest.item.position, position / (float)scale);
 
-        for(int i = -1; i <= 1; i++)
-            for(int j = -1; j <= 1; j++)
+        for (int i = -1; i <= 1; i++)
+            for (int j = -1; j <= 1; j++)
             {
                 if (i == 0 && j == 0) continue;
 
                 Vector2 inc = new Vector2(i, j);
                 Graph<Vector2, ControlPoint>.GraphItem c = controlPointsGraph.nodes[gridPos + inc];
-                float d = Vector2.Distance(c.item.position, position/(float)scale);
+                float d = Vector2.Distance(c.item.position, position / (float)scale);
 
-                if(d < minDist)
+                if (d < minDist)
                 {
                     nearest = c;
                     minDist = d;
@@ -367,9 +329,9 @@ public class RoadsGenerator : MonoBehaviour
 
         Graph<Vector2, ControlPoint>.Link toBeLinked = null;
         float parameter = 0;
-        foreach(Graph<Vector2, ControlPoint>.Link l in nearest.links)
+        foreach (Graph<Vector2, ControlPoint>.Link l in nearest.links)
         {
-            for(int i = 0; i <= 100; i++)
+            for (int i = 0; i <= 100; i++)
             {
                 float t = curves[l].parameterOnCurveArchLength(i / 100.0f);
                 Vector2 point = curves[l].pointOnCurve(t);
