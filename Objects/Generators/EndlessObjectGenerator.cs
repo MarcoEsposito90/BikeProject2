@@ -97,7 +97,6 @@ public class EndlessObjectGenerator : MonoBehaviour
             priority = GlobalInformation.getPriority(prefab.tag);
         }
 
-
         if (priority == -1)
         {
             Debug.Log("ATTENTION! you have to select a tag for " + prefab);
@@ -130,7 +129,6 @@ public class EndlessObjectGenerator : MonoBehaviour
         viewerDistanceUpdate = distanceThreshold * 0.25f;
         overlapsCheckDistanceThreshold = sectorSize * scale * 2.0f;
         noiseScale = uniformness == 1 ? 0 : 1.0f / uniformness;
-
         int startNum = (int)(Mathf.Pow(distanceThreshold / scaledArea, 2) * 1.5f);
         objectPoolManager = new PoolManager<Vector2>(startNum, true, prefab, this.gameObject);
 

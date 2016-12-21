@@ -139,14 +139,10 @@ public class RoadsGenerator : MonoBehaviour
         if (!linkable)
             return;
 
-        // create links with other control points -------------------
-
-        int linkCount = 0;
+        // find nearest control points -------------------
+        List<ControlPoint> toBeLinked = new List<ControlPoint>();
         foreach (Graph<Vector2, ControlPoint>.GraphItem targetItem in controlPointsGraph.nodes.Values)
         {
-            if (linkCount >= gi.item.maximumLinks)
-                break;
-
             if (targetItem.Equals(gi) || targetItem.links.Count >= targetItem.item.maximumLinks)
                 continue;
 
@@ -154,27 +150,33 @@ public class RoadsGenerator : MonoBehaviour
             if (!toLink.linkable)
                 continue;
 
-
             float dist = cp.distance(toLink);
-            if (dist < maxLength /*&& dist > minLength*/)
-            {
-                Graph<Vector2, ControlPoint>.Link l =
-                    controlPointsGraph.createLink(cp.position, toLink.position);
-                linkCount++;
-            }
+            if (dist < maxLength)
+                toBeLinked.Add(toLink);
         }
 
-        // create the crossroad ----------------
-        foreach (Graph<Vector2, ControlPoint>.Link link in gi.links)
+        ControlPoint.NearestPointComparer comparer = new ControlPoint.NearestPointComparer(gi.item);
+        toBeLinked.Sort(comparer);
+        int linkCount = 0;
+
+        // create crossroads and links ----------------
+        for (int i = 0; i < toBeLinked.Count; i++)
         {
+            if (linkCount >= gi.item.maximumLinks)
+                break;
+
+            ControlPoint p = toBeLinked[i];
+            Graph<Vector2, ControlPoint>.Link link = controlPointsGraph.createLink(cp.position, p.position);
             createCurve(link);
             Graph<Vector2, ControlPoint>.GraphItem other = null;
+
             if (link.from.Equals(gi))
                 other = link.to;
             else
                 other = link.from;
 
             createCrossroad(other);
+            linkCount++;
         }
 
         createCrossroad(gi);

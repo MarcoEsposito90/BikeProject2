@@ -209,7 +209,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
     {
         GameObject prefab = controlPointsPoolManager.acquireObject(gridPos);
         ControlPoint newcp = new ControlPoint(gridPos, position, prefab, controlPointArea, scale);
-        newcp.maximumLinks = 2;
+        newcp.maximumLinks = 1;
         controlPoints.Add(gridPos, newcp);
         roadsGenerator.sendNewControlPoint(newcp);
     }
