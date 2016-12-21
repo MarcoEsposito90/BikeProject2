@@ -5,7 +5,10 @@ using System.Collections.Generic;
 public static class GeometryUtilities
 {
     public enum QuadDirection { Right, Left, Up, Down};
-
+    public const int LEFT_INDEX = 0;
+    public const int UP_INDEX = 1;
+    public const int RIGHT_INDEX = 2;
+    public const int DOWN_INDEX = 3;
 
     /* ----------------------------------------------------------------------- */
     /* ----------------------------- MATHS ----------------------------------- */
@@ -77,6 +80,49 @@ public static class GeometryUtilities
         return true;
     }
 
+    #endregion
+
+    /* ----------------------------------------------------------------------- */
+    /* -------------------------- 2D MATHS ----------------------------------- */
+    /* ----------------------------------------------------------------------- */
+
+    #region DIRECTIONS
+
+    /* ----------------------------------------------------------------------- */
+    public static int getIndex(QuadDirection direction)
+    {
+        switch (direction)
+        {
+            case QuadDirection.Left:
+                return LEFT_INDEX;
+            case QuadDirection.Right:
+                return RIGHT_INDEX;
+            case QuadDirection.Up:
+                return UP_INDEX;
+            case QuadDirection.Down:
+                return DOWN_INDEX;
+            default:
+                return LEFT_INDEX;
+        }
+    }
+
+
+    /* ----------------------------------------------------------------------- */
+    public static QuadDirection getDirection(int index)
+    {
+        switch (index)
+        {
+            case LEFT_INDEX:
+                return QuadDirection.Left;
+            case RIGHT_INDEX:
+                return QuadDirection.Right;
+            case UP_INDEX:
+                return QuadDirection.Up;
+            default:
+                return QuadDirection.Down;
+        }
+    }
+
 
     /* ----------------------------------------------------------------------- */
     public static QuadDirection getQuadDirection(Vector2 position)
@@ -95,6 +141,32 @@ public static class GeometryUtilities
             else
                 return QuadDirection.Down;
         }
+    }
+
+
+    /* ----------------------------------------------------------------------- */
+    public static QuadDirection[] getQuadDirections(Vector2 position)
+    {
+        QuadDirection[] directions = new QuadDirection[4];
+        QuadDirection first = getQuadDirection(position);
+        directions[0] = first;
+
+        int sign = (int)Mathf.Sign(position.x * position.y);
+        Vector2 temp = new Vector2(position.y * sign, position.x * sign);
+        QuadDirection second = getQuadDirection(temp);
+        directions[1] = second;
+
+        int mul = Mathf.Abs(temp.x) > Mathf.Abs(temp.y) ? -1 : 1;
+        temp = new Vector2(temp.x * mul, temp.y * (-mul));
+        QuadDirection third = getQuadDirection(temp);
+        directions[2] = third;
+
+        mul = -mul;
+        temp = new Vector2(position.x * mul, position.y * (-mul));
+        QuadDirection fourth = getQuadDirection(temp);
+        directions[3] = fourth;
+
+        return directions;
     }
 
 

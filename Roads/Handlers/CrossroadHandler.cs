@@ -7,36 +7,14 @@ public class CrossroadHandler : MonoBehaviour
 
     #region ATTRIBUTES
 
-    public Transform LeftStart;
-    public Transform RightStart;
-    public Transform UpStart;
-    public Transform DownStart;
+    [Tooltip("0 -> Left, 1 -> Up, 2 -> Right, 3 -> Down")]
+    public GameObject[] segments;
 
     public float localOffset;
 
-    public GameObject center;
-    public GameObject LeftSegment;
-    public GameObject RightSegment;
-    public GameObject UpSegment;
-    public GameObject DownSegment;
-
-    public GameObject LeftBorder;
-    public GameObject RightBorder;
-    public GameObject UpBorder;
-    public GameObject DownBorder;
-
-    //public Material crossRoadMaterial;
-    //public Material roadMaterial;
-
+    [Tooltip("0 -> Left, 1 -> Up, 2 -> Right, 3 -> Down")]
+    public GameObject[] borders;
     #endregion
-
-    /* ------------------------------------------------------------------------------ */
-    /* ---------------------------- UNITY ------------------------------------------- */
-    /* ------------------------------------------------------------------------------ */
-
-    #region UNITY
-    #endregion
-
 
     /* ------------------------------------------------------------------------------ */
     /* ---------------------------- METHODS ----------------------------------------- */
@@ -47,81 +25,21 @@ public class CrossroadHandler : MonoBehaviour
     public void setData(ControlPoint.ControlPointData data)
     {
         CrossroadsMeshGenerator.CrossroadMeshData crmd = data.crossRoadMeshData;
-        //Material cm = new Material(crossRoadMaterial);
-        //cm.mainTexture = data.crossroadTexture;
-        //Material rm = new Material(roadMaterial);
-        //rm.mainTexture = data.roadTexture;
-
-        center.SetActive(true);
-        //center.GetComponent<MeshRenderer>().material = cm;
-
-        LeftSegment.SetActive(crmd.hasLeft);
-        //LeftSegment.GetComponent<MeshRenderer>().material = rm;
-        LeftBorder.SetActive(!crmd.hasLeft);
-        if (crmd.hasLeft)
+        bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
+        foreach (GeometryUtilities.QuadDirection dir in crmd.meshes.Keys)
         {
-            Mesh m = crmd.left.createMesh();
-            m.name = "LeftSegment";
-            LeftSegment.GetComponent<MeshFilter>().sharedMesh = m;
-            LeftSegment.GetComponent<MeshCollider>().sharedMesh = m;
-        }
+            int index = GeometryUtilities.getIndex(dir);
+            if (crmd.meshes[dir] == null)
+                continue;
 
-        RightSegment.SetActive(crmd.hasRight);
-        //RightSegment.GetComponent<MeshRenderer>().material = rm;
-        RightBorder.SetActive(!crmd.hasRight);
-        if (crmd.hasRight)
-        {
-            Mesh m = crmd.right.createMesh();
-            m.name = "RightSegment";
-            RightSegment.GetComponent<MeshFilter>().mesh = m;
-            RightSegment.GetComponent<MeshCollider>().sharedMesh = m;
-
-        }
-
-        UpSegment.SetActive(crmd.hasUp);
-        //UpSegment.GetComponent<MeshRenderer>().material = rm;
-        UpBorder.SetActive(!crmd.hasUp);
-        if (crmd.hasUp)
-        {
-            Mesh m = crmd.up.createMesh();
-            m.name = "UpSegment";
-            UpSegment.GetComponent<MeshFilter>().mesh = m;
-            UpSegment.GetComponent<MeshCollider>().sharedMesh = m;
-        }
-
-        DownSegment.SetActive(crmd.hasDown);
-        //DownSegment.GetComponent<MeshRenderer>().material = rm;
-        DownBorder.SetActive(!crmd.hasDown);
-        if (crmd.hasDown)
-        {
-            Mesh m = crmd.down.createMesh();
-            m.name = "DownSegment";
-            DownSegment.GetComponent<MeshFilter>().mesh = m;
-            DownSegment.GetComponent<MeshCollider>().sharedMesh = m;
+            segments[index].SetActive(true);
+            borders[index].SetActive(false);
+            Mesh m = crmd.meshes[dir].createMesh();
+            m.name = dir + " segment";
+            segments[index].GetComponent<MeshFilter>().sharedMesh = m;
+            segments[index].GetComponent<MeshCollider>().sharedMesh = m;
         }
     }
-
-
-    /* ------------------------------------------------------------------------------ */
-    //public Vector3 getStartPointLocalPosition(Vector2 relativePosition)
-    //{
-    //    if (Mathf.Abs(relativePosition.x) > Mathf.Abs(relativePosition.y))
-    //    {
-    //        if (relativePosition.x > 0)
-    //            return new Vector3(localOffset, 0, 0);
-    //        else
-    //            return new Vector3(-localOffset, 0, 0);
-    //    }
-    //    else
-    //    {
-    //        if (relativePosition.y > 0)
-    //            return new Vector3(0, 0, localOffset);
-    //        else
-    //            return new Vector3(0, 0, -localOffset);
-    //    }
-        
-    //}
-
 
     #endregion
 }

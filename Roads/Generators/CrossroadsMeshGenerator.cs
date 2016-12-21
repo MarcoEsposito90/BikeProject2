@@ -11,24 +11,37 @@ public static class CrossroadsMeshGenerator
         Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve> curves,
         float distanceFromCenter,
         MeshData segmentMeshData,
-        CrossroadHandler crossroadPrefab)
+        float localOffset)
     {
         CrossroadMeshData crmd = new CrossroadMeshData();
         int maxAdherence = (int)GlobalInformation.Instance.getData(RoadsGenerator.MAX_ROAD_ADHERENCE);
+
+        bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
+        int debCount = 0;
+
+
+        foreach (Graph<Vector2, ControlPoint>.Link link in curves.Keys)
+        {
+            ControlPoint other = link.from.item.Equals(center) ? link.to.item : link.from.item;
+            Vector2 relativePosition = other.position - center.position;
+            crmd.addLinkPosition(relativePosition);
+        }
+
+        crmd.sortPositions();
 
         foreach (Graph<Vector2, ControlPoint>.Link link in curves.Keys)
         {
             ICurve curve = curves[link];
             ControlPoint other = link.from.item.Equals(center) ? link.to.item : link.from.item;
             Vector2 relativePosition = other.position - center.position;
-            GeometryUtilities.QuadDirection dir = GeometryUtilities.getQuadDirection(relativePosition);
-            ICurve c = getCurve(curve, center, dir, distanceFromCenter, crossroadPrefab);
+            GeometryUtilities.QuadDirection dir = crmd.getDirection(relativePosition);
+            ICurve c = getCurve(curve, center, dir, distanceFromCenter, localOffset);
 
             float endHeight = GlobalInformation.Instance.getHeight(c.endPoint());
 
             ArrayModifier aMod = new ArrayModifier(20, true, false, false);
             RoadModifier rMod = new RoadModifier(
-                c, 
+                c,
                 RoadModifier.Axis.X,
                 true,
                 true,
@@ -50,11 +63,11 @@ public static class CrossroadsMeshGenerator
 
     /* ----------------------------------------------------------------------- */
     private static ICurve getCurve(
-        ICurve curve, 
+        ICurve curve,
         ControlPoint center,
         GeometryUtilities.QuadDirection direction,
-        float distanceFromCenter, 
-        CrossroadHandler ch)
+        float distanceFromCenter,
+        float localOffset)
     {
         int scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
 
@@ -69,7 +82,6 @@ public static class CrossroadsMeshGenerator
         Vector2 controlEnd = curveEnd + derivate * 5;
 
         // 2) get start point from crossroad --------------------------------
-        float localOffset = ch.localOffset;
         Vector2 localPos = localOffset * GeometryUtilities.getVector2D(direction);
         Vector2 curveStart = center.position + localPos / scale;
         Vector2 controlStart = curveStart + localPos * 5 / scale;
@@ -88,48 +100,98 @@ public static class CrossroadsMeshGenerator
     public class CrossroadMeshData : MeshData
     {
         // -------------------------------------------------------- 
-        public MeshData left;
-        public MeshData right;
-        public MeshData up;
-        public MeshData down;
-        public bool hasLeft;
-        public bool hasRight;
-        public bool hasUp;
-        public bool hasDown;
+        public Dictionary<GeometryUtilities.QuadDirection, MeshData> meshes;
 
+        private List<Vector2> links;
+        private Vector2[] linkPositions;
+        private Dictionary<GeometryUtilities.QuadDirection, bool> freeDirs;
+
+        // -------------------------------------------------------- 
         public CrossroadMeshData() : base()
         {
-            hasLeft = false;
-            hasRight = false;
-            hasUp = false;
-            hasDown = false;
+            meshes = new Dictionary<GeometryUtilities.QuadDirection, MeshData>();
+            meshes.Add(GeometryUtilities.QuadDirection.Down, null);
+            meshes.Add(GeometryUtilities.QuadDirection.Up, null);
+            meshes.Add(GeometryUtilities.QuadDirection.Right, null);
+            meshes.Add(GeometryUtilities.QuadDirection.Left, null);
+            
+            freeDirs = new Dictionary<GeometryUtilities.QuadDirection, bool>();
+            freeDirs.Add(GeometryUtilities.QuadDirection.Down, true);
+            freeDirs.Add(GeometryUtilities.QuadDirection.Up, true);
+            freeDirs.Add(GeometryUtilities.QuadDirection.Right, true);
+            freeDirs.Add(GeometryUtilities.QuadDirection.Left, true);
+
+            linkPositions = new Vector2[4];
+            links = new List<Vector2>();
         }
 
-        public void setSegment(GeometryUtilities.QuadDirection direction, MeshData meshData)
+
+        // -------------------------------------------------------- 
+        public void addLinkPosition(Vector2 relativePosition)
         {
-            switch (direction)
+            // 1) insert the position where we can 
+            if (!links.Contains(relativePosition))
+                links.Add(relativePosition);
+        }
+
+
+        // -------------------------------------------------------- 
+        public void sortPositions()
+        {
+            bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
+            int debCount = 0;
+
+            // clean free directions
+            freeDirs[GeometryUtilities.QuadDirection.Left] = true;
+            freeDirs[GeometryUtilities.QuadDirection.Right] = true;
+            freeDirs[GeometryUtilities.QuadDirection.Up] = true;
+            freeDirs[GeometryUtilities.QuadDirection.Down] = true;
+
+            // sort the array
+            int bound = Mathf.Min(linkPositions.Length, links.Count);
+            for (int j = 0; j < bound; j++)
             {
-                case GeometryUtilities.QuadDirection.Left:
-                    hasLeft = true;
-                    left = meshData;
-                    break;
+                if (links[j] == null)
+                    continue;
 
-                case GeometryUtilities.QuadDirection.Right:
-                    hasRight = true;
-                    right = meshData;
-                    break;
+                Vector2 pos = links[j];
+                GeometryUtilities.QuadDirection[] dirs = GeometryUtilities.getQuadDirections(pos);
+                for (int i = 0; i < dirs.Length; i++)
+                {
+                    if (freeDirs[dirs[i]])
+                    {
+                        int index = GeometryUtilities.getIndex(dirs[i]);
+                        linkPositions[index] = pos;
+                        freeDirs[dirs[i]] = false;
+                        break;
+                    }
+                }
 
-                case GeometryUtilities.QuadDirection.Up:
-                    hasUp = true;
-                    up = meshData;
-                    break;
-
-                default:
-                    hasDown = true;
-                    down = meshData;
-                    break;
             }
         }
+
+
+        // -------------------------------------------------------- 
+        public GeometryUtilities.QuadDirection getDirection(Vector2 relativePosition)
+        {
+            bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
+
+            for (int i = 0; i < linkPositions.Length; i++)
+                if (relativePosition.Equals(linkPositions[i]))
+                    return GeometryUtilities.getDirection(i);
+
+            return GeometryUtilities.QuadDirection.Down;
+        }
+
+
+        // -------------------------------------------------------- 
+        public void setSegment(GeometryUtilities.QuadDirection direction, MeshData meshData)
+        {
+            meshes[direction] = meshData;
+        }
+
+
+
     }
 
     #endregion

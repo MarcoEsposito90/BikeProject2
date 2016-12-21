@@ -154,8 +154,6 @@ public class RoadsGenerator : MonoBehaviour
             if (!toLink.linkable)
                 continue;
 
-            if (debug)
-                Debug.Log("checking " + targetItem.item.position);
 
             float dist = cp.distance(toLink);
             if (dist < maxLength /*&& dist > minLength*/)
@@ -179,8 +177,6 @@ public class RoadsGenerator : MonoBehaviour
             createCrossroad(other);
         }
 
-        if (gi.links.Count == 0)
-            Debug.Log("couldn't link!");
         createCrossroad(gi);
     }
 
@@ -258,7 +254,7 @@ public class RoadsGenerator : MonoBehaviour
             localCurves,
             distanceFromCrossroad,
             roadSegmentMeshData,
-            crossroadPrefab);
+            crossroadPrefab.localOffset);
 
         ControlPoint.ControlPointData data = new ControlPoint.ControlPointData(
             node.item.gridPosition,

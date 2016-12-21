@@ -182,11 +182,8 @@ public class ControlPoint
         float z = position.y * scale;
 
         Vector3 prefabPos = new Vector3(x, height * scale, z);
-        //Debug.Log(prefabPos);
         prefabObject.transform.position = prefabPos;
         prefabObject.name = "ControlPoint " + gridPosition;
-        //prefabObject.transform.localScale = new Vector3(scale, scale, scale);
-        //prefabObject.SetActive(true);
     }
 
     /* ------------------------------------------------------------------------------------------------- */
@@ -194,9 +191,6 @@ public class ControlPoint
     {
         prefabObject.SetActive(true);
         prefabObject.GetComponent<CrossroadHandler>().setData(data);
-        //mesh.name = "Crossroad " + gridPosition;
-        //prefabObject.GetComponent<MeshFilter>().mesh = mesh;
-        //prefabObject.GetComponent<MeshCollider>().sharedMesh = mesh;
     }
 
 
@@ -206,7 +200,6 @@ public class ControlPoint
         prefabObject.transform.position = Vector3.zero;
         prefabObject.name = "ControlPoint (available)";
         prefabObject.transform.localScale = Vector3.one;
-        //prefabObject.GetComponent<MeshFilter>().mesh = null;
         prefabObject.SetActive(false);
     }
 
