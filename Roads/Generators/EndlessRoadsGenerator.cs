@@ -205,6 +205,17 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
 
     /* ----------------------------------------------------------------------------------------- */
+    public void createControlPoint(Vector2 gridPos, Vector2 position)
+    {
+        GameObject prefab = controlPointsPoolManager.acquireObject(gridPos);
+        ControlPoint newcp = new ControlPoint(gridPos, position, prefab, controlPointArea, scale);
+        newcp.maximumLinks = 2;
+        controlPoints.Add(gridPos, newcp);
+        roadsGenerator.sendNewControlPoint(newcp);
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
     private void updateControlPoints()
     {
         List<ControlPoint> toBeRemoved = new List<ControlPoint>();
@@ -295,15 +306,15 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
 
     /* ----------------------------------------------------------------------------------------- */
-    public void splitRequest(Vector2 point)
-    {
-        Vector2 gridPos = point / scaledControlPointArea;
-        GameObject prefab = controlPointsPoolManager.acquireObject(gridPos);
-        ControlPoint cp = new ControlPoint(gridPos, prefab, controlPointArea, scale);
-        //roadsGenerator.requestSplit(point);
-        controlPoints.Add(gridPos, cp);
-        roadsGenerator.sendNewControlPoint(cp);
-    }
+    //public void splitRequest(Vector2 point)
+    //{
+    //    Vector2 gridPos = point / scaledControlPointArea;
+    //    GameObject prefab = controlPointsPoolManager.acquireObject(gridPos);
+    //    ControlPoint cp = new ControlPoint(gridPos, prefab, controlPointArea, scale);
+    //    //roadsGenerator.requestSplit(point);
+    //    controlPoints.Add(gridPos, cp);
+    //    roadsGenerator.sendNewControlPoint(cp);
+    //}
 
     #endregion
 

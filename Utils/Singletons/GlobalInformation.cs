@@ -2,7 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class GlobalInformation {
+public class GlobalInformation
+{
 
     /* ---------------------------------------------------------------------- */
     /* --------------------------- TAGS ------------------------------------- */
@@ -22,7 +23,7 @@ public class GlobalInformation {
 
     public static int getPriority(string tag)
     {
-        for(int i = 0; i < TAGS.Length; i++)
+        for (int i = 0; i < TAGS.Length; i++)
         {
             if (TAGS[i].Equals(tag))
                 return i;
@@ -30,7 +31,7 @@ public class GlobalInformation {
 
         // the given tag is not in the list
         return -1;
-    } 
+    }
 
     #endregion
 
@@ -52,11 +53,11 @@ public class GlobalInformation {
                 if (_Instance == null) _Instance = new GlobalInformation();
                 return _Instance;
             }
-            
+
         }
         private set
         {
-            lock(synchVariable)
+            lock (synchVariable)
             {
                 _Instance = value;
             }
@@ -80,14 +81,17 @@ public class GlobalInformation {
     Dictionary<string, object> datas;
 
 
-    
+
 
     /* ---------------------------------------------------------------------- */
     public void addData(string key, object obj)
     {
         lock (datas)
         {
-            datas.Add(key, obj);
+            if (datas.ContainsKey(key))
+                datas[key] = obj;
+            else
+                datas.Add(key, obj);
         }
     }
 
@@ -108,7 +112,7 @@ public class GlobalInformation {
     /* ---------------------------------------------------------------------- */
     public float getHeight(Vector2 position)
     {
-        
+
 
         float n = NoiseGenerator.Instance.getNoiseValue(1, position.x, position.y);
         return getHeight(n);

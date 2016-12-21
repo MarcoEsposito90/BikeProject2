@@ -25,6 +25,7 @@ public class ControlPoint
     public Bounds bounds;
     public int scale;
     public bool linkable;
+    public int maximumLinks = 4;
 
     private float scaledAreaSize;
     public GameObject prefabObject;
@@ -42,12 +43,29 @@ public class ControlPoint
         this.AreaSize = size;
         this.scale = scale;
         this.prefabObject = prefab;
-
         Vector3 boundsCenter = new Vector3(gridPosition.x, 0, gridPosition.y) * scale * AreaSize;
         Vector3 boundsSizes = new Vector3(AreaSize * scale, AreaSize * scale, AreaSize * scale);
         this.bounds = new Bounds(boundsCenter, boundsSizes);
 
         computePosition();
+        computeHeight();
+        initializePrefab();
+    }
+
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public ControlPoint(Vector2 gridPosition, Vector2 position, GameObject prefab, float size, int scale)
+    {
+        this.gridPosition = gridPosition;
+        this.position = position;
+        this.AreaSize = size;
+        this.scale = scale;
+        this.prefabObject = prefab;
+        Vector3 boundsCenter = new Vector3(gridPosition.x, 0, gridPosition.y) * scale * AreaSize;
+        Vector3 boundsSizes = new Vector3(AreaSize * scale, AreaSize * scale, AreaSize * scale);
+        this.bounds = new Bounds(boundsCenter, boundsSizes);
+
+        computeHeight();
         initializePrefab();
     }
 
@@ -71,8 +89,12 @@ public class ControlPoint
 
         // 4) create point --------------------------------------------
         this.position = new Vector2(X, Y);
+    }
 
-        // 5) compute height ------------------------------------------
+
+    /* ------------------------------------------------------------------------------------------ */
+    private void computeHeight()
+    {
         float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 1, 1);
         height = GlobalInformation.Instance.getHeight(y);
 

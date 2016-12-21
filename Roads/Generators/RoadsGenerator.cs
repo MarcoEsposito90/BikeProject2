@@ -22,7 +22,7 @@ public class RoadsGenerator : MonoBehaviour
     public int crossRoadsDimension;
     private float distanceFromCrossroad;
 
-    [Range(1, 10)]
+    [Range(0, 10)]
     public int sinuosity;
     private float tangentRescale;
     private float tangentRotate;
@@ -31,9 +31,9 @@ public class RoadsGenerator : MonoBehaviour
     public float maximumSegmentLength;
     private float maxLength;
 
-    [Range(0.0f, 0.5f)]
-    public float minimumSegmentLength;
-    private float minLength;
+    //[Range(0.0f, 0.5f)]
+    //public float minimumSegmentLength;
+    //private float minLength;
 
     [Range(0.0f, 0.5f)]
     public float minimumRoadsHeight;
@@ -79,9 +79,8 @@ public class RoadsGenerator : MonoBehaviour
         roadSegmentMeshData = new MeshData(m.vertices, m.triangles, m.uv, m.normals, 0);
 
         distanceFromCrossroad = crossRoadsDimension;
-        //tangentRescale = 0.25f * sinuosity - 0.25f;
-        tangentRescale = (sinuosity - 1) * 30;
-        tangentRotate = (sinuosity - 1) * 10;
+        tangentRescale = sinuosity / 5.0f;
+        tangentRotate = sinuosity * 10.0f;
 
         roadSegmentTexture.filterMode = FilterMode.Bilinear;
         roadSegmentTexture.wrapMode = TextureWrapMode.Clamp;
@@ -120,9 +119,11 @@ public class RoadsGenerator : MonoBehaviour
             scale = cp.scale;
             controlPointArea = cp.AreaSize;
             maxLength = maximumSegmentLength * cp.AreaSize;
-            minLength = minimumSegmentLength * cp.AreaSize;
+            //minLength = minimumSegmentLength * cp.AreaSize;
             initialized = true;
         }
+
+        bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
 
         // add point to graph --------------------------------------
         Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph.createItem(cp.position, cp);
@@ -139,20 +140,29 @@ public class RoadsGenerator : MonoBehaviour
             return;
 
         // create links with other control points -------------------
+
+        int linkCount = 0;
         foreach (Graph<Vector2, ControlPoint>.GraphItem targetItem in controlPointsGraph.nodes.Values)
         {
-            if (targetItem.Equals(gi) || targetItem.links.Count >= 4)
+            if (linkCount >= gi.item.maximumLinks)
+                break;
+
+            if (targetItem.Equals(gi) || targetItem.links.Count >= targetItem.item.maximumLinks)
                 continue;
 
             ControlPoint toLink = targetItem.item;
             if (!toLink.linkable)
                 continue;
 
+            if (debug)
+                Debug.Log("checking " + targetItem.item.position);
+
             float dist = cp.distance(toLink);
-            if (dist < maxLength && dist > minLength)
+            if (dist < maxLength /*&& dist > minLength*/)
             {
                 Graph<Vector2, ControlPoint>.Link l =
                     controlPointsGraph.createLink(cp.position, toLink.position);
+                linkCount++;
             }
         }
 
@@ -169,6 +179,8 @@ public class RoadsGenerator : MonoBehaviour
             createCrossroad(other);
         }
 
+        if (gi.links.Count == 0)
+            Debug.Log("couldn't link!");
         createCrossroad(gi);
     }
 
@@ -198,7 +210,7 @@ public class RoadsGenerator : MonoBehaviour
     private void createCurve(Graph<Vector2, ControlPoint>.Link link)
     {
         Vector2 difference = link.to.item.position - link.from.item.position;
-        difference = (difference / difference.magnitude) * tangentRescale;
+        difference = (difference / tangentRescale);
         System.Random r = new System.Random();
 
         float angle = r.Next((int)tangentRotate) / 180.0f * (float)Math.PI;
