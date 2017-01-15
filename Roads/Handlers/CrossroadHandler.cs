@@ -25,7 +25,7 @@ public class CrossroadHandler : MonoBehaviour
     public void setData(ControlPoint.ControlPointData data)
     {
         CrossroadsMeshGenerator.CrossroadMeshData crmd = data.crossRoadMeshData;
-        bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
+        //bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
         foreach (GeometryUtilities.QuadDirection dir in crmd.meshes.Keys)
         {
             int index = GeometryUtilities.getIndex(dir);

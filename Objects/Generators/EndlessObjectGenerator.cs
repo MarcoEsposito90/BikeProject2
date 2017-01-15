@@ -115,8 +115,6 @@ public class EndlessObjectGenerator : MonoBehaviour
 
         sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
-        //viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);
-        //viewerDistanceUpdate *= 10.0f;
         viewer = (Transform)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER);
 
         float multiplier = density >= DENSITY_ONE ?
@@ -282,7 +280,10 @@ public class EndlessObjectGenerator : MonoBehaviour
             if (Vector2.Distance(pos * scaledArea, viewerPos) > distanceThreshold)
             {
                 if (currentObjects[pos].feasible)
+                {
+                    currentObjects[pos].obj.SetActive(false);
                     objectPoolManager.releaseObject(pos);
+                }
 
                 currentObjects.Remove(pos);
             }
@@ -306,10 +307,10 @@ public class EndlessObjectGenerator : MonoBehaviour
             obj.transform.position = data.position;
             obj.transform.Rotate(data.rotation);
             obj.transform.localScale += data.scale;
+            obj.name = ObjectName + " " + data.position;
 
             if (!obj.activeInHierarchy)
                 obj.SetActive(true);
-            obj.name = ObjectName + " " + data.position;
             data.obj = obj;
 
 
@@ -360,6 +361,7 @@ public class EndlessObjectGenerator : MonoBehaviour
 
                     if (!data.feasible)
                     {
+                        Debug.Log("object removed because overlapping: " + data.gridPosition);
                         data.obj.SetActive(false);
                         objectPoolManager.releaseObject(gridPos);
                         continue;
@@ -388,6 +390,9 @@ public class EndlessObjectGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void checkOverlaps(ObjectData data)
     {
+        if (prefab.tag.Equals(GlobalInformation.VILLAGE_TAG))
+            return;
+
         Collider[] intersects = Physics.OverlapBox(
                 data.position + (colliderLocalPosition * data.obj.transform.localScale.x),
                 colliderSizes * 0.5f * data.obj.transform.localScale.x);

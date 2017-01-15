@@ -9,6 +9,8 @@ public class EndlessRoadsGenerator : MonoBehaviour
     public static readonly string MAP_SEEDY = "EndlessRoadsGenerator.SeedY";
     public static readonly string CP_AREA = "EndlessRoadsGenerator.ControlPointArea";
 
+    public static EndlessRoadsGenerator Instance;
+
     /* ----------------------------------------------------------------------------------------- */
     /* ---------------------------- ATTRIBUTES ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
@@ -72,6 +74,8 @@ public class EndlessRoadsGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     void Awake()
     {
+        Instance = this;
+
         System.Random random = new System.Random(seed);
         seedX = ((float)random.NextDouble()) * random.Next(100);
         seedY = ((float)random.NextDouble()) * random.Next(100);

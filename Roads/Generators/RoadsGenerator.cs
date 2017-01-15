@@ -123,7 +123,7 @@ public class RoadsGenerator : MonoBehaviour
             initialized = true;
         }
 
-        bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
+        //bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
 
         // add point to graph --------------------------------------
         Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph.createItem(cp.position, cp);

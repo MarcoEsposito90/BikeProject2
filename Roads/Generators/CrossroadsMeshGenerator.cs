@@ -16,7 +16,7 @@ public static class CrossroadsMeshGenerator
         CrossroadMeshData crmd = new CrossroadMeshData();
         int maxAdherence = (int)GlobalInformation.Instance.getData(RoadsGenerator.MAX_ROAD_ADHERENCE);
 
-        bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
+        //bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
         int debCount = 0;
 
 
@@ -138,8 +138,8 @@ public static class CrossroadsMeshGenerator
         // -------------------------------------------------------- 
         public void sortPositions()
         {
-            bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
-            int debCount = 0;
+            //bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
+            //int debCount = 0;
 
             // clean free directions
             freeDirs[GeometryUtilities.QuadDirection.Left] = true;
@@ -174,7 +174,7 @@ public static class CrossroadsMeshGenerator
         // -------------------------------------------------------- 
         public GeometryUtilities.QuadDirection getDirection(Vector2 relativePosition)
         {
-            bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
+            //bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
 
             for (int i = 0; i < linkPositions.Length; i++)
                 if (relativePosition.Equals(linkPositions[i]))

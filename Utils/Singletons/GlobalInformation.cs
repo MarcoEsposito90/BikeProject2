@@ -16,10 +16,11 @@ public class GlobalInformation
     public static readonly string OBJECT2_TAG = "Object2";
     public static readonly string OBJECT3_TAG = "Object3";
     public static readonly string ROAD_TAG = "Road";
+    public static readonly string VILLAGE_TAG = "Village";
     public static readonly string TERRAIN_TAG = "Terrain";
 
     // the tags must be stored in the array in order of priority (lower first, terrain excluded)
-    public static readonly string[] TAGS = { OBJECT1_TAG, OBJECT2_TAG, OBJECT3_TAG, ROAD_TAG };
+    public static readonly string[] TAGS = { OBJECT1_TAG, OBJECT2_TAG, OBJECT3_TAG, VILLAGE_TAG, ROAD_TAG };
 
     public static int getPriority(string tag)
     {

@@ -61,7 +61,6 @@ public class PoolManager<Key>
     {
         //Debug.Log("create new!");
         GameObject newObj = (GameObject)Object.Instantiate(prefab, Vector3.zero, Quaternion.identity);
-        //newObj.SetActive(tr);
         newObj.transform.parent = this.parent.transform;
         freeObjectsList.Enqueue(newObj);
     }
@@ -79,11 +78,11 @@ public class PoolManager<Key>
         if(freeObjectsList.Count == 0)
         {
             if (!canGrow) return null;
-            //Debug.Log("creating new obj");
             addObject();
         }
 
         GameObject newObj = freeObjectsList.Dequeue();
+        //newObj.SetActive(true);
         objectsMap.Add(key, newObj);
         return newObj;
     }
@@ -102,7 +101,7 @@ public class PoolManager<Key>
         objectsMap.Remove(key);
 
         //if (oldObj.activeInHierarchy)
-            //oldObj.SetActive(false);
+        //    oldObj.SetActive(false);
 
         freeObjectsList.Enqueue(oldObj);
     }
