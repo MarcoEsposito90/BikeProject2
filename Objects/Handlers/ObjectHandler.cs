@@ -14,8 +14,8 @@ public class ObjectHandler
     private bool flatteningRequested;
     private EndlessObjectGenerator parent;
 
-    private BoxCollider collider;
-    public GameObject obj;
+    public BoxCollider collider { get; private set; }
+    public GameObject obj { get; private set; }
 
 
     /* ----------------------------------------------------------------------------------------- */
@@ -76,9 +76,8 @@ public class ObjectHandler
 
         /* get collider */
         collider = obj.GetComponent<BoxCollider>();
-        hasCollider = collider != null;
 
-        if (hasCollider)
+        if (collider != null)
         {
             Debug.Log("collider. position = " + collider.center + "; sizes = " + collider.size);
             priority = GlobalInformation.getPriority(obj.tag);
@@ -117,6 +116,9 @@ public class ObjectHandler
     /* ----------------------------------------------------------------------------------------- */
     public bool checkOverlaps()
     {
+        if (collider == null)
+            return false;
+
         Vector3 center = obj.transform.position + (collider.center * obj.transform.localScale.x);
         Vector3 sizes = collider.size * 0.5f * obj.transform.localScale.x;
         Collider[] intersects = Physics.OverlapBox(center, sizes, obj.transform.rotation);

@@ -136,6 +136,9 @@ public class EndlessObjectGenerator : MonoBehaviour
             latestViewerRecordedPosition = pos;
         }
 
+        if (start)
+            StartCoroutine(checkOverlaps());
+
         start = false;
     }
 
@@ -215,11 +218,11 @@ public class EndlessObjectGenerator : MonoBehaviour
         ObjectHandler h = new ObjectHandler(
             gridPos,
             position,
-            area, 
-            scale, 
-            feasibility, 
-            acceptsSelfIntersection, 
-            flatteningRequested, 
+            area,
+            scale,
+            feasibility,
+            acceptsSelfIntersection,
+            flatteningRequested,
             this);
         return h;
     }
@@ -273,13 +276,53 @@ public class EndlessObjectGenerator : MonoBehaviour
         }
     }
 
-    
+
     /* ----------------------------------------------------------------------------------------- */
     private void releaseObject(ObjectHandler handler)
     {
         handler.obj.name = ObjectName + " (available)";
         handler.reset();
         objectPoolManager.releaseObject(handler.gridPosition);
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    IEnumerator checkOverlaps()
+    {
+        while (true)
+        {
+            float startX = viewer.position.x - overlapsCheckDistanceThreshold;
+            float endX = viewer.position.x + overlapsCheckDistanceThreshold;
+            float startY = viewer.position.z - overlapsCheckDistanceThreshold;
+            float endY = viewer.position.z + overlapsCheckDistanceThreshold;
+            int startGridX = Mathf.RoundToInt(startX / scaledArea + 0.1f);
+            int endGridX = Mathf.RoundToInt(endX / scaledArea + 0.1f);
+            int startGridY = Mathf.RoundToInt(startY / scaledArea + 0.1f);
+            int endGridY = Mathf.RoundToInt(endY / scaledArea + 0.1f);
+            Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
+
+            for (int x = startGridX; x <= endGridX; x++)
+                for (int y = startGridY; y <= endGridY; y++)
+                {
+                    Vector2 gridPos = new Vector2(x, y);
+
+                    if (!currentObjects.ContainsKey(gridPos))
+                        continue;
+
+                    ObjectHandler handler = currentObjects[gridPos];
+                    if (!handler.feasible)
+                        continue;
+
+                    bool overlaps = handler.checkOverlaps();
+                    if (overlaps)
+                    {
+                        releaseObject(handler);
+                        Debug.Log("removing " + handler.gridPosition + " due to overlaps");
+                    }
+                }
+
+            yield return new WaitForSeconds(5);
+        }
     }
 
     #endregion
