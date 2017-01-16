@@ -16,9 +16,8 @@ public class MapDisplay : MonoBehaviour
 
     public float meshHeightMultiplier;
     public AnimationCurve meshHeightCurve;
-    //public static float MESH_HEIGHT_MUL;
-    //public static AnimationCurve MESH_HEIGHT_CURVE;
 
+    public static MapDisplay Instance;
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- UNITY -------------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
@@ -27,40 +26,27 @@ public class MapDisplay : MonoBehaviour
     {
         GlobalInformation.Instance.addData(MESH_HEIGHT_CURVE, meshHeightCurve);
         GlobalInformation.Instance.addData(MESH_HEIGHT_MUL, meshHeightMultiplier);
+        Instance = this;
     }
 
-    /* ----------------------------------------------------------------------------------------- */
-    void Start()
-    {
-        
-    }
-
-    /* ----------------------------------------------------------------------------------------- */
-    void Update()
-    {
-    }
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public MapSector.SectorData getSectorData
-        (float[,] heightMap,
+    //public MapSector.SectorData getSectorData
+    public void getSectorData(
+        Vector2 gridPosition,
+        float[,] heightMap,
         int levelOfDetail,
         bool colliderRequested,
         int colliderAccuracy)
 
     {
         AnimationCurve meshHeightCurve = new AnimationCurve(this.meshHeightCurve.keys);
-
-        //float[,] heightMap = sector.heightMap;
-        //float[,] alphaMap = sector.alphaMap;
-
         int width = heightMap.GetLength(0);
         int height = heightMap.GetLength(1);
-
         Color[] colorMap = TextureGenerator.generateColorHeightMap(heightMap);
-        //Color[] ColorAlphaMap = TextureGenerator.generateColorHeightMap(alphaMap);
 
         MapMeshGenerator.MapMeshData newMesh = null;
         if (renderingMode == RenderingMode.Mesh)
@@ -78,7 +64,10 @@ public class MapDisplay : MonoBehaviour
                 colliderMesh = MapMeshGenerator.generateMesh(width, height);
         }
 
-        return new MapSector.SectorData(levelOfDetail, heightMap, newMesh, colliderMesh, colorMap);
+        MapSector.SectorData newData = new MapSector.SectorData(levelOfDetail, heightMap, newMesh, colliderMesh, colorMap);
+        newData.sectorPosition = gridPosition;
+        EndlessTerrainGenerator.Instance.sectorResultsQueue.Enqueue(newData);
+        //return new MapSector.SectorData(levelOfDetail, heightMap, newMesh, colliderMesh, colorMap);
     }
     
 }

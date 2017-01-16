@@ -26,7 +26,6 @@ public class MapGenerator : MonoBehaviour
     public float amplitudeDemultiplier;
 
     public MapDisplay mapDisplayer;
-    public EndlessTerrainGenerator parent;
     private System.Random random;
 
     public float offsetX
@@ -69,24 +68,24 @@ public class MapGenerator : MonoBehaviour
 
     /* ----------------------------------------------------------------------------------------- */
     public void GenerateMap
-        (Vector2 sectorPosition,
-        int LOD,
-        bool colliderRequested,
-        int colliderAccuracy)
+        (Vector2 sectorPosition
+        //int LOD,
+        //bool colliderRequested,
+        //int colliderAccuracy)
+        )
     {
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         float[,] heightMap = NoiseGenerator.Instance.GenerateNoiseMap(sectorPosition);
 
         // 2) generate meshes and textures
-        MapSector.SectorData sectorData = mapDisplayer.getSectorData(
-            heightMap,
-            LOD,
-            colliderRequested,
-            colliderAccuracy);
-        sectorData.sectorPosition = sectorPosition;
+        //MapSector.SectorData sectorData = mapDisplayer.getSectorData(
+        //    heightMap,
+        //    LOD,
+        //    colliderRequested,
+        //    colliderAccuracy);
+        //sectorData.sectorPosition = sectorPosition;
 
-        // 3) enqueue results
-        parent.sectorResultsQueue.Enqueue(sectorData);
+        //// 3) enqueue results
+        //parent.sectorResultsQueue.Enqueue(sectorData);
     }
 
     #endregion

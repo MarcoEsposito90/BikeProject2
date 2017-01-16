@@ -32,6 +32,19 @@ public class NoiseGenerator
     private float maxValue;
     private Dictionary<Vector2, float[,]> heightMaps;
 
+
+    public float[,] this[Vector2 key]
+    {
+        get
+        {
+            return heightMaps[key];
+        }
+        private set
+        {
+            heightMaps[key] = value;
+        }
+    }
+
     #endregion
 
 
@@ -110,7 +123,7 @@ public class NoiseGenerator
 
 
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- METHODS ------------------------------------------------------ */
+    /* -------------------------- MAP GENERATION ----------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
     #region METHODS
@@ -139,6 +152,8 @@ public class NoiseGenerator
         }
 
         heightMaps.Add(gridPosition, noiseMap);
+        EndlessTerrainGenerator.DrawRequest r = new EndlessTerrainGenerator.DrawRequest(gridPosition, noiseMap);
+        EndlessTerrainGenerator.Instance.drawRequests.Enqueue(r);
         return noiseMap;
     }
 
@@ -177,6 +192,33 @@ public class NoiseGenerator
 
 
     /* ----------------------------------------------------------------------------------------- */
+    private float computeValue(float x, float y, int frequencies, float frequencyMultiplier, float amplitudeDemultiplier)
+    {
+        float sampleValue = 0.0f;
+
+        float amplitudeFraction = 1.0f;
+
+        for (int i = 0; i < frequencies; i++)
+        {
+            float noiseValue = Mathf.PerlinNoise(x, y);
+            sampleValue += noiseValue / amplitudeFraction;
+
+            x = x * frequencyMultiplier;
+            y = y * frequencyMultiplier;
+            amplitudeFraction *= (float)amplitudeDemultiplier;
+        }
+
+        return sampleValue;
+    }
+
+    #endregion
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- OTHER METHODS .----------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region OTHERS
+
     public float highestPointOnSegment(Vector2 from, Vector2 to, float noiseScale, int precision)
     {
         float n = 0;
@@ -220,25 +262,7 @@ public class NoiseGenerator
     }
 
 
-    /* ----------------------------------------------------------------------------------------- */
-    private float computeValue(float x, float y, int frequencies, float frequencyMultiplier, float amplitudeDemultiplier)
-    {
-        float sampleValue = 0.0f;
-
-        float amplitudeFraction = 1.0f;
-
-        for (int i = 0; i < frequencies; i++)
-        {
-            float noiseValue = Mathf.PerlinNoise(x, y);
-            sampleValue += noiseValue / amplitudeFraction;
-
-            x = x * frequencyMultiplier;
-            y = y * frequencyMultiplier;
-            amplitudeFraction *= (float)amplitudeDemultiplier;
-        }
-
-        return sampleValue;
-    }
+    
 
     #endregion
 

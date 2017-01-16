@@ -14,8 +14,7 @@ public class MapSector
     public Vector2 position { get; private set; }
     public int size { get; private set; }
     public int scale { get; private set; }
-    public int subdivisions { get; private set; }
-    public int numberOfLods { get; private set; }
+    //public int numberOfLods { get; private set; }
     public GameObject prefabObject { get; private set; }
     //public Bounds bounds { get; private set; }
 
@@ -31,13 +30,13 @@ public class MapSector
         }
     }
 
-    public int latestLODRequest;
-    public bool isVisible { get; private set; }
+    //public int latestLODRequest;
+    //public bool isVisible { get; private set; }
     //public Mesh[] meshes { get; private set; }
-    public float[,] heightMap = null;
+    //public float[,] heightMap = null;
     //public float[,] alphaMap = null;
-    public bool mapComputed;
-    public bool needRedraw;
+    //public bool mapComputed;
+    //public bool needRedraw;
 
     #endregion
 
@@ -50,29 +49,18 @@ public class MapSector
     public MapSector(
         Vector2 position, 
         int size, 
-        int scale, 
-        int subdivisions, 
-        int numberOfLods, 
-        GameObject prefabObject)
+        int scale)
     {
         this.position = position;
         this.size = size;
         this.scale = scale;
-        this.subdivisions = subdivisions;
-        this.numberOfLods = numberOfLods;
+        //this.numberOfLods = numberOfLods;
         currentLOD = -1;
-        latestLODRequest = -1;
-        isVisible = true;
-
-        mapComputed = false;
-        needRedraw = false;
-        //bounds = new Bounds(
-        //    new Vector3(x * size * scale, 0, y * size * scale),
-        //    new Vector3(size * scale, size * scale * 10, size * scale));
-
-        //meshes = new Mesh[numberOfLods];
-        this.prefabObject = prefabObject;
-        initializePrefabObject();
+        //latestLODRequest = -1;
+        //isVisible = true;
+        //mapComputed = false;
+        //needRedraw = false;
+        //initializePrefabObject();
     }
 
     #endregion
@@ -85,10 +73,12 @@ public class MapSector
     #region METHODS
 
     /* ------------------------------------------------------------------------------------------------- */
-    private void initializePrefabObject()
+    public void initializePrefabObject(GameObject prefab)
     {
+        this.prefabObject = prefab;
         prefabObject.name = "sector " + position;
         prefabObject.transform.position = new Vector3(position.x * size * scale, 0, position.y * size * scale);
+        prefabObject.transform.localScale = new Vector3(scale, scale, scale);
 
         if (!prefabObject.activeInHierarchy)
             prefabObject.SetActive(true);
@@ -97,12 +87,12 @@ public class MapSector
     }
 
     /* ------------------------------------------------------------------------------------------------- */
-    public void setPrefabObject(Mesh collider, Mesh mesh, Color[] heightMap, List<Color[]> alphaMaps)
+    public void setPrefabObject(Mesh collider, Mesh mesh, Color[] heightMap)
     {
 
         MapSectorHandler handler = prefabObject.GetComponent<MapSectorHandler>();
         updateMeshes(collider, mesh);
-        handler.setTextures(heightMap, alphaMaps);
+        handler.setTextures(heightMap);
     }
 
 
@@ -127,14 +117,14 @@ public class MapSector
     }
 
     /* ------------------------------------------------------------------------------------------------- */
-    public void setVisible(bool visibility)
-    {
-        if (isVisible == visibility)
-            return;
+    //public void setVisible(bool visibility)
+    //{
+    //    if (isVisible == visibility)
+    //        return;
 
-        isVisible = visibility;
-        prefabObject.SetActive(visibility);
-    }
+    //    isVisible = visibility;
+    //    prefabObject.SetActive(visibility);
+    //}
 
 
     #endregion

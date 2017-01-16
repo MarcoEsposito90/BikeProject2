@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class MapSectorHandler : MonoBehaviour {
 
-    public GameObject[] children;
+    public GameObject terrain;
 
     public bool waterEnabled;
     public GameObject water;
@@ -68,16 +68,14 @@ public class MapSectorHandler : MonoBehaviour {
         else
             GetComponent<MeshCollider>().enabled = false;
 
-        children[0].GetComponent<MeshFilter>().sharedMesh = mesh;
-        //foreach (GameObject c in children)
-            //c.GetComponent<MeshFilter>().sharedMesh = mesh;
+        terrain.GetComponent<MeshFilter>().sharedMesh = mesh;
     }
 
     
 
 
     /* ------------------------------------------------------------------------------------------- */
-    public void setTextures(Color[] heightMap, List<Color[]> alphaMaps)
+    public void setTextures(Color[] heightMap)
     {
         if (hasHeightMap)
             return;
@@ -96,7 +94,7 @@ public class MapSectorHandler : MonoBehaviour {
         texture.SetPixels(heightMap);
         texture.Apply();
 
-        children[0].GetComponent<Renderer>().material = material;
+        terrain.GetComponent<Renderer>().material = material;
         material.SetTexture("_HeightMap", texture);
 
         hasHeightMap = true;
@@ -107,12 +105,7 @@ public class MapSectorHandler : MonoBehaviour {
     public void reset()
     {
         GetComponent<MeshCollider>().sharedMesh = null;
-        //GetComponent<MeshCollider>().enabled = false;
-
-        //foreach (GameObject c in children)
-        //c.GetComponent<MeshFilter>().sharedMesh = null;
-
-        children[0].GetComponent<MeshFilter>().sharedMesh = null;
+        terrain.GetComponent<MeshFilter>().sharedMesh = null;
         hasHeightMap = false;
     }
 
