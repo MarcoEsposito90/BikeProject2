@@ -70,11 +70,6 @@ public class EndlessObjectGenerator : MonoBehaviour
     private float noiseScale;
     private bool start = true;
 
-    private Vector3 colliderLocalPosition;
-    private Vector3 colliderSizes;
-    private bool hasCollider;
-    private int priority;
-
     #endregion
 
     /* ----------------------------------------------------------------------------------------- */
@@ -87,22 +82,6 @@ public class EndlessObjectGenerator : MonoBehaviour
     {
         currentObjects = new Dictionary<Vector2, ObjectHandler>();
         resultsQueue = new BlockingQueue<ObjectHandler>();
-
-        BoxCollider collider = prefab.GetComponent<BoxCollider>();
-        hasCollider = collider != null;
-        if (hasCollider)
-        {
-            colliderLocalPosition = collider.center;
-            colliderSizes = collider.size;
-            priority = GlobalInformation.getPriority(prefab.tag);
-        }
-
-        if (priority == -1)
-        {
-            Debug.Log("ATTENTION! you have to select a tag for " + prefab);
-            priority = 0;
-        }
-
     }
 
 
@@ -278,11 +257,16 @@ public class EndlessObjectGenerator : MonoBehaviour
         foreach (Vector2 pos in toRemove)
         {
             Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
+            float d = Vector2.Distance(pos * scaledArea, viewerPos);
+            Debug.Log("viewer pos = " + viewerPos + "; pos = " + pos + "; d = " + d);
 
-            if (Vector2.Distance(pos * scaledArea, viewerPos) > distanceThreshold)
+            if (d > distanceThreshold)
             {
                 if (currentObjects[pos].feasible)
+                {
+                    Debug.Log("removing " + pos);
                     releaseObject(currentObjects[pos]);
+                }
 
                 currentObjects.Remove(pos);
             }
@@ -293,6 +277,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void releaseObject(ObjectHandler handler)
     {
+        handler.obj.name = ObjectName + " (available)";
         handler.reset();
         objectPoolManager.releaseObject(handler.gridPosition);
     }

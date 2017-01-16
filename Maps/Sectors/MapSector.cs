@@ -33,7 +33,7 @@ public class MapSector
 
     public int latestLODRequest;
     public bool isVisible { get; private set; }
-    public Mesh[] meshes { get; private set; }
+    //public Mesh[] meshes { get; private set; }
     public float[,] heightMap = null;
     //public float[,] alphaMap = null;
     public bool mapComputed;
@@ -70,7 +70,7 @@ public class MapSector
         //    new Vector3(x * size * scale, 0, y * size * scale),
         //    new Vector3(size * scale, size * scale * 10, size * scale));
 
-        meshes = new Mesh[numberOfLods];
+        //meshes = new Mesh[numberOfLods];
         this.prefabObject = prefabObject;
         initializePrefabObject();
     }

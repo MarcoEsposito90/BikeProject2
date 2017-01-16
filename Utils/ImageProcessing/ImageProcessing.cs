@@ -27,4 +27,5 @@ public static class ImageProcessing
 
         return heightMap;
     }
+
 }

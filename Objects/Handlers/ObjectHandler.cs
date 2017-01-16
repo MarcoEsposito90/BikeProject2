@@ -8,15 +8,13 @@ public class ObjectHandler
     public float area;
     private int scale;
     public bool feasible;
-    private Vector3 colliderLocalPosition;
-    private Vector3 colliderSizes;
     private bool hasCollider;
     private int priority;
     private bool acceptsSelfIntersection;
     private bool flatteningRequested;
     private EndlessObjectGenerator parent;
 
-
+    private BoxCollider collider;
     public GameObject obj;
 
 
@@ -64,7 +62,6 @@ public class ObjectHandler
         float height = GlobalInformation.Instance.getHeight(new Vector2(position.x / scale, position.y / scale));
         height *= scale;
         obj.transform.position = new Vector3(position.x, height, position.y);
-        //position = obj.transform.position;
 
         /* calculate rotation */
         System.Random r = new System.Random((int)(position.x * position.y));
@@ -77,14 +74,27 @@ public class ObjectHandler
         s = s * scaleRandomness;
         obj.transform.localScale += new Vector3(s, s, s);
 
-        if (checkOverlaps())
+        /* get collider */
+        collider = obj.GetComponent<BoxCollider>();
+        hasCollider = collider != null;
+
+        if (hasCollider)
         {
-            feasible = false;
-            return false;
+            Debug.Log("collider. position = " + collider.center + "; sizes = " + collider.size);
+            priority = GlobalInformation.getPriority(obj.tag);
+
+            // collisions check
+            if (checkOverlaps())
+            {
+                feasible = false;
+                return false;
+            }
+
+            // flattening
+            if (flatteningRequested)
+                requestFlattening();
         }
 
-        if (flatteningRequested)
-            requestFlattening();
 
         if (!obj.activeInHierarchy)
             obj.SetActive(true);
@@ -105,14 +115,16 @@ public class ObjectHandler
 
 
     /* ----------------------------------------------------------------------------------------- */
-    private bool checkOverlaps()
+    public bool checkOverlaps()
     {
-        Collider[] intersects = Physics.OverlapBox(
-                obj.transform.position + (colliderLocalPosition * obj.transform.localScale.x),
-                colliderSizes * 0.5f * obj.transform.localScale.x);
+        Vector3 center = obj.transform.position + (collider.center * obj.transform.localScale.x);
+        Vector3 sizes = collider.size * 0.5f * obj.transform.localScale.x;
+        Collider[] intersects = Physics.OverlapBox(center, sizes, obj.transform.rotation);
 
+        Debug.Log("checking overlaps " + gridPosition + ": " + center + "; " + sizes);
         foreach (Collider overlap in intersects)
         {
+            Debug.Log("overlap " + overlap);    
             if (overlap.Equals(obj.GetComponent<BoxCollider>()))
                 continue;
 
@@ -121,6 +133,7 @@ public class ObjectHandler
 
             string tag = overlap.gameObject.tag;
             int p = GlobalInformation.getPriority(tag);
+            Debug.Log("priority = " + p);
 
             if (priority <= p)
             {
@@ -138,8 +151,8 @@ public class ObjectHandler
     /* ----------------------------------------------------------------------------------------- */
     private void requestFlattening()
     {
-        Vector3 pos = obj.transform.position + (colliderLocalPosition * obj.transform.localScale.x);
-        Vector2 sizes = new Vector2(colliderSizes.x, colliderSizes.z) * obj.transform.localScale.x * 0.5f;
+        Vector3 pos = obj.transform.position + (collider.center * obj.transform.localScale.x);
+        Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.transform.localScale.x * 0.5f;
         float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
 
         EndlessTerrainGenerator.RedrawRequest r = new EndlessTerrainGenerator.RedrawRequest(

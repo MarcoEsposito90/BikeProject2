@@ -122,7 +122,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
             if (i > 3) multiply *= 2;
             LODThresholds[i] = (2.5f * scaledSectorSize + i * scaledSectorSize * multiply) / 2.0f;
         }
-        //removeThreshold = LODThresholds[LODThresholds.Length - 1] * keepUnvisible;
 
         mapSectors = new Dictionary<Vector2, MapSector>();
         int startSize = (int)LODThresholds[LODThresholds.Length - 1] * 2 / scaledSectorSize;
@@ -237,16 +236,16 @@ public class EndlessTerrainGenerator : MonoBehaviour
     {
         sector.latestLODRequest = LOD;
 
-        if (sector.meshes[LOD] != null && !sector.needRedraw)
-        {
-            Mesh collider = null;
-            if (LOD == 0 && sector.meshes[colliderAccuracy] != null)
-                collider = sector.meshes[colliderAccuracy];
+        //if (sector.meshes[LOD] != null && !sector.needRedraw)
+        //{
+        //    Mesh collider = null;
+        //    if (LOD == 0 && sector.meshes[colliderAccuracy] != null)
+        //        collider = sector.meshes[colliderAccuracy];
 
-            sector.updateMeshes(collider, sector.meshes[LOD]);
-            sector.currentLOD = LOD;
-            return;
-        }
+        //    sector.updateMeshes(collider, sector.meshes[LOD]);
+        //    sector.currentLOD = LOD;
+        //    return;
+        //}
 
         mapGenerator.requestSectorData
             (sector.heightMap,
@@ -326,14 +325,14 @@ public class EndlessTerrainGenerator : MonoBehaviour
         Mesh mesh = null;
         mesh = sectorData.meshData.createMesh();
         mesh.name = "mesh" + sectorData.sectorPosition.ToString();
-        sector.meshes[sectorData.meshData.LOD] = mesh;
+        //sector.meshes[sectorData.meshData.LOD] = mesh;
 
         // get the collider mesh --------------------------------------------
         Mesh colliderMesh = null;
         if (sectorData.colliderMeshData != null)
         {
             colliderMesh = sectorData.colliderMeshData.createMesh();
-            sector.meshes[sectorData.colliderMeshData.LOD] = colliderMesh;
+            //sector.meshes[sectorData.colliderMeshData.LOD] = colliderMesh;
         }
 
 
@@ -393,14 +392,17 @@ public class EndlessTerrainGenerator : MonoBehaviour
                 int centerX = (int)((X - (sector.position.x - 0.5f) * sectorSize));
                 int centerY = (int)(((sector.position.y + 0.5f) * sectorSize - Y));
 
-                sector.heightMap = ImageProcessing.radialFlattening(
+                lock (sector)
+                {
+                    sector.heightMap = ImageProcessing.radialFlattening(
                     sector.heightMap,
                     radius,
                     centerX + 1,
                     centerY + 1,
                     n);
 
-                sector.needRedraw = true;
+                    sector.needRedraw = true;
+                }
             };
 
             Thread t = new Thread(ts);
