@@ -51,7 +51,6 @@ public class EndlessRoadsGenerator : MonoBehaviour
     private Vector2 latestViewerRecordedPosition;
     private float viewerDistanceUpdate;
     private float seedX, seedY;
-    //private float[] LODThresholds;
 
     private Dictionary<Vector2, ControlPoint> controlPoints;
     private Dictionary<Graph<Vector2, ControlPoint>.Link, Road> roads;
@@ -60,7 +59,6 @@ public class EndlessRoadsGenerator : MonoBehaviour
     public BlockingQueue<Road.RoadData> roadsResultsQueue { get; private set; }
     public BlockingQueue<ControlPoint.ControlPointData> cpsResultsQueue { get; private set; }
     public BlockingQueue<Graph<Vector2, ControlPoint>.Link> roadsRemoveQueue { get; private set; }
-    //public BlockingQueue<Vector2> roadsSplitRequests { get; private set; }
 
     #endregion
 
@@ -87,7 +85,6 @@ public class EndlessRoadsGenerator : MonoBehaviour
         roadsResultsQueue = new BlockingQueue<Road.RoadData>();
         cpsResultsQueue = new BlockingQueue<ControlPoint.ControlPointData>();
         roadsRemoveQueue = new BlockingQueue<Graph<Vector2, ControlPoint>.Link>();
-        //roadsSplitRequests = new BlockingQueue<Vector2>();
 
         roadsPoolManager = new PoolManager<Graph<Vector2, ControlPoint>.Link>(10, true, roadPrefab, roadsContainer);
         controlPointsPoolManager = new PoolManager<Vector2>(400, true, controlPointPrefab, controlPointsContainer);
@@ -144,10 +141,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
             createControlPoints();
             latestViewerRecordedPosition = pos;
         }
-
     }
-
-
 
     #endregion
 

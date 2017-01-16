@@ -25,9 +25,6 @@ public class MapGenerator : MonoBehaviour
     [Range(1.0f, 100.0f)]
     public float amplitudeDemultiplier;
 
-    //[Range(1.0f, 10.0f)]
-    //public float alphaScale;
-
     public MapDisplay mapDisplayer;
     public EndlessTerrainGenerator parent;
     private System.Random random;
@@ -41,15 +38,6 @@ public class MapGenerator : MonoBehaviour
         get;
         private set;
     }
-    //public float alphaOffsetX
-    //{
-    //    get; private set;
-    //}
-    //public float alphaOffsetY
-    //{
-    //    get;
-    //    private set;
-    //}
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- UNITY FUNCTIONS ---------------------------------------------- */
@@ -62,8 +50,6 @@ public class MapGenerator : MonoBehaviour
         int multiplier = random.Next(1000, 10000);
         offsetX = (float)random.NextDouble() * multiplier;
         offsetY = (float)random.NextDouble() * multiplier;
-        //alphaOffsetX = (float)random.NextDouble() * multiplier;
-        //alphaOffsetY = (float)random.NextDouble() * multiplier;
 
         NoiseGenerator.Initialize(
             noiseScale,
@@ -74,16 +60,6 @@ public class MapGenerator : MonoBehaviour
             offsetY);
     }
 
-    void Start()
-    {
-
-    }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    void Update()
-    {
-    }
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- MY FUNCTIONS ------------------------------------------------- */
@@ -91,60 +67,15 @@ public class MapGenerator : MonoBehaviour
 
     #region MAP_GENERATION
 
-    public void requestSectorData
+    /* ----------------------------------------------------------------------------------------- */
+    public void GenerateMap
         (Vector2 sectorPosition,
         int LOD,
         bool colliderRequested,
         int colliderAccuracy)
     {
-        ThreadStart ts = delegate
-        {
-            GenerateMap(sectorPosition, LOD, colliderRequested, colliderAccuracy);
-        };
-
-        Thread t = new Thread(ts);
-        t.Start();
-    }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    public void requestSectorData
-        (float[,] heightMap,
-        Vector2 sectorPosition,
-        int LOD,
-        bool colliderRequested,
-        int colliderAccuracy)
-    {
-        ThreadStart ts = delegate
-        {
-            GenerateMap(heightMap, sectorPosition, LOD, colliderRequested, colliderAccuracy);
-        };
-
-        Thread t = new Thread(ts);
-        t.Start();
-    }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    private void GenerateMap
-        (Vector2 sectorPosition,
-        int LOD,
-        bool colliderRequested,
-        int colliderAccuracy)
-    {
-
         int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
-        float[,] heightMap = NoiseGenerator.Instance.GenerateNoiseMap(
-            sectorSize + 1,
-            1,
-            (sectorPosition.x - 0.5f) * sectorSize,
-            (sectorPosition.y + 0.5f) * sectorSize);
-
-        //float[,] alphaMap = NoiseGenerator.Instance.GenerateNoiseMap(
-        //    sectorSize + 1,
-        //    1.0f / alphaScale,
-        //    (sectorPosition.x - 0.5f) * sectorSize + alphaOffsetX,
-        //    (sectorPosition.y + 0.5f) * sectorSize + alphaOffsetY);
+        float[,] heightMap = NoiseGenerator.Instance.GenerateNoiseMap(sectorPosition);
 
         // 2) generate meshes and textures
         MapSector.SectorData sectorData = mapDisplayer.getSectorData(
@@ -152,34 +83,11 @@ public class MapGenerator : MonoBehaviour
             LOD,
             colliderRequested,
             colliderAccuracy);
-
         sectorData.sectorPosition = sectorPosition;
 
         // 3) enqueue results
         parent.sectorResultsQueue.Enqueue(sectorData);
     }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    private void GenerateMap(
-        float[,] heightMap,
-        Vector2 sectorPosition,
-        int LOD,
-        bool colliderRequested,
-        int colliderAccuracy)
-    {
-        MapSector.SectorData sectorData = mapDisplayer.getSectorData(
-            heightMap,
-            LOD,
-            colliderRequested,
-            colliderAccuracy);
-
-        sectorData.sectorPosition = sectorPosition;
-
-        // 3) enqueue results
-        parent.sectorResultsQueue.Enqueue(sectorData);
-    }
-
 
     #endregion
 }

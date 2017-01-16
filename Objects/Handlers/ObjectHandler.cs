@@ -153,15 +153,15 @@ public class ObjectHandler
     /* ----------------------------------------------------------------------------------------- */
     private void requestFlattening()
     {
-        Vector3 pos = obj.transform.position + (collider.center * obj.transform.localScale.x);
-        Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.transform.localScale.x * 0.5f;
-        float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
+        //Vector3 pos = obj.transform.position + (collider.center * obj.transform.localScale.x);
+        //Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.transform.localScale.x * 0.5f;
+        //float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
 
-        EndlessTerrainGenerator.RedrawRequest r = new EndlessTerrainGenerator.RedrawRequest(
-            new Vector2(pos.x, pos.z),
-            radius);
+        //EndlessTerrainGenerator.RedrawRequest r = new EndlessTerrainGenerator.RedrawRequest(
+        //    new Vector2(pos.x, pos.z),
+        //    radius);
 
-        EndlessTerrainGenerator.Instance.sectorRedrawRequests.Enqueue(r);
+        //EndlessTerrainGenerator.Instance.sectorRedrawRequests.Enqueue(r);
     }
 
     #endregion

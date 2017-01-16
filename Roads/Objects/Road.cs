@@ -39,7 +39,6 @@ public class Road {
         prefab.name = "road " + start + " - " + curve.endPoint();
         float height = GlobalInformation.Instance.getHeight(start) * scale;
         prefab.transform.position = new Vector3(start.x * scale, 0, start.y * scale);
-        //prefab.transform.localScale = new Vector3(scale, scale, scale);
         prefab.SetActive(true);
     }
 
@@ -47,9 +46,6 @@ public class Road {
     /* ----------------------------------------------------------------------------------- */
     public void setMesh(Mesh mesh, Texture2D texture)
     {
-        //prefab.GetComponent<MeshFilter>().mesh = mesh;
-        //prefab.GetComponent<MeshCollider>().sharedMesh = mesh;
-        //prefab.GetComponent<MeshCollider>().enabled = true;
         prefab.GetComponent<RoadHandler>().SetMesh(mesh, texture);
     }
 

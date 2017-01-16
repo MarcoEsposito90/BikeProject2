@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class NoiseGenerator
 {
@@ -29,6 +30,7 @@ public class NoiseGenerator
     public float frequencyMultiplier { get; private set; }
     public float amplitudeDemultiplier { get; private set; }
     private float maxValue;
+    private Dictionary<Vector2, float[,]> heightMaps;
 
     #endregion
 
@@ -84,6 +86,8 @@ public class NoiseGenerator
         this.offsetX = offsetX;
         this.offsetY = offsetY;
         this.maxValue = getMaxValue(frequencies, amplitudeDemultiplier);
+
+        heightMaps = new Dictionary<Vector2, float[,]>();
     }
 
 
@@ -111,25 +115,30 @@ public class NoiseGenerator
 
     #region METHODS
 
-    public float[,] GenerateNoiseMap
-        (int mapSize,
-        float scaleMultiply,
-        float topLeftXCoord,
-        float topLeftYCoord)
+    public float[,] GenerateNoiseMap(Vector2 gridPosition)
     {
+        if (heightMaps.ContainsKey(gridPosition))
+            return heightMaps[gridPosition];
+
+        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        int mapSize = sectorSize + 1;
 
         float[,] noiseMap = new float[mapSize, mapSize];
+        int half = (int)(mapSize / 2.0f) + 1;
+        int xCoord = (int)gridPosition.x * sectorSize;
+        int yCoord = (int)gridPosition.y * sectorSize;
 
         // map calculation ---------------------------------------------------------
         for (int y = 0; y < mapSize; y++)
         {
             for (int x = 0; x < mapSize; x++)
             {
-                float sampleValue = getNoiseValue(scaleMultiply, topLeftXCoord + x, topLeftYCoord - y);
+                float sampleValue = getNoiseValue(1.0f, xCoord - half + x, yCoord + half - y);
                 noiseMap[x, y] = sampleValue;
             }
         }
 
+        heightMaps.Add(gridPosition, noiseMap);
         return noiseMap;
     }
 
@@ -139,6 +148,24 @@ public class NoiseGenerator
     {
         if (scaleMultiply == 0)
             return 0;
+
+        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        int gridX = Mathf.RoundToInt(x / (float)sectorSize + 0.1f);
+        int gridY = Mathf.RoundToInt(y / (float)sectorSize + 0.1f);
+        Vector2 gridPos = new Vector2(gridX, gridY);
+
+        if (heightMaps.ContainsKey(gridPos))
+        {
+            int mapSize = sectorSize + 1;
+            int half = (int)(mapSize / 2.0f) + 1;
+
+            int leftX = (int)gridPos.x * sectorSize - half;
+            int topY = (int)gridPos.y * sectorSize + half;
+            int X = Mathf.RoundToInt(x) - leftX;
+            int Y = topY - Mathf.RoundToInt(y);
+            float[,] map = heightMaps[gridPos];
+            return map[X, Y];
+        }
 
         float sampleX = (x + offsetX) / (noiseScale * scaleMultiply);
         float sampleY = (y + offsetY) / (noiseScale * scaleMultiply);
@@ -192,19 +219,9 @@ public class NoiseGenerator
         return currentMax;
     }
 
-    #endregion
-
 
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- STATICS ------------------------------------------------------ */
-    /* ----------------------------------------------------------------------------------------- */
-
-    #region STATICS
-
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    private static float computeValue(float x, float y, int frequencies, float frequencyMultiplier, float amplitudeDemultiplier)
+    private float computeValue(float x, float y, int frequencies, float frequencyMultiplier, float amplitudeDemultiplier)
     {
         float sampleValue = 0.0f;
 
@@ -224,4 +241,7 @@ public class NoiseGenerator
     }
 
     #endregion
+
+
+
 }
