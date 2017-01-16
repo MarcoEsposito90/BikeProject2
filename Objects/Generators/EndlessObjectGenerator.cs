@@ -52,8 +52,8 @@ public class EndlessObjectGenerator : MonoBehaviour
     public EndlessTerrainGenerator terrainGenerator;
 
     /* ----------------------------------------------------------------------------------------- */
-    BlockingQueue<ObjectData> resultsQueue;
-    private Dictionary<Vector2, ObjectData> currentObjects;
+    BlockingQueue<ObjectHandler> resultsQueue;
+    private Dictionary<Vector2, ObjectHandler> currentObjects;
     private PoolManager<Vector2> objectPoolManager;
 
     private int sectorSize;
@@ -85,8 +85,8 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     void Awake()
     {
-        currentObjects = new Dictionary<Vector2, ObjectData>();
-        resultsQueue = new BlockingQueue<ObjectData>();
+        currentObjects = new Dictionary<Vector2, ObjectHandler>();
+        resultsQueue = new BlockingQueue<ObjectHandler>();
 
         BoxCollider collider = prefab.GetComponent<BoxCollider>();
         hasCollider = collider != null;
@@ -137,17 +137,14 @@ public class EndlessObjectGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
-
         /* create objects that are ready */
         int counter = 0;
         while (!resultsQueue.isEmpty() && counter <= maxObjsForLoop)
         {
             if (!start) counter++;
-            float init = Time.time;
-            ObjectData data = resultsQueue.Dequeue();
-            float diff = Time.time - init;
-            if (!currentObjects.ContainsKey(data.gridPosition))
-                createObject(data);
+            ObjectHandler handler = resultsQueue.Dequeue();
+            if (!currentObjects.ContainsKey(handler.gridPosition))
+                createObject(handler);
         }
 
         /* create new requests and update current objects */
@@ -159,9 +156,6 @@ public class EndlessObjectGenerator : MonoBehaviour
 
             latestViewerRecordedPosition = pos;
         }
-
-        if (start && hasCollider)
-            StartCoroutine(checkOverlapsAndFlatteningCoroutine());
 
         start = false;
     }
@@ -209,26 +203,25 @@ public class EndlessObjectGenerator : MonoBehaviour
                 if (Vector2.Distance(gridPos * scaledArea, viewerPos) > distanceThreshold)
                     continue;
 
-                ObjectData data = getObjectData(gridPos);
-                resultsQueue.Enqueue(data);
+                ObjectHandler handler = getObjectData(gridPos);
+                resultsQueue.Enqueue(handler);
             }
         }
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
-    private ObjectData getObjectData(Vector2 gridPos)
+    private ObjectHandler getObjectData(Vector2 gridPos)
     {
         // 1) calculate position ---------------------------------------------------
-        Vector3 position = Vector3.zero;
-        Vector3 rotation = Vector3.zero;
-        Vector3 objectScale = Vector3.one;
+        Vector2 position = Vector2.zero;
         bool feasibility = false;
 
         float randomX = Mathf.PerlinNoise((gridPos.x + seedX) * 200, (gridPos.y + seedX) * 200) * positionRandomness;
         float randomY = Mathf.PerlinNoise((gridPos.x + seedY) * 200, (gridPos.y + seedY) * 200) * positionRandomness;
         float X = (gridPos.x + randomX) * area;
         float Y = (gridPos.y + randomY) * area;
+        position = new Vector2(X * scale, Y * scale);
 
         float prob = Mathf.PerlinNoise((X + seedX) * noiseScale, (Y + seedY) * noiseScale);
 
@@ -237,27 +230,35 @@ public class EndlessObjectGenerator : MonoBehaviour
             float n = NoiseGenerator.Instance.getNoiseValue(1, X, Y);
 
             if (n >= minHeight && n <= maxHeight)
-            {
                 feasibility = true;
-
-                /* calculate height */
-                float height = GlobalInformation.Instance.getHeight(new Vector2(X, Y));
-                position = new Vector3(X * scale, height * scale, Y * scale);
-
-                /* calculate rotation */
-                System.Random r = new System.Random((int)(X * Y));
-                float y = (float)(r.NextDouble() * 360);
-                rotation = new Vector3(0, y, 0);
-
-                /* calculate scale */
-                float s = (float)(r.NextDouble() * 2.0 - 1.0);
-                s = s * scaleRandomness;
-                objectScale = new Vector3(s, s, s);
-            }
         }
 
-        ObjectData data = new ObjectData(gridPos, feasibility, position, rotation, objectScale);
-        return data;
+        ObjectHandler h = new ObjectHandler(
+            gridPos,
+            position,
+            area, 
+            scale, 
+            feasibility, 
+            acceptsSelfIntersection, 
+            flatteningRequested, 
+            this);
+        return h;
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void createObject(ObjectHandler handler)
+    {
+        if (handler.feasible)
+        {
+            GameObject obj = objectPoolManager.acquireObject(handler.gridPosition);
+            obj.name = ObjectName + " " + handler.position;
+
+            if (!handler.initialize(obj, scaleRandomness))
+                releaseObject(handler);
+        }
+
+        currentObjects.Add(handler.gridPosition, handler);
     }
 
     #endregion
@@ -269,6 +270,7 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     #region UPDATE
 
+    /* ----------------------------------------------------------------------------------------- */
     private void updateObjects()
     {
         // 1) find objects to be removed -----------------------------------------
@@ -280,179 +282,21 @@ public class EndlessObjectGenerator : MonoBehaviour
             if (Vector2.Distance(pos * scaledArea, viewerPos) > distanceThreshold)
             {
                 if (currentObjects[pos].feasible)
-                {
-                    currentObjects[pos].obj.SetActive(false);
-                    objectPoolManager.releaseObject(pos);
-                }
+                    releaseObject(currentObjects[pos]);
 
                 currentObjects.Remove(pos);
             }
         }
     }
 
-    #endregion
-
-
+    
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- DATA RECEIVED ------------------------------------------------ */
-    /* ----------------------------------------------------------------------------------------- */
-
-    #region DATA_RECEIVED
-
-    private void createObject(ObjectData data)
+    private void releaseObject(ObjectHandler handler)
     {
-        if (data.feasible)
-        {
-            GameObject obj = objectPoolManager.acquireObject(data.gridPosition);
-            obj.transform.position = data.position;
-            obj.transform.Rotate(data.rotation);
-            obj.transform.localScale += data.scale;
-            obj.name = ObjectName + " " + data.position;
-
-            if (!obj.activeInHierarchy)
-                obj.SetActive(true);
-            data.obj = obj;
-
-
-        }
-
-        currentObjects.Add(data.gridPosition, data);
+        handler.reset();
+        objectPoolManager.releaseObject(handler.gridPosition);
     }
 
     #endregion
 
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- DATA RECEIVED ------------------------------------------------ */
-    /* ----------------------------------------------------------------------------------------- */
-
-    #region OVERLAPS_CHECK
-
-    IEnumerator checkOverlapsAndFlatteningCoroutine()
-    {
-        while (true)
-        {
-            float startX = viewer.position.x - overlapsCheckDistanceThreshold;
-            float endX = viewer.position.x + overlapsCheckDistanceThreshold;
-            float startY = viewer.position.z - overlapsCheckDistanceThreshold;
-            float endY = viewer.position.z + overlapsCheckDistanceThreshold;
-            int startGridX = Mathf.RoundToInt(startX / (float)scaledArea + 0.1f);
-            int endGridX = Mathf.RoundToInt(endX / (float)scaledArea + 0.1f);
-            int startGridY = Mathf.RoundToInt(startY / (float)scaledArea + 0.1f);
-            int endGridY = Mathf.RoundToInt(endY / (float)scaledArea + 0.1f);
-            Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
-
-            for (int x = startGridX; x <= endGridX; x++)
-                for (int y = startGridY; y <= endGridY; y++)
-                {
-                    Vector2 gridPos = new Vector2(x, y);
-
-                    if (!currentObjects.ContainsKey(gridPos))
-                        continue;
-
-                    ObjectData data = currentObjects[gridPos];
-                    if (!data.feasible)
-                        continue;
-
-                    Vector2 objPos = new Vector2(data.position.x, data.position.z);
-                    if (Vector2.Distance(viewerPos, objPos) > overlapsCheckDistanceThreshold)
-                        continue;
-
-                    checkOverlaps(data);
-
-                    if (!data.feasible)
-                    {
-                        Debug.Log("object removed because overlapping: " + data.gridPosition);
-                        data.obj.SetActive(false);
-                        objectPoolManager.releaseObject(gridPos);
-                        continue;
-                    }
-
-                    // flattening ----
-                    if (flatteningRequested && !data.flatteningDone)
-                    {
-                        Vector3 pos = data.position + (colliderLocalPosition * data.obj.transform.localScale.x);
-                        Vector2 sizes = new Vector2(colliderSizes.x, colliderSizes.z) * data.obj.transform.localScale.x * 0.5f;
-                        float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
-
-                        EndlessTerrainGenerator.RedrawRequest r = new EndlessTerrainGenerator.RedrawRequest(
-                            new Vector2(pos.x, pos.z),
-                            radius);
-                        terrainGenerator.sectorRedrawRequests.Enqueue(r);
-                        data.flatteningDone = true;
-                    }
-                }
-
-            yield return new WaitForSeconds(5);
-        }
-    }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    private void checkOverlaps(ObjectData data)
-    {
-        if (prefab.tag.Equals(GlobalInformation.VILLAGE_TAG))
-            return;
-
-        Collider[] intersects = Physics.OverlapBox(
-                data.position + (colliderLocalPosition * data.obj.transform.localScale.x),
-                colliderSizes * 0.5f * data.obj.transform.localScale.x);
-
-        foreach (Collider overlap in intersects)
-        {
-            if (overlap.Equals(data.obj.GetComponent<BoxCollider>()))
-                continue;
-
-            if (!overlap.gameObject.activeInHierarchy)
-                continue;
-
-            string tag = overlap.gameObject.tag;
-            int p = GlobalInformation.getPriority(tag);
-
-            if (priority <= p)
-            {
-                if (priority == p && acceptsSelfIntersection)
-                    continue;
-
-                data.feasible = false;
-                return;
-            }
-        }
-    }
-
-    #endregion
-
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- OBJECT DATA -------------------------------------------------- */
-    /* ----------------------------------------------------------------------------------------- */
-
-    #region OBJECT_DATA
-
-    public class ObjectData
-    {
-        public Vector2 gridPosition;
-        public bool feasible;
-        public Vector3 position;
-        public Vector3 rotation;
-        public Vector3 scale;
-        public GameObject obj;
-        public bool flatteningDone;
-
-        public ObjectData(
-            Vector2 gridPosition,
-            bool feasible,
-            Vector3 position,
-            Vector3 rotation,
-            Vector3 scale)
-        {
-            this.gridPosition = gridPosition;
-            this.feasible = feasible;
-            this.position = position;
-            this.rotation = rotation;
-            this.scale = scale;
-            flatteningDone = false;
-        }
-    }
-
-
-    #endregion
 }
