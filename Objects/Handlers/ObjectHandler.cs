@@ -62,6 +62,7 @@ public class ObjectHandler
 
         /* calculate height */
         float height = GlobalInformation.Instance.getHeight(new Vector2(position.x / scale, position.y / scale));
+        height *= scale;
         obj.transform.position = new Vector3(position.x, height, position.y);
         //position = obj.transform.position;
 
