@@ -14,6 +14,8 @@ public static class GeometryUtilities
     /* ----------------------------- MATHS ----------------------------------- */
     /* ----------------------------------------------------------------------- */
 
+    #region MATHS
+
     public static bool isInsideRange(float num, float A, float B)
     {
         float min = Mathf.Min(A, B);
@@ -26,6 +28,7 @@ public static class GeometryUtilities
     }
 
 
+    /* ----------------------------------------------------------------------- */
     public static int roundToInt(float num)
     {
         int sign = num < 0 ? -1 : 1;
@@ -42,6 +45,11 @@ public static class GeometryUtilities
 
         return b * sign;
     }
+
+
+    /* ----------------------------------------------------------------------- */
+
+    #endregion
 
     /* ----------------------------------------------------------------------- */
     /* -------------------------- 2D MATHS ----------------------------------- */

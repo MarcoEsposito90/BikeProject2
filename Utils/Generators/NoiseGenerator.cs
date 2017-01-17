@@ -185,23 +185,7 @@ public class NoiseGenerator
         Vector2 gridPos = new Vector2(gridX, gridY);
 
         if (heightMaps.ContainsKey(gridPos))
-        {
-            int mapSize = sectorSize + 1;
-            int half = (int)(mapSize / 2.0f);
-
-            int leftX = (int)gridPos.x * sectorSize - half;
-            int topY = (int)gridPos.y * sectorSize + half;
-            int X = Mathf.RoundToInt(x) - leftX;
-            int Y = topY - Mathf.RoundToInt(y);
-            float[,] map = heightMaps[gridPos];
-
-            if(X < 0 || X >= mapSize || Y < 0 || Y >= mapSize)
-            {
-                Debug.Log(gridPos + " || " + x + ";" + y + " || " + X + ";" + Y);
-                Debug.Log(mapSize + " || " + half + " || " + leftX + " || " + topY);
-            }
-            return map[X, Y];
-        }
+            return valueFromHeightMap(gridPos, x, y);
 
         float sampleX = (x + offsetX) / (noiseScale * scaleMultiply);
         float sampleY = (y + offsetY) / (noiseScale * scaleMultiply);
@@ -209,6 +193,48 @@ public class NoiseGenerator
         float sampleValue = computeValue(sampleX, sampleY, frequencies, frequencyMultiplier, amplitudeDemultiplier);
         sampleValue = sampleValue / maxValue;
         return sampleValue;
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private float valueFromHeightMap(Vector2 gridPos, float x, float y)
+    {
+        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        float[,] map = heightMaps[gridPos];
+
+        int mapSize = sectorSize + 1;
+        int half = (int)(mapSize / 2.0f);
+
+        int leftX = (int)gridPos.x * sectorSize - half;
+        int topY = (int)gridPos.y * sectorSize + half;
+        float X = x - (float)leftX;
+        float Y = (float)topY - y;
+
+        // bilinear interpolation ----------------------------------------
+        int X1 = (int)X;
+        int X2 = X1 + 1;
+        if (X2 >= mapSize) X2 = mapSize - 1; 
+
+        int Y1 = (int)Y;
+        int Y2 = Y1 + 1;
+        if (Y2 >= mapSize) Y2 = mapSize - 1;
+
+        float X1Coeff = X - (float)X1;
+        float Y1Coeff = Y - (float)Y1;
+
+        float A = map[X1, Y1] * X1Coeff + map[X2, Y1] * (1.0f - X1Coeff);
+        float B = map[X1, Y2] * X1Coeff + map[X2, Y2] * (1.0f - X1Coeff);
+        float res = A * Y1Coeff + B * (1.0f - Y1Coeff);
+
+        if (gridPos.Equals(Vector2.zero))
+        {
+            Debug.Log(x + ";" + y + ": " + X + ";" + Y + " || " + X1 + ";" + Y1 + " || " + X2 + ";" + Y2);
+            Debug.Log("coeffs: " + X1Coeff + "; " + Y1Coeff);
+            Debug.Log("values: " + A + "; " + B + "; " + res);
+        }
+
+        //return map[X, Y];
+        return res;
     }
 
 
@@ -269,6 +295,7 @@ public class NoiseGenerator
         else if (precision > 20) precision = 20;
         float increment = 1.0f / (float)precision;
 
+        radius = 0;
         for (float i = -radius; i <= radius; i += increment)
         {
             for (float j = -radius; j <= radius; j += increment)
@@ -283,7 +310,7 @@ public class NoiseGenerator
     }
 
 
-    
+
 
     #endregion
 

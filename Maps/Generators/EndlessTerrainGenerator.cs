@@ -416,25 +416,4 @@ public class EndlessTerrainGenerator : MonoBehaviour
     //    }
     //}
 
-
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- SUBCLASSES --------------------------------------------------- */
-    /* ----------------------------------------------------------------------------------------- */
-
-    #region REDRAW_REQUEST
-
-    //public class DrawRequest
-    //{
-    //    public readonly Vector2 gridPosition;
-    //    public readonly float[,] heightMap;
-
-    //    public DrawRequest(Vector2 worldPosition, float[,] heightMap)
-    //    {
-    //        this.gridPosition = worldPosition;
-    //        this.heightMap = heightMap;
-    //    }
-    //}
-
-    #endregion
-
 }
