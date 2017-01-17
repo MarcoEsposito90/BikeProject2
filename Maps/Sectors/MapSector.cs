@@ -18,25 +18,16 @@ public class MapSector
     public GameObject prefabObject { get; private set; }
     //public Bounds bounds { get; private set; }
 
-    private int _currentLOD;
-    public int currentLOD
-    {
-        get { return _currentLOD; }
-        set
-        {
-            _currentLOD = value;
-            if (prefabObject != null)
-                prefabObject.GetComponent<MapSectorHandler>().currentLOD = _currentLOD;
-        }
-    }
+    public int currentLOD;
+    public int latestLODRequest;
+    public bool needRedraw;
+    public Mesh[] meshes { get; private set; }
 
-    //public int latestLODRequest;
+
     //public bool isVisible { get; private set; }
-    //public Mesh[] meshes { get; private set; }
     //public float[,] heightMap = null;
     //public float[,] alphaMap = null;
     //public bool mapComputed;
-    //public bool needRedraw;
 
     #endregion
 
@@ -54,12 +45,16 @@ public class MapSector
         this.position = position;
         this.size = size;
         this.scale = scale;
-        //this.numberOfLods = numberOfLods;
         currentLOD = -1;
-        //latestLODRequest = -1;
+        latestLODRequest = -1;
+        needRedraw = false;
+
+        int nLods = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.NUMBER_OF_LODS);
+        meshes = new Mesh[nLods];
+
         //isVisible = true;
         //mapComputed = false;
-        //needRedraw = false;
+
         //initializePrefabObject();
     }
 
@@ -82,14 +77,11 @@ public class MapSector
 
         if (!prefabObject.activeInHierarchy)
             prefabObject.SetActive(true);
-
-        prefabObject.GetComponent<MeshCollider>().enabled = false;
     }
 
     /* ------------------------------------------------------------------------------------------------- */
     public void setPrefabObject(Mesh collider, Mesh mesh, Color[] heightMap)
     {
-
         MapSectorHandler handler = prefabObject.GetComponent<MapSectorHandler>();
         updateMeshes(collider, mesh);
         handler.setTextures(heightMap);
@@ -112,7 +104,7 @@ public class MapSector
         prefabObject.transform.position = Vector3.zero;
         prefabObject.name = "sector (available)";
         prefabObject.transform.localScale = Vector3.one;
-        //prefabObject.SetActive(false);
+        prefabObject.SetActive(false);
         this.prefabObject = null;
     }
 

@@ -62,11 +62,11 @@ public class MapSectorHandler : MonoBehaviour {
 
         if (colliderMesh != null)
         {
-            GetComponent<MeshCollider>().sharedMesh = colliderMesh;
-            GetComponent<MeshCollider>().enabled = true;
+            terrain.GetComponent<MeshCollider>().sharedMesh = colliderMesh;
+            terrain.GetComponent<MeshCollider>().enabled = true;
         }
         else
-            GetComponent<MeshCollider>().enabled = false;
+            terrain.GetComponent<MeshCollider>().enabled = false;
 
         terrain.GetComponent<MeshFilter>().sharedMesh = mesh;
     }
@@ -104,7 +104,8 @@ public class MapSectorHandler : MonoBehaviour {
     /* ------------------------------------------------------------------------------------------- */
     public void reset()
     {
-        GetComponent<MeshCollider>().sharedMesh = null;
+        terrain.GetComponent<MeshCollider>().sharedMesh = null;
+        terrain.GetComponent<MeshCollider>().enabled = false;
         terrain.GetComponent<MeshFilter>().sharedMesh = null;
         hasHeightMap = false;
     }

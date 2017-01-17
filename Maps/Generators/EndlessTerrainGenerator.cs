@@ -11,7 +11,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public static readonly string SCALE = "EndlessTerrainGenerator.Scale";
     public static readonly string SECTOR_SIZE = "EndlessTerrainGenerator.SectorSize";
     public static readonly string WATER_LEVEL = "EndlessTerrainGenerator.WaterLevel";
-
+    public static readonly string NUMBER_OF_LODS = "EndlessTerrainGenerator.NumberOfLods";
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- INSTANCE ----------------------------------------------------- */
@@ -54,8 +54,8 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public int accuracy;
     private float[] LODThresholds;
 
-    [Range(0, 2)]
-    public int colliderAccuracy;
+    //[Range(0, 2)]
+    //public int colliderAccuracy;
 
     public Transform viewer;
     private Vector2 latestViewerRecordedPosition;
@@ -73,12 +73,10 @@ public class EndlessTerrainGenerator : MonoBehaviour
     private Dictionary<Vector2, MapSector> mapSectors;
     private PoolManager<Vector2> sectorsPoolManager;
     public BlockingQueue<MapSector.SectorData> sectorResultsQueue;
-    //public BlockingQueue<RedrawRequest> sectorRedrawRequests;
-    public BlockingQueue<DrawRequest> drawRequests;
+    public Queue<Vector2> removingSectors;
 
     public GameObject sectorsContainer;
     public MapGenerator mapGenerator;
-    private bool start = true;
 
     #endregion
 
@@ -127,133 +125,95 @@ public class EndlessTerrainGenerator : MonoBehaviour
         int startSize = (int)LODThresholds[LODThresholds.Length - 1] * 2 / scaledSectorSize;
         sectorsPoolManager = new PoolManager<Vector2>(startSize, true, mapSectorPrefab, sectorsContainer);
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
-        drawRequests = new BlockingQueue<DrawRequest>();
-        //sectorRedrawRequests = new BlockingQueue<RedrawRequest>();
+        removingSectors = new Queue<Vector2>();
 
         GlobalInformation.Instance.addData(SECTOR_SIZE, sectorSize);
         GlobalInformation.Instance.addData(VIEWER, viewer);
         GlobalInformation.Instance.addData(SCALE, scale);
         GlobalInformation.Instance.addData(VIEWER_DIST_UPDATE, viewerDistanceUpdate);
         GlobalInformation.Instance.addData(WATER_LEVEL, waterLevel);
+        GlobalInformation.Instance.addData(NUMBER_OF_LODS, NumberOfLods);
+
+        // subscribe to event
+        NoiseGenerator.Instance.OnSectorChanged += OnSectorChange;
     }
 
     /* ----------------------------------------------------------------------------------------- */
     void Start()
     {
-        Vector3 startPos = new Vector3(0, viewer.position.y, 0);
-        viewer.position = startPos;
-
-        ThreadStart ts = delegate
-        {
-            createNewSectors(startPos);
-            updateSectors(startPos);
-        };
-        Thread t = new Thread(ts);
-        t.Start();
+        float h = GlobalInformation.Instance.getHeight(new Vector2(0, 0));
+        viewer.position = new Vector3(0, 1000, 0);
+        latestViewerRecordedPosition = Vector2.zero;
+        createNewSectors(Vector2.zero);
+        updateSectors(Vector2.zero);
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
     void Update()
     {
-        Vector3 position = viewer.position;
         Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
         float distance = Vector2.Distance(latestViewerRecordedPosition, pos);
+
+        while (!(removingSectors.Count == 0))
+            removeSector(removingSectors.Dequeue());
 
         while (!sectorResultsQueue.isEmpty())
         {
             MapSector.SectorData data = sectorResultsQueue.Dequeue();
-            onSectorDataReceived(data);
+            onSectorDisplayDataReceived(data);
         }
 
-        //while (!drawRequests.isEmpty())
-        //{
-        //    DrawRequest r = drawRequests.Dequeue();
-        //    if (this[r.gridPosition] != null)
-        //        updateSector(this[r.gridPosition]);
-        //}
-
-        
         if (distance >= viewerDistanceUpdate)
         {
-            ThreadStart ts = delegate
-            {
-                updateSectors(position);
-                createNewSectors(position);
-            };
-            Thread t = new Thread(ts);
-            t.Start();
-
             latestViewerRecordedPosition = pos;
+            updateMapAsynch(pos);
         }
-
-        start = false;
     }
 
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void updateMapAsynch(Vector2 viewerPosition)
+    {
+        ThreadStart ts = delegate
+        {
+            lock (mapSectors)
+            {
+                updateMap(viewerPosition);
+            }
+        };
+        Thread t = new Thread(ts);
+        t.Start();
+    }
+
+
+    private void updateMap(Vector2 viewerPosition)
+    {
+        updateSectors(viewerPosition);
+        createNewSectors(viewerPosition);
+    }
 
     #endregion
-
-    /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- UPDATING ----------------------------------------------------- */
-    /* ----------------------------------------------------------------------------------------- */
-
-    #region CHUNK_UPDATING
-
-    // checks the list of chunks for updates ------------------------------------------------------
-    public void updateSectors(Vector3 position)
-    {
-        List<MapSector> currentSectors = new List<MapSector>(mapSectors.Values);
-
-        for (int index = 0; index < currentSectors.Count; index++)
-        {
-            MapSector sector = currentSectors[index];
-            float dist = updateSector(sector, position);
-
-            // check if the object should be removed ---------
-            if (dist >= LODThresholds[LODThresholds.Length - 1] * 1.1f)
-            {
-                sector.resetPrefabObject();
-                sectorsPoolManager.releaseObject(sector.position);
-                mapSectors.Remove(sector.position);
-            }
-        }
-    }
-
-
-    // updates a single sector to the right LOD --------------------------------------------------
-    private float updateSector(MapSector sector, Vector3 position)
-    {
-        float distance = Vector2.Distance(new Vector2(position.x, position.z), sector.position * scaledSectorSize);
-
-        for (int i = 0; i < LODThresholds.Length; i++)
-        {
-            if (distance < LODThresholds[i])
-            {
-                float[,] heightMap = NoiseGenerator.Instance[sector.position];
-                MapDisplay.Instance.getSectorData(sector.position, heightMap, i, i == 0, colliderAccuracy);
-                break;
-            }
-        }
-
-        return distance;
-    }
 
 
     /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- CREATE ------------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public void createNewSectors(Vector3 position)
+    #region CREATE
+
+    public void createNewSectors(Vector2 viewerPosition)
     {
-        float startX = position.x - LODThresholds[LODThresholds.Length - 1];
-        float endX = position.x + LODThresholds[LODThresholds.Length - 1];
-        float startY = position.z - LODThresholds[LODThresholds.Length - 1];
-        float endY = position.z + LODThresholds[LODThresholds.Length - 1];
+
+        float startX = viewerPosition.x - LODThresholds[LODThresholds.Length - 1];
+        float endX = viewerPosition.x + LODThresholds[LODThresholds.Length - 1];
+        float startY = viewerPosition.y - LODThresholds[LODThresholds.Length - 1];
+        float endY = viewerPosition.y + LODThresholds[LODThresholds.Length - 1];
         int startGridX = Mathf.RoundToInt(startX / scaledSectorSize + 0.1f);
         int endGridX = Mathf.RoundToInt(endX / scaledSectorSize + 0.1f);
         int startGridY = Mathf.RoundToInt(startY / scaledSectorSize + 0.1f);
         int endGridY = Mathf.RoundToInt(endY / scaledSectorSize + 0.1f);
-        Vector2 viewerPos = new Vector2(position.x, position.z);
+        Vector2 viewerPos = new Vector2(viewerPosition.x, viewerPosition.y);
 
         for (int x = startGridX; x <= endGridX; x++)
             for (int y = startGridY; y <= endGridY; y++)
@@ -265,10 +225,10 @@ public class EndlessTerrainGenerator : MonoBehaviour
                 Vector3 center = sectorPosition * scaledSectorSize;
                 float dist = Vector2.Distance(viewerPos, center);
 
-                if(dist < LODThresholds[LODThresholds.Length - 1])
+                if (dist < LODThresholds[LODThresholds.Length - 1])
                 {
                     MapSector s = new MapSector(sectorPosition, sectorSize, scale);
-                    this[sectorPosition] = s;
+                    mapSectors.Add(sectorPosition, s);
                     mapGenerator.GenerateMap(sectorPosition);
                 }
             }
@@ -278,36 +238,131 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
 
     /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- UPDATING ----------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region CHUNK_UPDATING
+
+    /* ----------------------------------------------------------------------------------------- */
+    public void updateSectors(Vector2 viewerPosition)
+    {
+        List<MapSector> currentSectors = new List<MapSector>(mapSectors.Values);
+
+        for (int index = 0; index < currentSectors.Count; index++)
+        {
+            MapSector sector = currentSectors[index];
+            float distance = Vector2.Distance(
+                new Vector2(viewerPosition.x, viewerPosition.y),
+                sector.position * scaledSectorSize);
+
+            if (distance >= LODThresholds[LODThresholds.Length - 1] * 1.1f)
+                removingSectors.Enqueue(sector.position);
+            else
+                updateSector(sector, distance);
+        }
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void updateSector(MapSector sector, float distance)
+    {
+        int roundDist = Mathf.RoundToInt(distance);
+        for (int i = 0; i < LODThresholds.Length; i++)
+        {
+            if (roundDist <= (LODThresholds[i]))
+            {
+                if (i != sector.currentLOD || sector.needRedraw)
+                {
+                    sector.latestLODRequest = i;
+                    sector.needRedraw = false;
+                    MapDisplay.Instance.createSectorDisplayData(sector.position, i);
+                }
+                return;
+            }
+        }
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void removeSector(Vector2 position)
+    {
+        MapSector sector = this[position];
+        if (sector == null)
+            return;
+
+        sector.resetPrefabObject();
+        sectorsPoolManager.releaseObject(sector.position);
+        mapSectors.Remove(sector.position);
+    }
+
+    #endregion
+
+
+
+
+    /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- MAP DRAWING -------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
-    public void onSectorDataReceived(MapSector.SectorData sectorData)
+    #region MAP_DRAW
+
+    private void OnSectorChange(Vector2 position)
+    {
+        MapSector s = mapSectors[position];
+        if (s == null)
+            return;
+
+        s.needRedraw = true;
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void onSectorDisplayDataReceived(MapSector.SectorData sectorData)
     {
         MapSector sector = this[sectorData.sectorPosition];
         if (sector == null)
             return;
 
-        // store the mesh inside the object --------------------------------
+        if (sectorData.LOD != sector.latestLODRequest)
+            return;
+
+        // meshes -----------------------------------------
         Mesh mesh = null;
-        mesh = sectorData.meshData.createMesh();
+
+        if (sector.meshes[sectorData.LOD] == null)
+        {
+            mesh = sectorData.meshData.createMesh();
+            sector.meshes[sectorData.LOD] = mesh;
+        }
+        else
+            mesh = sector.meshes[sectorData.LOD];
+
         mesh.name = "mesh" + sectorData.sectorPosition.ToString();
 
-        // get the collider mesh --------------------------------------------
         Mesh colliderMesh = null;
         if (sectorData.colliderMeshData != null)
-            colliderMesh = sectorData.colliderMeshData.createMesh();
+        {
+            if (sector.meshes[1] != null)
+                colliderMesh = sector.meshes[1];
+            else
+            {
+                colliderMesh = sectorData.colliderMeshData.createMesh();
+                sector.meshes[1] = colliderMesh;
+            }
+        }
 
-        if(sector.prefabObject == null)
+        // prefab -----------------------------------------
+        if (sector.prefabObject == null)
         {
             GameObject newObj = sectorsPoolManager.acquireObject(sectorData.sectorPosition);
             sector.initializePrefabObject(newObj);
         }
 
         sector.setPrefabObject(colliderMesh, mesh, sectorData.colorMap);
-        //sector.prefabObject.transform.localScale = new Vector3(scale, scale, scale);
-        //sector.currentLOD = sectorData.meshData.LOD;
+        sector.currentLOD = sectorData.LOD;
     }
 
+    #endregion
 
     /* ----------------------------------------------------------------------------------------- */
     //private void OnRedrawRequestReceived(RedrawRequest request)
@@ -368,17 +423,17 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     #region REDRAW_REQUEST
 
-    public class DrawRequest
-    {
-        public readonly Vector2 gridPosition;
-        public readonly float[,] heightMap;
+    //public class DrawRequest
+    //{
+    //    public readonly Vector2 gridPosition;
+    //    public readonly float[,] heightMap;
 
-        public DrawRequest(Vector2 worldPosition, float[,] heightMap)
-        {
-            this.gridPosition = worldPosition;
-            this.heightMap = heightMap;
-        }
-    }
+    //    public DrawRequest(Vector2 worldPosition, float[,] heightMap)
+    //    {
+    //        this.gridPosition = worldPosition;
+    //        this.heightMap = heightMap;
+    //    }
+    //}
 
     #endregion
 

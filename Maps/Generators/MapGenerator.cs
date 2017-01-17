@@ -67,25 +67,21 @@ public class MapGenerator : MonoBehaviour
     #region MAP_GENERATION
 
     /* ----------------------------------------------------------------------------------------- */
-    public void GenerateMap
-        (Vector2 sectorPosition
-        //int LOD,
-        //bool colliderRequested,
-        //int colliderAccuracy)
-        )
+    public void GenerateMap(Vector2 sectorPosition)
     {
-        float[,] heightMap = NoiseGenerator.Instance.GenerateNoiseMap(sectorPosition);
+        NoiseGenerator.Instance.GenerateNoiseMap(sectorPosition);
+    }
 
-        // 2) generate meshes and textures
-        //MapSector.SectorData sectorData = mapDisplayer.getSectorData(
-        //    heightMap,
-        //    LOD,
-        //    colliderRequested,
-        //    colliderAccuracy);
-        //sectorData.sectorPosition = sectorPosition;
 
-        //// 3) enqueue results
-        //parent.sectorResultsQueue.Enqueue(sectorData);
+    /* ----------------------------------------------------------------------------------------- */
+    public void GenerateMapAsynch(Vector2 sectorPosition)
+    {
+        ThreadStart ts = delegate
+        {
+            GenerateMap(sectorPosition);
+        };
+        Thread t = new Thread(ts);
+        t.Start();
     }
 
     #endregion

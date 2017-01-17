@@ -26,6 +26,23 @@ public static class GeometryUtilities
     }
 
 
+    public static int roundToInt(float num)
+    {
+        int sign = num < 0 ? -1 : 1;
+        float absNum = num * (float)sign;
+
+        int a = (int)absNum;
+        int b = a + 1;
+        float half = (float)a + 0.5f;
+
+        if (absNum == half)
+            return b * sign;
+        if (absNum < half)
+            return a * sign;
+
+        return b * sign;
+    }
+
     /* ----------------------------------------------------------------------- */
     /* -------------------------- 2D MATHS ----------------------------------- */
     /* ----------------------------------------------------------------------- */

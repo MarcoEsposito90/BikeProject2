@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 using System.Collections.Generic;
 
 public class NoiseGenerator
@@ -13,6 +14,9 @@ public class NoiseGenerator
 
     public static bool initialized { get; private set; }
     public static NoiseGenerator Instance { get; private set; }
+
+    public delegate void SectorChanged(Vector2 position);
+    public event SectorChanged OnSectorChanged;
 
     #endregion
 
@@ -30,9 +34,16 @@ public class NoiseGenerator
     public float frequencyMultiplier { get; private set; }
     public float amplitudeDemultiplier { get; private set; }
     private float maxValue;
+
+    #endregion
+
+    /* -------------------------------------------------------------------------------- */
+    /* -------------------------- DATA ------------------------------------------------ */
+    /* -------------------------------------------------------------------------------- */
+
+    #region DATA
+
     private Dictionary<Vector2, float[,]> heightMaps;
-
-
     public float[,] this[Vector2 key]
     {
         get
@@ -146,14 +157,17 @@ public class NoiseGenerator
         {
             for (int x = 0; x < mapSize; x++)
             {
-                float sampleValue = getNoiseValue(1.0f, xCoord - half + x, yCoord + half - y);
+                int X = xCoord - half + x;
+                int Y = yCoord + half - y;
+                float sampleValue = getNoiseValue(1.0f, X, Y);
                 noiseMap[x, y] = sampleValue;
+
             }
         }
 
         heightMaps.Add(gridPosition, noiseMap);
-        EndlessTerrainGenerator.DrawRequest r = new EndlessTerrainGenerator.DrawRequest(gridPosition, noiseMap);
-        EndlessTerrainGenerator.Instance.drawRequests.Enqueue(r);
+        OnSectorChanged(gridPosition);
+
         return noiseMap;
     }
 
@@ -165,20 +179,27 @@ public class NoiseGenerator
             return 0;
 
         int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
-        int gridX = Mathf.RoundToInt(x / (float)sectorSize + 0.1f);
-        int gridY = Mathf.RoundToInt(y / (float)sectorSize + 0.1f);
+
+        int gridX = GeometryUtilities.roundToInt(x / (float)sectorSize);
+        int gridY = GeometryUtilities.roundToInt(y / (float)sectorSize);
         Vector2 gridPos = new Vector2(gridX, gridY);
 
         if (heightMaps.ContainsKey(gridPos))
         {
             int mapSize = sectorSize + 1;
-            int half = (int)(mapSize / 2.0f) + 1;
+            int half = (int)(mapSize / 2.0f);
 
             int leftX = (int)gridPos.x * sectorSize - half;
             int topY = (int)gridPos.y * sectorSize + half;
             int X = Mathf.RoundToInt(x) - leftX;
             int Y = topY - Mathf.RoundToInt(y);
             float[,] map = heightMaps[gridPos];
+
+            if(X < 0 || X >= mapSize || Y < 0 || Y >= mapSize)
+            {
+                Debug.Log(gridPos + " || " + x + ";" + y + " || " + X + ";" + Y);
+                Debug.Log(mapSize + " || " + half + " || " + leftX + " || " + topY);
+            }
             return map[X, Y];
         }
 
