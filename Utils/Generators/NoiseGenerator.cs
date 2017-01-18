@@ -221,7 +221,7 @@ public class NoiseGenerator
         // bilinear interpolation ----------------------------------------
         int X1 = (int)X;
         int X2 = X1 + 1;
-        if (X2 >= mapSize) X2 = mapSize - 1; 
+        if (X2 >= mapSize) X2 = mapSize - 1;
 
         int Y1 = (int)Y;
         int Y2 = Y1 + 1;
@@ -318,17 +318,17 @@ public class NoiseGenerator
 
     public void redrawRequest(Vector2 worldPosition, float radius)
     {
+        Debug.Log("flattening request: " + worldPosition + ": " + radius);
         int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         int scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
-        List<Vector2> toRedraw = new List<Vector2>();
+        //List<Vector2> toRedraw = new List<Vector2>();
 
-        int X = GeometryUtilities.roundToInt(worldPosition.x / (float) (scale * sectorSize));
-        int Y = GeometryUtilities.roundToInt(worldPosition.y / (float) (scale * sectorSize));
+        int X = GeometryUtilities.roundToInt(worldPosition.x / (float)(scale * sectorSize));
+        int Y = GeometryUtilities.roundToInt(worldPosition.y / (float)(scale * sectorSize));
         int r = GeometryUtilities.roundToInt(radius / (float)scale);
 
         float unscaledX = worldPosition.x / (float)scale;
         float unscaledY = worldPosition.y / (float)scale;
-        float n = getNoiseValue(1, unscaledX, unscaledY);
 
         Vector3 sizes = new Vector3(sectorSize, 0, sectorSize);
 
@@ -338,38 +338,70 @@ public class NoiseGenerator
                 Vector2 other = new Vector2(X + i, Y + j);
                 Vector3 center = new Vector3(other.x * sectorSize, 0, other.y * sectorSize);
                 Bounds b = new Bounds(center, sizes);
-                Vector3 p = new Vector3(worldPosition.x /(float) scale, 0, worldPosition.y / (float) scale);
+                Vector3 p = new Vector3(worldPosition.x / (float)scale, 0, worldPosition.y / (float)scale);
                 float dist = b.SqrDistance(p);
                 dist = Mathf.Sqrt(dist);
 
+                Debug.Log(other + " distance from " + p + ": " + dist);
                 if (dist <= r)
-                    toRedraw.Add(other);
+                {
+                    Debug.Log("adding " + other);
+                    //toRedraw.Add(other);
+                    ThreadStart ts = delegate
+                    {
+                        lock (heightMaps[other])
+                        {
+                            flattenSector(other, unscaledX, unscaledY, r);
+                        }
+                    };
+
+                    Thread t = new Thread(ts);
+                    t.Start();
+                }
             }
 
-        foreach (Vector2 v in toRedraw)
-        {
-            ThreadStart ts = delegate
-            {
-                int centerX = (int)((unscaledX - (v.x - 0.5f) * sectorSize));
-                int centerY = (int)(((v.y + 0.5f) * sectorSize - unscaledY));
+        //foreach (Vector2 v in toRedraw)
+        //{
+        //    ThreadStart ts = delegate
+        //    {
+        //        int centerX = (int)((unscaledX - (v.x - 0.5f) * sectorSize));
+        //        int centerY = (int)(((v.y + 0.5f) * sectorSize - unscaledY));
 
-                //Debug.Log("flattening " + v + " in " + centerX + ";" + centerY + ". wp = " + worldPosition);
-                lock (heightMaps[v])
-                {
-                    heightMaps[v] = ImageProcessing.radialFlattening(
-                    heightMaps[v],
-                    r,
-                    centerX + 1,
-                    centerY + 1,
-                    n);
+        //        Debug.Log("flattening " + v + " in " + centerX + ";" + centerY + ". wp = " + worldPosition);
+        //        lock (heightMaps[v])
+        //        {
+        //            heightMaps[v] = ImageProcessing.radialFlattening(
+        //            heightMaps[v],
+        //            r,
+        //            centerX + 1,
+        //            centerY + 1,
+        //            n);
 
-                    OnSectorChanged(v);
-                }
-            };
+        //            OnSectorChanged(v);
+        //        }
+        //    };
 
-            Thread t = new Thread(ts);
-            t.Start();
-        }
+        //    Thread t = new Thread(ts);
+        //    t.Start();
+        //}
     }
 
+
+    private void flattenSector(Vector2 gridPos, float x, float y, int r)
+    {
+        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        int centerX = (int)((x - (gridPos.x - 0.5f) * sectorSize));
+        int centerY = (int)(((gridPos.y + 0.5f) * sectorSize - y));
+        float n = getNoiseValue(1, x, y);
+
+        Debug.Log("flattening " + gridPos + " in " + centerX + ";" + centerY + ". pos = " + x + ";" + y);
+        heightMaps[gridPos] = ImageProcessing.radialFlattening(
+            heightMaps[gridPos],
+            r,
+            centerX + 1,
+            centerY + 1,
+            n);
+
+        OnSectorChanged(gridPos);
+    }
 }
