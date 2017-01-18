@@ -88,6 +88,8 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
         roadsPoolManager = new PoolManager<Graph<Vector2, ControlPoint>.Link>(10, true, roadPrefab, roadsContainer);
         controlPointsPoolManager = new PoolManager<Vector2>(400, true, controlPointPrefab, controlPointsContainer);
+
+        NoiseGenerator.Instance.OnSectorChanged += onSectorChanged;
     }
 
 
@@ -309,7 +311,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
         foreach(ControlPoint cp in controlPoints.Values)
         {
-            if(cp.position.x <= sectorPos.x + sectorSize / 2.0f &&
+            if( cp.position.x <= sectorPos.x + sectorSize / 2.0f &&
                 cp.position.x >= sectorPos.x - sectorSize / 2.0f &&
                 cp.position.y <= sectorPos.y + sectorSize / 2.0f &&
                 cp.position.y >= sectorPos.y - sectorSize / 2.0f)

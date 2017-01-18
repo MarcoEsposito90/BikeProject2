@@ -56,8 +56,10 @@ public class RoadsGenerator : MonoBehaviour
     private Dictionary<Graph<Vector2, ControlPoint>.Link, ICurve> curves;
     private bool initialized;
     private object synchVariable;
+
     #endregion
 
+    
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- UNITY CALLBACKS ------------------------------------------------ */
     /* ------------------------------------------------------------------------------------------------- */
@@ -88,7 +90,7 @@ public class RoadsGenerator : MonoBehaviour
     #endregion
 
     /* -------------------------------------------------------------------------------------- */
-    /* -------------------------------- CONTROL POINTS -------------------------------------- */
+    /* ----------------------------- CONTROL POINTS ----------------------------------------- */
     /* -------------------------------------------------------------------------------------- */
 
     #region CONTROL_POINTS
@@ -190,6 +192,10 @@ public class RoadsGenerator : MonoBehaviour
 
         controlPointsGraph.removeItem(cp.position);
     }
+
+
+    /* -------------------------------------------------------------------------------------- */
+    //public void updateControlPoint
 
     #endregion
 

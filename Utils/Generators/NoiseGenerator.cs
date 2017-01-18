@@ -2,6 +2,7 @@
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 public class NoiseGenerator
 {
@@ -308,11 +309,67 @@ public class NoiseGenerator
         return currentMax;
     }
 
-
-
-
     #endregion
 
 
+    /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- REDRAW ------------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    public void redrawRequest(Vector2 worldPosition, float radius)
+    {
+        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        int scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
+        List<Vector2> toRedraw = new List<Vector2>();
+
+        int X = GeometryUtilities.roundToInt(worldPosition.x / (float) (scale * sectorSize));
+        int Y = GeometryUtilities.roundToInt(worldPosition.y / (float) (scale * sectorSize));
+        int r = GeometryUtilities.roundToInt(radius / (float)scale);
+
+        float unscaledX = worldPosition.x / (float)scale;
+        float unscaledY = worldPosition.y / (float)scale;
+        float n = getNoiseValue(1, unscaledX, unscaledY);
+
+        Vector3 sizes = new Vector3(sectorSize, 0, sectorSize);
+
+        for (int i = -1; i <= 1; i++)
+            for (int j = -1; j <= 1; j++)
+            {
+                Vector2 other = new Vector2(X + i, Y + j);
+                Vector3 center = new Vector3(other.x * sectorSize, 0, other.y * sectorSize);
+                Bounds b = new Bounds(center, sizes);
+                Vector3 p = new Vector3(worldPosition.x /(float) scale, 0, worldPosition.y / (float) scale);
+                float dist = b.SqrDistance(p);
+                dist = Mathf.Sqrt(dist);
+
+                if (dist <= r)
+                    toRedraw.Add(other);
+            }
+
+        foreach (Vector2 v in toRedraw)
+        {
+            ThreadStart ts = delegate
+            {
+                int centerX = (int)((unscaledX - (v.x - 0.5f) * sectorSize));
+                int centerY = (int)(((v.y + 0.5f) * sectorSize - unscaledY));
+
+                //Debug.Log("flattening " + v + " in " + centerX + ";" + centerY + ". wp = " + worldPosition);
+                lock (heightMaps[v])
+                {
+                    heightMaps[v] = ImageProcessing.radialFlattening(
+                    heightMaps[v],
+                    r,
+                    centerX + 1,
+                    centerY + 1,
+                    n);
+
+                    OnSectorChanged(v);
+                }
+            };
+
+            Thread t = new Thread(ts);
+            t.Start();
+        }
+    }
 
 }

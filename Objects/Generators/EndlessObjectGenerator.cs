@@ -109,7 +109,7 @@ public class EndlessObjectGenerator : MonoBehaviour
         int startNum = (int)(Mathf.Pow(distanceThreshold / scaledArea, 2) * 1.5f);
         objectPoolManager = new PoolManager<Vector2>(startNum, true, prefab, this.gameObject);
 
-        requestUpdate(viewer.position);
+        updateAsynch(viewer.position);
     }
 
 
@@ -130,8 +130,9 @@ public class EndlessObjectGenerator : MonoBehaviour
         Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
         if (Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
         {
-            requestUpdate(viewer.position);
-            updateObjects();
+            //requestUpdate(viewer.position);
+            createObjects(viewer.position);
+            updateObjects(viewer.position);
 
             latestViewerRecordedPosition = pos;
         }
@@ -140,6 +141,20 @@ public class EndlessObjectGenerator : MonoBehaviour
             StartCoroutine(checkOverlaps());
 
         start = false;
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void updateAsynch(Vector3 viewerPosition)
+    {
+        ThreadStart ts = delegate
+        {
+            createObjects(viewerPosition);
+            updateObjects(viewerPosition);
+        };
+
+        Thread t = new Thread(ts);
+        t.Start();
     }
 
     #endregion
@@ -151,16 +166,7 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     #region CREATE
 
-    private void requestUpdate(Vector3 viewerPosition)
-    {
-        ThreadStart ts = delegate
-        {
-            createObjects(viewerPosition);
-        };
 
-        Thread t = new Thread(ts);
-        t.Start();
-    }
 
 
     /* ----------------------------------------------------------------------------------------- */
@@ -180,6 +186,9 @@ public class EndlessObjectGenerator : MonoBehaviour
             for (int y = startGridY; y <= endGridY; y++)
             {
                 Vector2 gridPos = new Vector2(x, y);
+                if (currentObjects.ContainsKey(gridPos))
+                    continue;
+
                 Vector2 viewerPos = new Vector2(viewerPosition.x, viewerPosition.z);
 
                 if (Vector2.Distance(gridPos * scaledArea, viewerPos) > distanceThreshold)
@@ -237,8 +246,6 @@ public class EndlessObjectGenerator : MonoBehaviour
             obj.name = ObjectName + " " + handler.position;
 
             handler.initialize(obj, scaleRandomness);
-            //if (!handler.initialize(obj, scaleRandomness))
-            //    releaseObject(handler);
         }
 
         currentObjects.Add(handler.gridPosition, handler);
@@ -254,13 +261,13 @@ public class EndlessObjectGenerator : MonoBehaviour
     #region UPDATE
 
     /* ----------------------------------------------------------------------------------------- */
-    private void updateObjects()
+    private void updateObjects(Vector3 viewerPosition)
     {
         // 1) find objects to be removed -----------------------------------------
         List<Vector2> toRemove = new List<Vector2>(currentObjects.Keys);
         foreach (Vector2 pos in toRemove)
         {
-            Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
+            Vector2 viewerPos = new Vector2(viewerPosition.x, viewerPosition.z);
             float d = Vector2.Distance(pos * scaledArea, viewerPos);
 
             if (d > distanceThreshold)
@@ -277,7 +284,6 @@ public class EndlessObjectGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void releaseObject(ObjectHandler handler)
     {
-        handler.obj.name = ObjectName + " (available)";
         handler.reset();
         objectPoolManager.releaseObject(handler.gridPosition);
     }
@@ -315,7 +321,6 @@ public class EndlessObjectGenerator : MonoBehaviour
                     {
                         releaseObject(handler);
                         handler.feasible = false;
-                        Debug.Log("removing " + handler.gridPosition + " due to overlaps");
                     }
                 }
 

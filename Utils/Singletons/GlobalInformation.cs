@@ -20,7 +20,7 @@ public class GlobalInformation
     public static readonly string TERRAIN_TAG = "Terrain";
 
     // the tags must be stored in the array in order of priority (lower first, terrain excluded)
-    public static readonly string[] TAGS = { OBJECT1_TAG, OBJECT2_TAG, OBJECT3_TAG, VILLAGE_TAG, ROAD_TAG };
+    public static readonly string[] TAGS = { OBJECT1_TAG, OBJECT2_TAG, OBJECT3_TAG, ROAD_TAG, VILLAGE_TAG };
 
     public static int getPriority(string tag)
     {

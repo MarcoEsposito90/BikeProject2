@@ -71,6 +71,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     private PoolManager<Vector2> sectorsPoolManager;
     public BlockingQueue<MapSector.SectorData> sectorResultsQueue;
     public Queue<Vector2> removingSectors;
+    private bool needUpdate;
 
     public GameObject sectorsContainer;
     public MapGenerator mapGenerator;
@@ -123,6 +124,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
         sectorsPoolManager = new PoolManager<Vector2>(startSize, true, mapSectorPrefab, sectorsContainer);
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
         removingSectors = new Queue<Vector2>();
+        needUpdate = false;
 
         GlobalInformation.Instance.addData(SECTOR_SIZE, sectorSize);
         GlobalInformation.Instance.addData(VIEWER, viewer);
@@ -161,8 +163,9 @@ public class EndlessTerrainGenerator : MonoBehaviour
             onSectorDisplayDataReceived(data);
         }
 
-        if (distance >= viewerDistanceUpdate)
+        if (distance >= viewerDistanceUpdate || needUpdate)
         {
+            needUpdate = false;
             latestViewerRecordedPosition = pos;
             updateMapAsynch(pos);
         }
@@ -263,10 +266,9 @@ public class EndlessTerrainGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void updateSector(MapSector sector, float distance)
     {
-        int roundDist = Mathf.RoundToInt(distance);
         for (int i = 0; i < LODThresholds.Length; i++)
         {
-            if (roundDist <= (LODThresholds[i]))
+            if (distance <= LODThresholds[i])
             {
                 if (i != sector.currentLOD || sector.needRedraw)
                 {
@@ -283,10 +285,10 @@ public class EndlessTerrainGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void removeSector(Vector2 position)
     {
-        MapSector sector = this[position];
-        if (sector == null)
+        if (!mapSectors.ContainsKey(position))
             return;
 
+        MapSector sector = mapSectors[position];
         sector.resetPrefabObject();
         sectorsPoolManager.releaseObject(sector.position);
         mapSectors.Remove(sector.position);
@@ -305,11 +307,14 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     private void OnSectorChange(Vector2 position)
     {
+        //Debug.Log("onSectorChange " + position);
+
         MapSector s = mapSectors[position];
         if (s == null)
             return;
 
         s.needRedraw = true;
+        needUpdate = true;
     }
 
 
@@ -326,26 +331,26 @@ public class EndlessTerrainGenerator : MonoBehaviour
         // meshes -----------------------------------------
         Mesh mesh = null;
 
-        if (sector.meshes[sectorData.LOD] == null)
-        {
-            mesh = sectorData.meshData.createMesh();
-            sector.meshes[sectorData.LOD] = mesh;
-        }
-        else
-            mesh = sector.meshes[sectorData.LOD];
+        //if (sector.meshes[sectorData.LOD] == null)
+        //{
+        mesh = sectorData.meshData.createMesh();
+        //    sector.meshes[sectorData.LOD] = mesh;
+        //}
+        //else
+        //    mesh = sector.meshes[sectorData.LOD];
 
         mesh.name = "mesh" + sectorData.sectorPosition.ToString();
 
         Mesh colliderMesh = null;
         if (sectorData.colliderMeshData != null)
         {
-            if (sector.meshes[1] != null)
-                colliderMesh = sector.meshes[1];
-            else
-            {
-                colliderMesh = sectorData.colliderMeshData.createMesh();
-                sector.meshes[1] = colliderMesh;
-            }
+            //    if (sector.meshes[1] != null)
+            //        colliderMesh = sector.meshes[1];
+            //    else
+            //    {
+            colliderMesh = sectorData.colliderMeshData.createMesh();
+            //        sector.meshes[1] = colliderMesh;
+            //    }
         }
 
         // prefab -----------------------------------------

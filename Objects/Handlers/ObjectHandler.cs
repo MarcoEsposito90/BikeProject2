@@ -8,7 +8,6 @@ public class ObjectHandler
     public float area;
     private int scale;
     public bool feasible;
-    private bool hasCollider;
     private int priority;
     private bool acceptsSelfIntersection;
     private bool flatteningRequested;
@@ -140,9 +139,9 @@ public class ObjectHandler
     {
         Vector3 pos = obj.transform.position + (collider.center * obj.transform.localScale.x);
         Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.transform.localScale.x * 0.5f;
+        Vector2 worldPos = new Vector2(pos.x, pos.z);
         float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
-
-        
+        NoiseGenerator.Instance.redrawRequest(worldPos, radius);
     }
 
     #endregion
