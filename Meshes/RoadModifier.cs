@@ -113,7 +113,8 @@ public class RoadModifier : IMeshModifier
             Vector2 p = curve.pointOnCurve(t);
             Vector2 right = curve.getRightVector(t, true) * v[index2];
 
-            float n = NoiseGenerator.Instance.highestPointOnZone(p, 1, 0.5f, 1);
+            //float n = NoiseGenerator.Instance.highestPointOnZone(p, 1, 0.5f, 1);
+            float n = NoiseGenerator.Instance.getNoiseValue(1.0f, p.x, p.y);
             float terrainH = GlobalInformation.Instance.getHeight(n);
             float medH = startHeight + (endHeight - startHeight) * t;
             float height = medH + (1.0f - coeff) * (terrainH - medH);
@@ -126,7 +127,6 @@ public class RoadModifier : IMeshModifier
                 (p.x - start.x) * scale - right.x,
                 (height) * scale + v.y,
                 (p.y - start.y) * scale - right.y);
-
         }
 
         mesh.vertices = vertices;

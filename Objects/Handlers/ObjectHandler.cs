@@ -53,7 +53,7 @@ public class ObjectHandler
     #region METHODS
 
     /* ----------------------------------------------------------------------------------------- */
-    public bool initialize(GameObject obj, float scaleRandomness)
+    public void initialize(GameObject obj, float scaleRandomness)
     {
         this.obj = obj;
         float n = NoiseGenerator.Instance.getNoiseValue(1, position.x / scale, position.y / scale);
@@ -79,17 +79,7 @@ public class ObjectHandler
 
         if (collider != null)
         {
-            Debug.Log("collider. position = " + collider.center + "; sizes = " + collider.size);
             priority = GlobalInformation.getPriority(obj.tag);
-
-            // collisions check
-            if (checkOverlaps())
-            {
-                feasible = false;
-                return false;
-            }
-
-            // flattening
             if (flatteningRequested)
                 requestFlattening();
         }
@@ -97,8 +87,6 @@ public class ObjectHandler
 
         if (!obj.activeInHierarchy)
             obj.SetActive(true);
-
-        return true;
     }
 
 
@@ -123,10 +111,8 @@ public class ObjectHandler
         Vector3 sizes = collider.size * 0.5f * obj.transform.localScale.x;
         Collider[] intersects = Physics.OverlapBox(center, sizes, obj.transform.rotation);
 
-        Debug.Log("checking overlaps " + gridPosition + ": " + center + "; " + sizes);
         foreach (Collider overlap in intersects)
         {
-            Debug.Log("overlap " + overlap);    
             if (overlap.Equals(obj.GetComponent<BoxCollider>()))
                 continue;
 
@@ -135,7 +121,6 @@ public class ObjectHandler
 
             string tag = overlap.gameObject.tag;
             int p = GlobalInformation.getPriority(tag);
-            Debug.Log("priority = " + p);
 
             if (priority <= p)
             {
@@ -153,15 +138,11 @@ public class ObjectHandler
     /* ----------------------------------------------------------------------------------------- */
     private void requestFlattening()
     {
-        //Vector3 pos = obj.transform.position + (collider.center * obj.transform.localScale.x);
-        //Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.transform.localScale.x * 0.5f;
-        //float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
+        Vector3 pos = obj.transform.position + (collider.center * obj.transform.localScale.x);
+        Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.transform.localScale.x * 0.5f;
+        float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
 
-        //EndlessTerrainGenerator.RedrawRequest r = new EndlessTerrainGenerator.RedrawRequest(
-        //    new Vector2(pos.x, pos.z),
-        //    radius);
-
-        //EndlessTerrainGenerator.Instance.sectorRedrawRequests.Enqueue(r);
+        
     }
 
     #endregion

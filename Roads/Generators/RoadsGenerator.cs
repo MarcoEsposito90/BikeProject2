@@ -31,10 +31,6 @@ public class RoadsGenerator : MonoBehaviour
     public float maximumSegmentLength;
     private float maxLength;
 
-    //[Range(0.0f, 0.5f)]
-    //public float minimumSegmentLength;
-    //private float minLength;
-
     [Range(0.0f, 0.5f)]
     public float minimumRoadsHeight;
 
@@ -97,7 +93,7 @@ public class RoadsGenerator : MonoBehaviour
 
     #region CONTROL_POINTS
 
-    public void sendNewControlPoint(ControlPoint cp)
+    public void addControlPointAsynch(ControlPoint cp)
     {
         ThreadStart ts = delegate
         {
@@ -112,7 +108,7 @@ public class RoadsGenerator : MonoBehaviour
     }
 
     /* -------------------------------------------------------------------------------------- */
-    private void addControlPoint(ControlPoint cp)
+    public void addControlPoint(ControlPoint cp)
     {
         if (!initialized)
         {
@@ -122,8 +118,6 @@ public class RoadsGenerator : MonoBehaviour
             //minLength = minimumSegmentLength * cp.AreaSize;
             initialized = true;
         }
-
-        //bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
 
         // add point to graph --------------------------------------
         Graph<Vector2, ControlPoint>.GraphItem gi = controlPointsGraph.createItem(cp.position, cp);

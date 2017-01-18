@@ -165,7 +165,11 @@ public class NoiseGenerator
             }
         }
 
-        heightMaps.Add(gridPosition, noiseMap);
+        lock (heightMaps)
+        {
+            heightMaps.Add(gridPosition, noiseMap);
+        }
+
         OnSectorChanged(gridPosition);
 
         return noiseMap;
@@ -184,8 +188,11 @@ public class NoiseGenerator
         int gridY = GeometryUtilities.roundToInt(y / (float)sectorSize);
         Vector2 gridPos = new Vector2(gridX, gridY);
 
-        if (heightMaps.ContainsKey(gridPos))
-            return valueFromHeightMap(gridPos, x, y);
+        lock (heightMaps)
+        {
+            if (heightMaps.ContainsKey(gridPos))
+                return valueFromHeightMap(gridPos, x, y);
+        }
 
         float sampleX = (x + offsetX) / (noiseScale * scaleMultiply);
         float sampleY = (y + offsetY) / (noiseScale * scaleMultiply);
@@ -222,18 +229,9 @@ public class NoiseGenerator
         float X1Coeff = X - (float)X1;
         float Y1Coeff = Y - (float)Y1;
 
-        float A = map[X1, Y1] * X1Coeff + map[X2, Y1] * (1.0f - X1Coeff);
-        float B = map[X1, Y2] * X1Coeff + map[X2, Y2] * (1.0f - X1Coeff);
+        float A = map[X1, Y1] * (1.0f - X1Coeff) + map[X2, Y1] * X1Coeff;
+        float B = map[X1, Y2] * (1.0f - X1Coeff) + map[X2, Y2] * X1Coeff;
         float res = A * Y1Coeff + B * (1.0f - Y1Coeff);
-
-        if (gridPos.Equals(Vector2.zero))
-        {
-            Debug.Log(x + ";" + y + ": " + X + ";" + Y + " || " + X1 + ";" + Y1 + " || " + X2 + ";" + Y2);
-            Debug.Log("coeffs: " + X1Coeff + "; " + Y1Coeff);
-            Debug.Log("values: " + A + "; " + B + "; " + res);
-        }
-
-        //return map[X, Y];
         return res;
     }
 
@@ -261,7 +259,7 @@ public class NoiseGenerator
     #endregion
 
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- OTHER METHODS .----------------------------------------------- */
+    /* -------------------------- OTHER METHODS ------------------------------------------------ */
     /* ----------------------------------------------------------------------------------------- */
 
     #region OTHERS
@@ -284,6 +282,7 @@ public class NoiseGenerator
 
         return n;
     }
+
 
     /* ----------------------------------------------------------------------------------------- */
     public float highestPointOnZone(Vector2 position, float scaleMultiply, float radius, int precision)

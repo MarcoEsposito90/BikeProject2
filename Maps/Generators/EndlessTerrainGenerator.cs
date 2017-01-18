@@ -54,9 +54,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public int accuracy;
     private float[] LODThresholds;
 
-    //[Range(0, 2)]
-    //public int colliderAccuracy;
-
     public Transform viewer;
     private Vector2 latestViewerRecordedPosition;
 

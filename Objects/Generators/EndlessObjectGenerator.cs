@@ -236,8 +236,9 @@ public class EndlessObjectGenerator : MonoBehaviour
             GameObject obj = objectPoolManager.acquireObject(handler.gridPosition);
             obj.name = ObjectName + " " + handler.position;
 
-            if (!handler.initialize(obj, scaleRandomness))
-                releaseObject(handler);
+            handler.initialize(obj, scaleRandomness);
+            //if (!handler.initialize(obj, scaleRandomness))
+            //    releaseObject(handler);
         }
 
         currentObjects.Add(handler.gridPosition, handler);
@@ -261,15 +262,11 @@ public class EndlessObjectGenerator : MonoBehaviour
         {
             Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
             float d = Vector2.Distance(pos * scaledArea, viewerPos);
-            Debug.Log("viewer pos = " + viewerPos + "; pos = " + pos + "; d = " + d);
 
             if (d > distanceThreshold)
             {
                 if (currentObjects[pos].feasible)
-                {
-                    Debug.Log("removing " + pos);
                     releaseObject(currentObjects[pos]);
-                }
 
                 currentObjects.Remove(pos);
             }
@@ -317,6 +314,7 @@ public class EndlessObjectGenerator : MonoBehaviour
                     if (overlaps)
                     {
                         releaseObject(handler);
+                        handler.feasible = false;
                         Debug.Log("removing " + handler.gridPosition + " due to overlaps");
                     }
                 }

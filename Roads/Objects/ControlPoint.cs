@@ -22,7 +22,7 @@ public class ControlPoint
     public float height { get; private set; }
 
     public float AreaSize;
-    public Bounds bounds;
+    //public Bounds bounds;
     public int scale;
     public bool linkable;
     public int maximumLinks = 4;
@@ -37,15 +37,12 @@ public class ControlPoint
     /* -------------------------------- CONSTRUCTOR ---------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
 
-    public ControlPoint(Vector2 gridPosition, GameObject prefab, float size, int scale)
+    public ControlPoint(Vector2 gridPosition, float size, int scale, GameObject prefabObject)
     {
         this.gridPosition = gridPosition;
         this.AreaSize = size;
         this.scale = scale;
-        this.prefabObject = prefab;
-        Vector3 boundsCenter = new Vector3(gridPosition.x, 0, gridPosition.y) * scale * AreaSize;
-        Vector3 boundsSizes = new Vector3(AreaSize * scale, AreaSize * scale, AreaSize * scale);
-        this.bounds = new Bounds(boundsCenter, boundsSizes);
+        this.prefabObject = prefabObject;
 
         computePosition();
         computeHeight();
@@ -54,16 +51,13 @@ public class ControlPoint
 
 
     /* ------------------------------------------------------------------------------------------------- */
-    public ControlPoint(Vector2 gridPosition, Vector2 position, GameObject prefab, float size, int scale)
+    public ControlPoint(Vector2 gridPosition, Vector2 position, float size, int scale, GameObject prefabObject)
     {
         this.gridPosition = gridPosition;
         this.position = position;
         this.AreaSize = size;
         this.scale = scale;
-        this.prefabObject = prefab;
-        Vector3 boundsCenter = new Vector3(gridPosition.x, 0, gridPosition.y) * scale * AreaSize;
-        Vector3 boundsSizes = new Vector3(AreaSize * scale, AreaSize * scale, AreaSize * scale);
-        this.bounds = new Bounds(boundsCenter, boundsSizes);
+        this.prefabObject = prefabObject;
 
         computeHeight();
         initializePrefab();
@@ -74,34 +68,7 @@ public class ControlPoint
     /* ------------------------------ METHODS --------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------ */
 
-    private void computePosition()
-    {
-        float seedX = (float)GlobalInformation.Instance.getData(EndlessRoadsGenerator.MAP_SEEDX);
-        float seedY = (float)GlobalInformation.Instance.getData(EndlessRoadsGenerator.MAP_SEEDY);
 
-        // 2) get perlin value relative to coordinates ----------------
-        float randomX = Mathf.PerlinNoise(gridPosition.x + seedX, gridPosition.y + seedX);
-        float randomY = Mathf.PerlinNoise(gridPosition.x + seedY, gridPosition.y + seedY);
-
-        // 3) compute absolute coordinates of point in space ----------
-        int X = Mathf.RoundToInt((gridPosition.x + randomX) * (float)AreaSize);
-        int Y = Mathf.RoundToInt((gridPosition.y + randomY) * (float)AreaSize);
-
-        // 4) create point --------------------------------------------
-        this.position = new Vector2(X, Y);
-    }
-
-
-    /* ------------------------------------------------------------------------------------------ */
-    private void computeHeight()
-    {
-        float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 1, 1);
-        height = GlobalInformation.Instance.getHeight(y);
-
-        float wl = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.WATER_LEVEL);
-        float waterH = GlobalInformation.Instance.getHeight(wl);
-        if (height < waterH) height = waterH;
-    }
 
 
     /* ------------------------------------------------------------------------------------------------- */
@@ -186,11 +153,43 @@ public class ControlPoint
         prefabObject.name = "ControlPoint " + gridPosition;
     }
 
+
     /* ------------------------------------------------------------------------------------------------- */
-    public void setData(ControlPoint.ControlPointData data)
+    private void computePosition()
     {
-        prefabObject.SetActive(true);
-        prefabObject.GetComponent<CrossroadHandler>().setData(data);
+        float seedX = (float)GlobalInformation.Instance.getData(EndlessRoadsGenerator.MAP_SEEDX);
+        float seedY = (float)GlobalInformation.Instance.getData(EndlessRoadsGenerator.MAP_SEEDY);
+
+        // 2) get perlin value relative to coordinates ----------------
+        float randomX = Mathf.PerlinNoise(gridPosition.x + seedX, gridPosition.y + seedX);
+        float randomY = Mathf.PerlinNoise(gridPosition.x + seedY, gridPosition.y + seedY);
+
+        // 3) compute absolute coordinates of point in space ----------
+        int X = Mathf.RoundToInt((gridPosition.x + randomX) * (float)AreaSize);
+        int Y = Mathf.RoundToInt((gridPosition.y + randomY) * (float)AreaSize);
+
+        // 4) create point --------------------------------------------
+        this.position = new Vector2(X, Y);
+    }
+
+
+    /* ------------------------------------------------------------------------------------------ */
+    private void computeHeight()
+    {
+        float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 1, 1);
+        height = GlobalInformation.Instance.getHeight(y);
+
+        float wl = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.WATER_LEVEL);
+        float waterH = GlobalInformation.Instance.getHeight(wl);
+        if (height < waterH) height = waterH;
+    }
+
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public void setData(ControlPointData data)
+    {
+        this.prefabObject.SetActive(true);
+        this.prefabObject.GetComponent<CrossroadHandler>().setData(data);
     }
 
 

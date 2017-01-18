@@ -58,6 +58,9 @@ public class Graph<Key, Type>
             if (!nodes.TryGetValue(key, out node))
                 node = new GraphItem(item);
 
+            //if (nodes.ContainsKey(key))
+            //    Debug.Log("adding again " + key);
+
             nodes.Add(key, node);
         }
 
