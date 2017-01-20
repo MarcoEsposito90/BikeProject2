@@ -18,6 +18,7 @@ public class NoiseGenerator
 
     public delegate void SectorChanged(Vector2 position);
     public event SectorChanged OnSectorChanged;
+    public event SectorChanged OnSectorCreated;
 
     #endregion
 
@@ -171,11 +172,23 @@ public class NoiseGenerator
             heightMaps.Add(gridPosition, noiseMap);
         }
 
-        OnSectorChanged(gridPosition);
+        OnSectorCreated(gridPosition);
 
         return noiseMap;
     }
 
+
+    /* ----------------------------------------------------------------------------------------- */
+    public void removeNoiseMap(Vector2 sectorgridPosition)
+    {
+        lock (heightMaps)
+        {
+            if (!heightMaps.ContainsKey(sectorgridPosition))
+                return;
+
+            heightMaps.Remove(sectorgridPosition);
+        }
+    }
 
     /* ----------------------------------------------------------------------------------------- */
     public float getNoiseValue(float scaleMultiply, float x, float y)
@@ -318,7 +331,6 @@ public class NoiseGenerator
 
     public void redrawRequest(Vector2 worldPosition, float radius)
     {
-        Debug.Log("flattening request: " + worldPosition + ": " + radius);
         int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         int scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
 
@@ -343,22 +355,24 @@ public class NoiseGenerator
 
                 if (dist <= (r * 2))
                 {
-                    ThreadStart ts = delegate
-                    {
-                        lock (heightMaps[other])
-                        {
+                    //ThreadStart ts = delegate
+                    //{
+                    //    lock (heightMaps[other])
+                    //    {
                             flattenSector(other, unscaledX, unscaledY, r);
-                            OnSectorChanged(other);
-                        }
-                    };
+                        //}
 
-                    Thread t = new Thread(ts);
-                    t.Start();
+                        OnSectorChanged(other);
+                    //};
+
+                    //Thread t = new Thread(ts);
+                    //t.Start();
                 }
             }
     }
 
 
+    /* ----------------------------------------------------------------------------------------- */
     private void flattenSector(Vector2 gridPos, float x, float y, int r)
     {
         int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
@@ -366,7 +380,6 @@ public class NoiseGenerator
         int centerY = (int)(((gridPos.y + 0.5f) * sectorSize - y));
         float n = getNoiseValue(1, x, y);
 
-        Debug.Log("flattening " + gridPos + " in " + centerX + ";" + centerY + ". pos = " + x + ";" + y);
         heightMaps[gridPos] = ImageProcessing.radialFlattening(
             heightMaps[gridPos],
             r,

@@ -100,17 +100,6 @@ public class BezierCurve : ICurve
                 t += r;
                 return t;
             }
-            //int index = i;
-            //float L1 = lengthSamples[index];
-            //float L2 = lengthSamples[index + 1];
-
-            //if (length >= L1 && length <= L2)
-            //{
-            //    t = interval * (float)index;
-            //    float rate = (length - L1) / (L2 - L1) * interval;
-            //    t += rate;
-            //    break;
-            //}
         }
 
         return t;
@@ -180,5 +169,29 @@ public class BezierCurve : ICurve
         Vector2 rightVect = new Vector2(crossProd.x, crossProd.z);
 
         return rightVect;
+    }
+
+
+    /* ---------------------------------------------------------------- */
+    public bool overlapsSquare(Vector2 center, float side)
+    {
+        float left = center.x - side / 2.0f;
+        float right = center.x + side / 2.0f;
+        float top = center.y + side / 2.0f;
+        float bottom = center.y - side / 2.0f;
+
+        for (float t = 0.0f; t <= 1.0f; t += 0.1f)
+        {
+            float tp = parameterOnCurveArchLength(t);
+            Vector2 point = pointOnCurve(tp);
+
+            if( point.x >= left && point.x <= right &&
+                point.y >= bottom && point.y <= top)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

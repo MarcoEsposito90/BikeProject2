@@ -22,13 +22,13 @@ public class ControlPoint
     public float height { get; private set; }
 
     public float AreaSize;
-    //public Bounds bounds;
     public int scale;
     public bool linkable;
     public int maximumLinks = 4;
 
     private float scaledAreaSize;
     public GameObject prefabObject;
+    //public Graph<Vector2, ControlPoint>.GraphItem graphNode;
 
     #endregion
 
@@ -37,30 +37,28 @@ public class ControlPoint
     /* -------------------------------- CONSTRUCTOR ---------------------------------------------------- */
     /* ------------------------------------------------------------------------------------------------- */
 
-    public ControlPoint(Vector2 gridPosition, float size, int scale, GameObject prefabObject)
+    public ControlPoint(Vector2 gridPosition, float size, int scale)
     {
         this.gridPosition = gridPosition;
         this.AreaSize = size;
         this.scale = scale;
-        this.prefabObject = prefabObject;
 
         computePosition();
         computeHeight();
-        initializePrefab();
+        //initializePrefab();
     }
 
 
     /* ------------------------------------------------------------------------------------------------- */
-    public ControlPoint(Vector2 gridPosition, Vector2 position, float size, int scale, GameObject prefabObject)
+    public ControlPoint(Vector2 gridPosition, Vector2 position, float size, int scale)
     {
         this.gridPosition = gridPosition;
         this.position = position;
         this.AreaSize = size;
         this.scale = scale;
-        this.prefabObject = prefabObject;
 
         computeHeight();
-        initializePrefab();
+        //initializePrefab();
     }
 
 
@@ -143,7 +141,7 @@ public class ControlPoint
     #region PREFAB
 
     /* ------------------------------------------------------------------------------------------------- */
-    private void initializePrefab()
+    public void initializePrefab()
     {
         float x = position.x * scale;
         float z = position.y * scale;
@@ -174,9 +172,10 @@ public class ControlPoint
 
 
     /* ------------------------------------------------------------------------------------------ */
-    private void computeHeight()
+    public void computeHeight()
     {
         float y = NoiseGenerator.Instance.highestPointOnZone(position, 1, 1, 1);
+        //float y = NoiseGenerator.Instance.getNoiseValue(1, position.x, position.y);
         height = GlobalInformation.Instance.getHeight(y);
 
         float wl = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.WATER_LEVEL);

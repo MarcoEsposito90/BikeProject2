@@ -59,7 +59,7 @@ public class RoadsGenerator : MonoBehaviour
 
     #endregion
 
-    
+
     /* ------------------------------------------------------------------------------------------------- */
     /* -------------------------------- UNITY CALLBACKS ------------------------------------------------ */
     /* ------------------------------------------------------------------------------------------------- */
@@ -117,7 +117,6 @@ public class RoadsGenerator : MonoBehaviour
             scale = cp.scale;
             controlPointArea = cp.AreaSize;
             maxLength = maximumSegmentLength * cp.AreaSize;
-            //minLength = minimumSegmentLength * cp.AreaSize;
             initialized = true;
         }
 
@@ -195,7 +194,41 @@ public class RoadsGenerator : MonoBehaviour
 
 
     /* -------------------------------------------------------------------------------------- */
-    //public void updateControlPoint
+    public void sectorChangeUpdate(Vector2 sectorGridPos)
+    {
+        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        Vector2 position = sectorGridPos * sectorSize;
+
+        // 1 - find nodes inside the sector
+        foreach (Graph<Vector2, ControlPoint>.GraphItem gi in controlPointsGraph.nodes.Values)
+        {
+            if (gi.item.position.x <= position.x + sectorSize / 2.0f &&
+                gi.item.position.x >= position.x - sectorSize / 2.0f &&
+                gi.item.position.y <= position.y + sectorSize / 2.0f &&
+                gi.item.position.y >= position.y - sectorSize / 2.0f)
+            {
+                gi.item.computeHeight();
+                createCrossroad(gi);
+            }
+        }
+
+        // 2 - find curves that overlap the sector
+        foreach (Graph<Vector2, ControlPoint>.Link l in curves.Keys)
+        {
+            bool overlaps = curves[l].overlapsSquare(sectorGridPos * sectorSize, sectorSize);
+            if (overlaps)
+            {
+                RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(
+                l,
+                curves[l],
+                distanceFromCrossroad,
+                roadSegmentMeshData);
+                Road.RoadData data = new Road.RoadData(rmd, l, curves[l], roadSegmentTexture);
+                parent.roadsResultsQueue.Enqueue(data);
+            }
+        }
+    }
+
 
     #endregion
 

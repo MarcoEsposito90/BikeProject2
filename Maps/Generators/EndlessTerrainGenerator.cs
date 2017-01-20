@@ -135,6 +135,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
         // subscribe to event
         NoiseGenerator.Instance.OnSectorChanged += OnSectorChange;
+        NoiseGenerator.Instance.OnSectorCreated += OnSectorCreate;
     }
 
     /* ----------------------------------------------------------------------------------------- */
@@ -144,7 +145,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
         viewer.position = new Vector3(0, 1000, 0);
         latestViewerRecordedPosition = Vector2.zero;
         createNewSectors(Vector2.zero);
-        updateSectors(Vector2.zero);
+        //updateSectors(Vector2.zero);
     }
 
 
@@ -174,6 +175,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void updateMapAsynch(Vector2 viewerPosition)
     {
+        Debug.Log("Update map " + Time.time);
         ThreadStart ts = delegate
         {
             lock (mapSectors)
@@ -233,6 +235,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
             }
     }
 
+
     #endregion
 
 
@@ -291,6 +294,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
         sector.resetPrefabObject();
         sectorsPoolManager.releaseObject(sector.position);
         mapSectors.Remove(sector.position);
+        NoiseGenerator.Instance.removeNoiseMap(sector.position);
     }
 
     #endregion
@@ -316,6 +320,23 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
         s.needRedraw = true;
         needUpdate = true;
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void OnSectorCreate(Vector2 position)
+    {
+        lock (mapSectors)
+        {
+            if (!mapSectors.ContainsKey(position))
+                return;
+
+            Vector2 center = position * scaledSectorSize;
+            float distance = Vector2.Distance(center, latestViewerRecordedPosition);
+            MapSector s = mapSectors[position];
+            updateSector(s, distance);
+        }
+
     }
 
 

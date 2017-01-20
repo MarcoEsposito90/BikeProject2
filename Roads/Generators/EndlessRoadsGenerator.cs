@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using System.Threading;
 
 public class EndlessRoadsGenerator : MonoBehaviour
 {
@@ -110,7 +111,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         removeThreshold = ((float)(radius + removeRadius) + 0.5f) * scaledControlPointArea;
 
         GlobalInformation.Instance.addData(CP_AREA, controlPointArea);
-        createControlPoints();
+        createControlPoints(Vector3.zero);
     }
 
     /* ----------------------------------------------------------------------------------------- */
@@ -140,7 +141,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         float distance = Vector3.Distance(latestViewerRecordedPosition, pos);
         if (distance >= viewerDistanceUpdate)
         {
-            createControlPoints();
+            createControlPoints(viewer.position);
             latestViewerRecordedPosition = pos;
         }
     }
@@ -155,20 +156,36 @@ public class EndlessRoadsGenerator : MonoBehaviour
     #region METHODS
 
 
-    /* ----------------------------------------------------------------------------- */
-    /* ---------------------------- CONTROL POINTS --------------------------------- */
-    /* ----------------------------------------------------------------------------- */
+    /* ---------------------------------------------------------------------------------------- */
+    /* ---------------------------- CONTROL POINTS -------------------------------------------- */
+    /* ---------------------------------------------------------------------------------------- */
 
     #region CONTROL_POINTS
 
-    /* ----------------------------------------------------------------------------------------- */
-    private void createControlPoints()
+    /* ---------------------------------------------------------------------------------------- */
+    private void createControlPointsAsynch(Vector3 viewerPosition)
     {
-        Vector3 position = viewer.position;
-        float startX = position.x - threshold;
-        float endX = position.x + threshold;
-        float startY = position.z - threshold;
-        float endY = position.z + threshold;
+        ThreadStart ts = delegate
+        {
+            lock (controlPoints)
+            {
+                createControlPoints(viewerPosition);
+            }
+        };
+
+        Thread t = new Thread(ts);
+        t.Start();
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void createControlPoints(Vector3 viewerPosition)
+    {
+        //Vector3 viewerPosition = viewer.position;
+        float startX = viewerPosition.x - threshold;
+        float endX = viewerPosition.x + threshold;
+        float startY = viewerPosition.z - threshold;
+        float endY = viewerPosition.z + threshold;
 
         for (float x = startX; x <= endX; x += scaledControlPointArea)
             for (float y = startY; y <= endY; y += scaledControlPointArea)
@@ -186,7 +203,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
                 Vector3 center = new Vector3(realCPX, 0, realCPY);
                 Vector3 sizes = new Vector3(scaledControlPointArea, scaledControlPointArea, scaledControlPointArea);
                 Bounds b = new Bounds(center, sizes);
-                float dist = Mathf.Sqrt(b.SqrDistance(position));
+                float dist = Mathf.Sqrt(b.SqrDistance(viewerPosition));
 
                 if (dist < threshold)
                     createControlPoint(CPGridPos);
@@ -197,8 +214,11 @@ public class EndlessRoadsGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void createControlPoint(Vector2 gridPos)
     {
-        GameObject prefab = controlPointsPoolManager.acquireObject(gridPos);
-        ControlPoint newCP = new ControlPoint(gridPos, controlPointArea, scale, prefab);
+        ControlPoint newCP = new ControlPoint(gridPos, controlPointArea, scale);
+        //GameObject prefab = controlPointsPoolManager.acquireObject(gridPos);
+        //newCP.prefabObject = prefab;
+        //newCP.initializePrefab();
+
         controlPoints.Add(gridPos, newCP);
         roadsGenerator.addControlPointAsynch(newCP);
     }
@@ -207,9 +227,12 @@ public class EndlessRoadsGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     public void createControlPoint(Vector2 gridPos, Vector2 position)
     {
-        GameObject prefab = controlPointsPoolManager.acquireObject(gridPos);
-        ControlPoint newcp = new ControlPoint(gridPos, position, controlPointArea, scale, prefab);
+        ControlPoint newcp = new ControlPoint(gridPos, position, controlPointArea, scale);
+        //GameObject prefab = controlPointsPoolManager.acquireObject(gridPos);
+        //newcp.prefabObject = prefab;
+        //newcp.initializePrefab();
         newcp.maximumLinks = 1;
+
         controlPoints.Add(gridPos, newcp);
         roadsGenerator.addControlPointAsynch(newcp);
     }
@@ -255,7 +278,6 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
         if (roads.ContainsKey(roadData.key))
         {
-            Debug.Log("updating road");
             r = roads[roadData.key];
         }
         else
@@ -285,10 +307,18 @@ public class EndlessRoadsGenerator : MonoBehaviour
             return;
 
         ControlPoint cp = controlPoints[data.gridPosition];
+
+        if(cp.prefabObject == null)
+        {
+            GameObject prefab = controlPointsPoolManager.acquireObject(cp.gridPosition);
+            cp.prefabObject = prefab;
+        }
+
+        cp.initializePrefab();
         cp.setData(data);
     }
 
-    
+
     /* ----------------------------------------------------------------------------------------- */
     private void onRoadRemove(Graph<Vector2, ControlPoint>.Link link)
     {
@@ -302,23 +332,11 @@ public class EndlessRoadsGenerator : MonoBehaviour
         r = null;
     }
 
-    
+
     /* ----------------------------------------------------------------------------------------- */
     private void onSectorChanged(Vector2 sectorGridPos)
     {
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
-        Vector2 sectorPos = sectorGridPos * sectorSize;
-
-        foreach(ControlPoint cp in controlPoints.Values)
-        {
-            if( cp.position.x <= sectorPos.x + sectorSize / 2.0f &&
-                cp.position.x >= sectorPos.x - sectorSize / 2.0f &&
-                cp.position.y <= sectorPos.y + sectorSize / 2.0f &&
-                cp.position.y >= sectorPos.y - sectorSize / 2.0f)
-            {
-                // TODO: update
-            }
-        }
+        roadsGenerator.sectorChangeUpdate(sectorGridPos);
     }
 
     #endregion
