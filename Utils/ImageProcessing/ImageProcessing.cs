@@ -10,7 +10,7 @@ public static class ImageProcessing
         for (int x = centerX - 2 * radius; x < centerX + 2 * radius; x++)
             for (int y = centerY - 2 * radius; y < centerY + 2 * radius; y++)
             {
-                if (x < 0 || x > heightMap.GetLength(0))
+                if (x < 0 || x >= heightMap.GetLength(0))
                     continue;
                 if (y < 0 || y >= heightMap.GetLength(1))
                     continue;

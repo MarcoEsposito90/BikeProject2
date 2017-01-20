@@ -321,7 +321,6 @@ public class NoiseGenerator
         Debug.Log("flattening request: " + worldPosition + ": " + radius);
         int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         int scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
-        //List<Vector2> toRedraw = new List<Vector2>();
 
         int X = GeometryUtilities.roundToInt(worldPosition.x / (float)(scale * sectorSize));
         int Y = GeometryUtilities.roundToInt(worldPosition.y / (float)(scale * sectorSize));
@@ -342,16 +341,14 @@ public class NoiseGenerator
                 float dist = b.SqrDistance(p);
                 dist = Mathf.Sqrt(dist);
 
-                Debug.Log(other + " distance from " + p + ": " + dist);
-                if (dist <= r)
+                if (dist <= (r * 2))
                 {
-                    Debug.Log("adding " + other);
-                    //toRedraw.Add(other);
                     ThreadStart ts = delegate
                     {
                         lock (heightMaps[other])
                         {
                             flattenSector(other, unscaledX, unscaledY, r);
+                            OnSectorChanged(other);
                         }
                     };
 
@@ -359,31 +356,6 @@ public class NoiseGenerator
                     t.Start();
                 }
             }
-
-        //foreach (Vector2 v in toRedraw)
-        //{
-        //    ThreadStart ts = delegate
-        //    {
-        //        int centerX = (int)((unscaledX - (v.x - 0.5f) * sectorSize));
-        //        int centerY = (int)(((v.y + 0.5f) * sectorSize - unscaledY));
-
-        //        Debug.Log("flattening " + v + " in " + centerX + ";" + centerY + ". wp = " + worldPosition);
-        //        lock (heightMaps[v])
-        //        {
-        //            heightMaps[v] = ImageProcessing.radialFlattening(
-        //            heightMaps[v],
-        //            r,
-        //            centerX + 1,
-        //            centerY + 1,
-        //            n);
-
-        //            OnSectorChanged(v);
-        //        }
-        //    };
-
-        //    Thread t = new Thread(ts);
-        //    t.Start();
-        //}
     }
 
 
@@ -402,6 +374,5 @@ public class NoiseGenerator
             centerY + 1,
             n);
 
-        OnSectorChanged(gridPos);
     }
 }

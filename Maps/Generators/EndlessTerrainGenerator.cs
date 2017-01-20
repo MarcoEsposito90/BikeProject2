@@ -165,7 +165,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
         if (distance >= viewerDistanceUpdate || needUpdate)
         {
-            needUpdate = false;
             latestViewerRecordedPosition = pos;
             updateMapAsynch(pos);
         }
@@ -307,11 +306,13 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     private void OnSectorChange(Vector2 position)
     {
-        //Debug.Log("onSectorChange " + position);
-
-        MapSector s = mapSectors[position];
-        if (s == null)
-            return;
+        MapSector s;
+        lock (mapSectors)
+        {
+            s = mapSectors[position];
+            if (s == null)
+                return;
+        }
 
         s.needRedraw = true;
         needUpdate = true;
