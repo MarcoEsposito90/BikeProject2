@@ -175,7 +175,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void updateMapAsynch(Vector2 viewerPosition)
     {
-        Debug.Log("Update map " + Time.time);
         ThreadStart ts = delegate
         {
             lock (mapSectors)
@@ -192,6 +191,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     {
         updateSectors(viewerPosition);
         createNewSectors(viewerPosition);
+        needUpdate = false;
     }
 
     #endregion

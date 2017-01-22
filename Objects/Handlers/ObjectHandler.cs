@@ -13,6 +13,8 @@ public class ObjectHandler
     private bool flatteningRequested;
     private EndlessObjectGenerator parent;
 
+    private float height;
+
     public BoxCollider collider { get; private set; }
     public GameObject obj { get; private set; }
 
@@ -25,7 +27,7 @@ public class ObjectHandler
 
     public ObjectHandler(
         Vector2 gridPosition,
-        Vector3 position,
+        Vector2 position,
         float area,
         int scale,
         bool feasible,
@@ -46,20 +48,26 @@ public class ObjectHandler
     #endregion
 
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- METHODS ------------------------------------------------------ */
+    /* -------------------------- PREFAB ------------------------------------------------------ */
     /* ----------------------------------------------------------------------------------------- */
 
-    #region METHODS
+    #region PREFAB
 
     /* ----------------------------------------------------------------------------------------- */
-    public void initialize(GameObject obj, float scaleRandomness)
+    public void computeHeight()
     {
-        this.obj = obj;
         float n = NoiseGenerator.Instance.getNoiseValue(1, position.x / scale, position.y / scale);
-
-        /* calculate height */
-        float height = GlobalInformation.Instance.getHeight(new Vector2(position.x / scale, position.y / scale));
+        height = GlobalInformation.Instance.getHeight(new Vector2(position.x / scale, position.y / scale));
         height *= scale;
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    public void initializePrefab(GameObject obj, float scaleRandomness)
+    {
+        computeHeight();
+
+        this.obj = obj;
         obj.transform.position = new Vector3(position.x, height, position.y);
 
         /* calculate rotation */
@@ -90,7 +98,16 @@ public class ObjectHandler
 
 
     /* ----------------------------------------------------------------------------------------- */
-    public void reset()
+    public void updatePrefab()
+    {
+        computeHeight();
+        obj.transform.position = new Vector3(position.x, height, position.y);
+    }
+        
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    public void resetPrefab()
     {
         obj.transform.position = Vector3.zero;
         obj.transform.rotation = Quaternion.identity;
@@ -99,8 +116,15 @@ public class ObjectHandler
         obj = null;
     }
 
+    #endregion
+
 
     /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- OVERLAPS ----------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region OVERLAPS
+
     public bool checkOverlaps()
     {
         if (collider == null)
@@ -133,8 +157,15 @@ public class ObjectHandler
         return false;
     }
 
+    #endregion
+
 
     /* ----------------------------------------------------------------------------------------- */
+    /* -------------------------- FLATTENING --------------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region FLATTENING
+
     private void requestFlattening()
     {
         Vector3 pos = obj.transform.position + (collider.center * obj.transform.localScale.x);

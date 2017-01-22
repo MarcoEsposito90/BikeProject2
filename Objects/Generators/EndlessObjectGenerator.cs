@@ -82,6 +82,8 @@ public class EndlessObjectGenerator : MonoBehaviour
     {
         currentObjects = new Dictionary<Vector2, ObjectHandler>();
         resultsQueue = new BlockingQueue<ObjectHandler>();
+
+        NoiseGenerator.Instance.OnSectorChanged += OnSectorChange;
     }
 
 
@@ -245,7 +247,7 @@ public class EndlessObjectGenerator : MonoBehaviour
             GameObject obj = objectPoolManager.acquireObject(handler.gridPosition);
             obj.name = ObjectName + " " + handler.position;
 
-            handler.initialize(obj, scaleRandomness);
+            handler.initializePrefab(obj, scaleRandomness);
         }
 
         currentObjects.Add(handler.gridPosition, handler);
@@ -284,7 +286,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void releaseObject(ObjectHandler handler)
     {
-        handler.reset();
+        handler.resetPrefab();
         objectPoolManager.releaseObject(handler.gridPosition);
     }
 
@@ -325,6 +327,37 @@ public class EndlessObjectGenerator : MonoBehaviour
                 }
 
             yield return new WaitForSeconds(5);
+        }
+    }
+
+    #endregion
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    /* ------------------------------- NOTIFICATIONS ------------------------------------------- */
+    /* ----------------------------------------------------------------------------------------- */
+
+    #region NOTIFICATIONS
+
+    private void OnSectorChange(Vector2 sectorGridPos)
+    {
+        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        Debug.Log("SectorChanged! " + sectorGridPos);
+        foreach(ObjectHandler o in currentObjects.Values)
+        {
+            if (!o.feasible)
+                continue;
+
+            int scaledSectorSize = scale * sectorSize;
+            Vector2 center = sectorGridPos * scaledSectorSize;
+
+            if( o.position.x >= center.x - (scaledSectorSize/2.0f) &&
+                o.position.x <= center.x + (scaledSectorSize / 2.0f) &&
+                o.position.y >= center.y - (scaledSectorSize / 2.0f) &&
+                o.position.y <= center.y + (scaledSectorSize / 2.0f))
+            {
+                o.updatePrefab();
+            }
         }
     }
 
