@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using System.Collections.Generic;
+using System.Threading;
 
 public class VillageHandler : MonoBehaviour
 {
@@ -31,6 +33,7 @@ public class VillageHandler : MonoBehaviour
     public bool subObjectFlattening;
     public Transform link;
     public GameObject roadSegment;
+    private Dictionary<Transform, RoadMeshGenerator.RoadMeshData> roadMeshDatas;
 
     private static MeshData roadSegmentMeshData;
     private static bool initialized = false;
@@ -56,12 +59,34 @@ public class VillageHandler : MonoBehaviour
     }
 
 
+    /* -------------------------------------------------------------------------------------- */
+    void Update()
+    {
+        lock (roadMeshDatas)
+        {
+            foreach (Transform s in roadMeshDatas.Keys)
+            {
+                RoadMeshGenerator.RoadMeshData rmd = roadMeshDatas[s];
+                Mesh mesh = rmd.createMesh();
+                s.gameObject.GetComponent<MeshFilter>().mesh = mesh;
+                s.gameObject.GetComponent<MeshCollider>().sharedMesh = mesh;
+                s.rotation = Quaternion.identity;
+                s.position = new Vector3(s.position.x, 0, s.position.z);
+            }
+
+            roadMeshDatas.Clear();
+        }
+
+    }
 
     /* -------------------------------------------------------------------------------------- */
     void OnEnable()
     {
         if (!initialized)
             initialize();
+
+        if (roadMeshDatas == null)
+            roadMeshDatas = new Dictionary<Transform, RoadMeshGenerator.RoadMeshData>();
 
         Vector3 p = link.position;
         float X = p.x / (float)scale;
@@ -131,13 +156,32 @@ public class VillageHandler : MonoBehaviour
                 continue;
 
             BezierCurve c = new BezierCurve(start, startTangent, end, endTangent);
-            RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(c, 0, roadSegmentMeshData);
-            Mesh mesh = rmd.createMesh();
-            s.gameObject.GetComponent<MeshFilter>().mesh = mesh;
-            s.gameObject.GetComponent<MeshCollider>().sharedMesh = mesh;
-            s.rotation = Quaternion.identity;
-            s.position = new Vector3(s.position.x, 0, s.position.z);
+            createRoadMeshDataAsynch(s, c);
+            //RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(c, 0, roadSegmentMeshData);
+            //Mesh mesh = rmd.createMesh();
+            //s.gameObject.GetComponent<MeshFilter>().mesh = mesh;
+            //s.gameObject.GetComponent<MeshCollider>().sharedMesh = mesh;
+            //s.rotation = Quaternion.identity;
+            //s.position = new Vector3(s.position.x, 0, s.position.z);
         }
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void createRoadMeshDataAsynch(Transform obj, ICurve curve)
+    {
+        ThreadStart ts = delegate
+        {
+            RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(curve, 0, roadSegmentMeshData);
+
+            lock (roadMeshDatas)
+            {
+                roadMeshDatas.Add(obj, rmd);
+            }
+        };
+
+        Thread t = new Thread(ts);
+        t.Start();
     }
 
 
@@ -160,7 +204,6 @@ public class VillageHandler : MonoBehaviour
             if (!GlobalInformation.isFlatteningTag(obj.gameObject.tag))
                 continue;
 
-            Debug.Log("flattening " + obj.gameObject.name);
             BoxCollider collider = obj.gameObject.GetComponent<BoxCollider>();
             Vector3 pos = obj.position + (collider.center * obj.localScale.x);
             Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.localScale.x * 0.5f;
@@ -176,7 +219,7 @@ public class VillageHandler : MonoBehaviour
     {
         Transform crossroadsContainer = transform.Find(CRS_CONTAINER);
 
-        foreach(Transform cr in crossroadsContainer)
+        foreach (Transform cr in crossroadsContainer)
         {
             Vector2 scaled2DPos = new Vector2(
                 (cr.position.x) / (float)scale,

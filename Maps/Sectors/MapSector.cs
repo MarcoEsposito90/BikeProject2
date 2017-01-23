@@ -22,12 +22,7 @@ public class MapSector
     public int latestLODRequest;
     public bool needRedraw;
     public Mesh[] meshes { get; private set; }
-
-
-    //public bool isVisible { get; private set; }
-    //public float[,] heightMap = null;
-    //public float[,] alphaMap = null;
-    //public bool mapComputed;
+    public bool[] meshUpdated;
 
     #endregion
 
@@ -47,10 +42,15 @@ public class MapSector
         this.scale = scale;
         currentLOD = -1;
         latestLODRequest = -1;
+
         needRedraw = false;
 
         int nLods = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.NUMBER_OF_LODS);
         meshes = new Mesh[nLods];
+        meshUpdated = new bool[nLods];
+
+        for (int i = 0; i < meshUpdated.Length; i++)
+            meshUpdated[i] = false;
 
         //isVisible = true;
         //mapComputed = false;
@@ -108,16 +108,43 @@ public class MapSector
         this.prefabObject = null;
     }
 
+    #endregion
+
     /* ------------------------------------------------------------------------------------------------- */
-    //public void setVisible(bool visibility)
-    //{
-    //    if (isVisible == visibility)
-    //        return;
+    /* ------------------------------------ MESHES ----------------------------------------------------- */
+    /* ------------------------------------------------------------------------------------------------- */
 
-    //    isVisible = visibility;
-    //    prefabObject.SetActive(visibility);
-    //}
+    #region MESHES
 
+    /* ------------------------------------------------------------------------------------------------- */
+    public Mesh getMesh(int LOD, MeshData meshData)
+    {
+        Mesh mesh = null;
+
+        if (meshes[LOD] == null || !meshUpdated[LOD])
+        {
+            mesh = meshData.createMesh();
+            meshes[LOD] = mesh;
+            meshUpdated[LOD] = true;
+        }
+        else
+        {
+            mesh = meshes[LOD];
+        }
+
+        return mesh;
+    }
+
+
+    /* ------------------------------------------------------------------------------------------------- */
+    public void resetMeshes()
+    {
+        for(int i = 0; i < meshes.Length; i++)
+        {
+            meshes[i] = null;
+            meshUpdated[i] = false;
+        }
+    }
 
     #endregion
 

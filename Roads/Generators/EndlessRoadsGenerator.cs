@@ -90,13 +90,14 @@ public class EndlessRoadsGenerator : MonoBehaviour
         roadsPoolManager = new PoolManager<Graph<Vector2, ControlPoint>.Link>(10, true, roadPrefab, roadsContainer);
         controlPointsPoolManager = new PoolManager<Vector2>(400, true, controlPointPrefab, controlPointsContainer);
 
-        NoiseGenerator.Instance.OnSectorChanged += onSectorChanged;
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
     void Start()
     {
+        NoiseGenerator.Instance.OnSectorChanged += onSectorChanged;
+
         sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
         viewerDistanceUpdate = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.VIEWER_DIST_UPDATE);

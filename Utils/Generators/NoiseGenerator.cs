@@ -36,6 +36,8 @@ public class NoiseGenerator
     public float frequencyMultiplier { get; private set; }
     public float amplitudeDemultiplier { get; private set; }
     private float maxValue;
+    private int sectorSize;
+    private int scale;
 
     #endregion
 
@@ -57,6 +59,8 @@ public class NoiseGenerator
             heightMaps[key] = value;
         }
     }
+
+    private List<Vector2> notOriginalSectors;
 
     #endregion
 
@@ -114,6 +118,9 @@ public class NoiseGenerator
         this.maxValue = getMaxValue(frequencies, amplitudeDemultiplier);
 
         heightMaps = new Dictionary<Vector2, float[,]>();
+        notOriginalSectors = new List<Vector2>();
+        sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
     }
 
 
@@ -146,7 +153,7 @@ public class NoiseGenerator
         if (heightMaps.ContainsKey(gridPosition))
             return heightMaps[gridPosition];
 
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        //int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         int mapSize = sectorSize + 1;
 
         float[,] noiseMap = new float[mapSize, mapSize];
@@ -187,6 +194,9 @@ public class NoiseGenerator
                 return;
 
             heightMaps.Remove(sectorgridPosition);
+
+            if (notOriginalSectors.Contains(sectorgridPosition))
+                notOriginalSectors.Remove(sectorgridPosition);
         }
     }
 
@@ -196,17 +206,21 @@ public class NoiseGenerator
         if (scaleMultiply == 0)
             return 0;
 
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        //int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
 
         int gridX = GeometryUtilities.roundToInt(x / (float)sectorSize);
         int gridY = GeometryUtilities.roundToInt(y / (float)sectorSize);
         Vector2 gridPos = new Vector2(gridX, gridY);
 
-        lock (heightMaps)
+        if (notOriginalSectors.Contains(gridPos))
         {
-            if (heightMaps.ContainsKey(gridPos))
-                return valueFromHeightMap(gridPos, x, y);
+            lock (heightMaps)
+            {
+                if (heightMaps.ContainsKey(gridPos))
+                    return valueFromHeightMap(gridPos, x, y);
+            }
         }
+
 
         float sampleX = (x + offsetX) / (noiseScale * scaleMultiply);
         float sampleY = (y + offsetY) / (noiseScale * scaleMultiply);
@@ -220,7 +234,7 @@ public class NoiseGenerator
     /* ----------------------------------------------------------------------------------------- */
     private float valueFromHeightMap(Vector2 gridPos, float x, float y)
     {
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        //int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         float[,] map = heightMaps[gridPos];
 
         int mapSize = sectorSize + 1;
@@ -331,9 +345,6 @@ public class NoiseGenerator
 
     public void redrawRequest(Vector2 worldPosition, float radius)
     {
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
-        int scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
-
         int X = GeometryUtilities.roundToInt(worldPosition.x / (float)(scale * sectorSize));
         int Y = GeometryUtilities.roundToInt(worldPosition.y / (float)(scale * sectorSize));
         int r = GeometryUtilities.roundToInt(radius / (float)scale);
@@ -355,18 +366,9 @@ public class NoiseGenerator
 
                 if (dist <= (r * 2))
                 {
-                    //ThreadStart ts = delegate
-                    //{
-                    //    lock (heightMaps[other])
-                    //    {
-                            flattenSector(other, unscaledX, unscaledY, r);
-                        //}
-
-                        OnSectorChanged(other);
-                    //};
-
-                    //Thread t = new Thread(ts);
-                    //t.Start();
+                    flattenSector(other, unscaledX, unscaledY, r);
+                    notOriginalSectors.Add(other);
+                    OnSectorChanged(other);
                 }
             }
     }
@@ -375,7 +377,6 @@ public class NoiseGenerator
     /* ----------------------------------------------------------------------------------------- */
     private void flattenSector(Vector2 gridPos, float x, float y, int r)
     {
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         int centerX = (int)((x - (gridPos.x - 0.5f) * sectorSize));
         int centerY = (int)(((gridPos.y + 0.5f) * sectorSize - y));
         float n = getNoiseValue(1, x, y);

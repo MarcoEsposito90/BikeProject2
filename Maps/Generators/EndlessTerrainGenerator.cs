@@ -132,15 +132,15 @@ public class EndlessTerrainGenerator : MonoBehaviour
         GlobalInformation.Instance.addData(VIEWER_DIST_UPDATE, viewerDistanceUpdate);
         GlobalInformation.Instance.addData(WATER_LEVEL, waterLevel);
         GlobalInformation.Instance.addData(NUMBER_OF_LODS, NumberOfLods);
-
-        // subscribe to event
-        NoiseGenerator.Instance.OnSectorChanged += OnSectorChange;
-        NoiseGenerator.Instance.OnSectorCreated += OnSectorCreate;
     }
 
     /* ----------------------------------------------------------------------------------------- */
     void Start()
     {
+        // subscribe to event
+        NoiseGenerator.Instance.OnSectorChanged += OnSectorChange;
+        NoiseGenerator.Instance.OnSectorCreated += OnSectorCreate;
+
         float h = GlobalInformation.Instance.getHeight(new Vector2(0, 0));
         viewer.position = new Vector3(0, 1000, 0);
         latestViewerRecordedPosition = Vector2.zero;
@@ -319,6 +319,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
         }
 
         s.needRedraw = true;
+        s.resetMeshes();
         needUpdate = true;
     }
 
@@ -336,7 +337,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
             MapSector s = mapSectors[position];
             updateSector(s, distance);
         }
-
     }
 
 
@@ -351,29 +351,12 @@ public class EndlessTerrainGenerator : MonoBehaviour
             return;
 
         // meshes -----------------------------------------
-        Mesh mesh = null;
-
-        //if (sector.meshes[sectorData.LOD] == null)
-        //{
-        mesh = sectorData.meshData.createMesh();
-        //    sector.meshes[sectorData.LOD] = mesh;
-        //}
-        //else
-        //    mesh = sector.meshes[sectorData.LOD];
-
+        Mesh mesh = sector.getMesh(sectorData.LOD, sectorData.meshData);
         mesh.name = "mesh" + sectorData.sectorPosition.ToString();
 
         Mesh colliderMesh = null;
         if (sectorData.colliderMeshData != null)
-        {
-            //    if (sector.meshes[1] != null)
-            //        colliderMesh = sector.meshes[1];
-            //    else
-            //    {
-            colliderMesh = sectorData.colliderMeshData.createMesh();
-            //        sector.meshes[1] = colliderMesh;
-            //    }
-        }
+            colliderMesh = sector.getMesh(1, sectorData.colliderMeshData);
 
         // prefab -----------------------------------------
         if (sector.prefabObject == null)
@@ -387,57 +370,5 @@ public class EndlessTerrainGenerator : MonoBehaviour
     }
 
     #endregion
-
-    /* ----------------------------------------------------------------------------------------- */
-    //private void OnRedrawRequestReceived(RedrawRequest request)
-    //{
-    //    Dictionary<Vector2, int> toRedraw = new Dictionary<Vector2, int>();
-
-    //    float X = request.worldPosition.x / (float)scale;
-    //    float Y = request.worldPosition.y / (float)scale;
-    //    int radius = Mathf.RoundToInt(request.radius / (float)scale);
-    //    float n = NoiseGenerator.Instance.getNoiseValue(1, X, Y);
-
-    //    for (int i = -1; i <= 1; i++)
-    //        for (int j = -1; j <= 1; j++)
-    //        {
-    //            float a = request.worldPosition.x + i * request.radius * 2.0f;
-    //            float b = request.worldPosition.y + j * request.radius * 2.0f;
-    //            a /= scaledSectorSize;
-    //            b /= scaledSectorSize;
-    //            int gridX = Mathf.RoundToInt(a);
-    //            int gridY = Mathf.RoundToInt(b);
-
-    //            Vector2 gridPos = new Vector2(gridX, gridY);
-    //            if (!toRedraw.ContainsKey(gridPos))
-    //                toRedraw.Add(gridPos, 0);
-
-    //        }
-
-    //    foreach (Vector2 v in toRedraw.Keys)
-    //    {
-    //        MapSector sector = mapSectors[v];
-    //        ThreadStart ts = delegate
-    //        {
-    //            int centerX = (int)((X - (sector.position.x - 0.5f) * sectorSize));
-    //            int centerY = (int)(((sector.position.y + 0.5f) * sectorSize - Y));
-
-    //            lock (sector)
-    //            {
-    //                sector.heightMap = ImageProcessing.radialFlattening(
-    //                sector.heightMap,
-    //                radius,
-    //                centerX + 1,
-    //                centerY + 1,
-    //                n);
-
-    //                sector.needRedraw = true;
-    //            }
-    //        };
-
-    //        Thread t = new Thread(ts);
-    //        t.Start();
-    //    }
-    //}
 
 }

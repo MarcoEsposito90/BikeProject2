@@ -42,6 +42,7 @@ public class RoadsGenerator : MonoBehaviour
     public int adherence;
 
     private int scale;
+    private int sectorSize;
     private float controlPointArea;
 
     public GameObject roadSegment;
@@ -87,6 +88,7 @@ public class RoadsGenerator : MonoBehaviour
         GlobalInformation.Instance.addData(MAX_ROAD_ADHERENCE, MAX_ADHERENCE);
     }
 
+
     #endregion
 
     /* -------------------------------------------------------------------------------------- */
@@ -117,6 +119,7 @@ public class RoadsGenerator : MonoBehaviour
             scale = cp.scale;
             controlPointArea = cp.AreaSize;
             maxLength = maximumSegmentLength * cp.AreaSize;
+            sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
             initialized = true;
         }
 
@@ -196,7 +199,7 @@ public class RoadsGenerator : MonoBehaviour
     /* -------------------------------------------------------------------------------------- */
     public void sectorChangeUpdate(Vector2 sectorGridPos)
     {
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        //int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         Vector2 position = sectorGridPos * sectorSize;
 
         // 1 - find nodes inside the sector

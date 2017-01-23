@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Threading;
 
 public class ObjectHandler
 {
@@ -14,6 +15,7 @@ public class ObjectHandler
     private EndlessObjectGenerator parent;
 
     private float height;
+    private System.Random random;
 
     public BoxCollider collider { get; private set; }
     public GameObject obj { get; private set; }
@@ -43,6 +45,7 @@ public class ObjectHandler
         this.acceptsSelfIntersection = acceptsSelfIntersection;
         this.flatteningRequested = flatteningRequested;
         this.parent = parent;
+        random = new System.Random((int)(position.x * position.y));
     }
 
     #endregion
@@ -71,13 +74,12 @@ public class ObjectHandler
         obj.transform.position = new Vector3(position.x, height, position.y);
 
         /* calculate rotation */
-        System.Random r = new System.Random((int)(position.x * position.y));
-        float y = (float)(r.NextDouble() * 360);
+        float y = (float)(random.NextDouble() * 360);
         obj.transform.rotation = Quaternion.identity;
         obj.transform.Rotate(new Vector3(0, y, 0));
 
         /* calculate scale */
-        float s = (float)(r.NextDouble() * 2.0 - 1.0);
+        float s = (float)(random.NextDouble() * 2.0 - 1.0);
         s = s * scaleRandomness;
         obj.transform.localScale += new Vector3(s, s, s);
 
@@ -103,7 +105,7 @@ public class ObjectHandler
         computeHeight();
         obj.transform.position = new Vector3(position.x, height, position.y);
     }
-        
+
 
 
     /* ----------------------------------------------------------------------------------------- */
@@ -172,6 +174,7 @@ public class ObjectHandler
         Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.transform.localScale.x * 0.5f;
         Vector2 worldPos = new Vector2(pos.x, pos.z);
         float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
+
         NoiseGenerator.Instance.redrawRequest(worldPos, radius);
     }
 

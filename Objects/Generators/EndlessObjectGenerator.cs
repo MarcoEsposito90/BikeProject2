@@ -46,6 +46,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     [Range(20, 500)]
     public int maxObjsForLoop;
 
+    public bool checkOverlapsEnabled = true;
     public bool acceptsSelfIntersection;
     public bool flatteningRequested;
     public GameObject prefab;
@@ -53,6 +54,7 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     /* ----------------------------------------------------------------------------------------- */
     BlockingQueue<ObjectHandler> resultsQueue;
+    BlockingQueue<ObjectHandler> removeQueue;
     private Dictionary<Vector2, ObjectHandler> currentObjects;
     private PoolManager<Vector2> objectPoolManager;
 
@@ -82,14 +84,15 @@ public class EndlessObjectGenerator : MonoBehaviour
     {
         currentObjects = new Dictionary<Vector2, ObjectHandler>();
         resultsQueue = new BlockingQueue<ObjectHandler>();
-
-        NoiseGenerator.Instance.OnSectorChanged += OnSectorChange;
+        removeQueue = new BlockingQueue<ObjectHandler>();
     }
 
 
     /* ----------------------------------------------------------------------------------------- */
     void Start()
     {
+        NoiseGenerator.Instance.OnSectorChanged += OnSectorChange;
+
         System.Random random = new System.Random(seed);
         seedX = ((float)random.NextDouble()) * random.Next(1000);
         seedY = ((float)random.NextDouble()) * random.Next(1000);
@@ -120,26 +123,37 @@ public class EndlessObjectGenerator : MonoBehaviour
     {
         /* create objects that are ready */
         int counter = 0;
-        while (!resultsQueue.isEmpty() && counter <= maxObjsForLoop)
+        lock (resultsQueue)
         {
-            if (!start) counter++;
-            ObjectHandler handler = resultsQueue.Dequeue();
-            if (!currentObjects.ContainsKey(handler.gridPosition))
-                createObject(handler);
+            while (!resultsQueue.isEmpty() && counter <= maxObjsForLoop)
+            {
+                if (!start) counter++;
+                ObjectHandler handler = resultsQueue.Dequeue();
+                if (!currentObjects.ContainsKey(handler.gridPosition))
+                    createObject(handler);
+            }
+        }
+
+        lock (removeQueue)
+        {
+            while (!removeQueue.isEmpty())
+            {
+                ObjectHandler handler = removeQueue.Dequeue();
+                releaseObject(handler);
+            }
         }
 
         /* create new requests and update current objects */
         Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
         if (Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
         {
-            //requestUpdate(viewer.position);
-            createObjects(viewer.position);
-            updateObjects(viewer.position);
-
+            //createObjects(viewer.position);
+            //updateObjects(viewer.position);
+            updateAsynch(viewer.position);
             latestViewerRecordedPosition = pos;
         }
 
-        if (start)
+        if (start && checkOverlapsEnabled)
             StartCoroutine(checkOverlaps());
 
         start = false;
@@ -151,8 +165,11 @@ public class EndlessObjectGenerator : MonoBehaviour
     {
         ThreadStart ts = delegate
         {
-            createObjects(viewerPosition);
-            updateObjects(viewerPosition);
+            lock (resultsQueue)
+            {
+                createObjects(viewerPosition);
+                updateObjects(viewerPosition);
+            }
         };
 
         Thread t = new Thread(ts);
@@ -246,7 +263,6 @@ public class EndlessObjectGenerator : MonoBehaviour
         {
             GameObject obj = objectPoolManager.acquireObject(handler.gridPosition);
             obj.name = ObjectName + " " + handler.position;
-
             handler.initializePrefab(obj, scaleRandomness);
         }
 
@@ -275,7 +291,10 @@ public class EndlessObjectGenerator : MonoBehaviour
             if (d > distanceThreshold)
             {
                 if (currentObjects[pos].feasible)
-                    releaseObject(currentObjects[pos]);
+                {
+                    removeQueue.Enqueue(currentObjects[pos]);
+                }
+                    //releaseObject(currentObjects[pos]);
 
                 currentObjects.Remove(pos);
             }
@@ -341,7 +360,7 @@ public class EndlessObjectGenerator : MonoBehaviour
 
     private void OnSectorChange(Vector2 sectorGridPos)
     {
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        //int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
         foreach(ObjectHandler o in currentObjects.Values)
         {
             if (!o.feasible)
