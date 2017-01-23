@@ -342,7 +342,6 @@ public class EndlessObjectGenerator : MonoBehaviour
     private void OnSectorChange(Vector2 sectorGridPos)
     {
         int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
-        Debug.Log("SectorChanged! " + sectorGridPos);
         foreach(ObjectHandler o in currentObjects.Values)
         {
             if (!o.feasible)

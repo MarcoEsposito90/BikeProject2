@@ -219,7 +219,7 @@ public class RoadsGenerator : MonoBehaviour
             if (overlaps)
             {
                 RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(
-                l,
+                //l,
                 curves[l],
                 distanceFromCrossroad,
                 roadSegmentMeshData);
@@ -260,7 +260,7 @@ public class RoadsGenerator : MonoBehaviour
 
         curves.Add(link, c);
         RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(
-            link,
+            //link,
             c,
             distanceFromCrossroad,
             roadSegmentMeshData);

@@ -28,7 +28,6 @@ public class ControlPoint
 
     private float scaledAreaSize;
     public GameObject prefabObject;
-    //public Graph<Vector2, ControlPoint>.GraphItem graphNode;
 
     #endregion
 
@@ -45,7 +44,6 @@ public class ControlPoint
 
         computePosition();
         computeHeight();
-        //initializePrefab();
     }
 
 
@@ -58,7 +56,6 @@ public class ControlPoint
         this.scale = scale;
 
         computeHeight();
-        //initializePrefab();
     }
 
 

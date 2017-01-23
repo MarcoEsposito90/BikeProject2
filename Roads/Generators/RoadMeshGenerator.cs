@@ -14,7 +14,7 @@ public static class RoadMeshGenerator
     #region METHODS
 
     public static RoadMeshData generateMeshData(
-        Graph<Vector2, ControlPoint>.Link link,
+        //Graph<Vector2, ControlPoint>.Link link,
         ICurve curve,
         float distanceFromCP,
         MeshData segmentMeshData)
@@ -32,8 +32,10 @@ public static class RoadMeshGenerator
         float from = curve.parameterOnCurveArchLength(distanceFromCP / curveLength);
         float to = curve.parameterOnCurveArchLength((curveLength - distanceFromCP) / curveLength);
         RoadModifier roadMod = new RoadModifier(curve, RoadModifier.Axis.X, true, false, from, to);
-        roadMod.startHeight = link.from.item.height;
-        roadMod.endHeight = link.to.item.height;
+        //roadMod.startHeight = link.from.item.height;
+        //roadMod.endHeight = link.to.item.height;
+        roadMod.startHeight = GlobalInformation.Instance.getHeight(curve.startPoint());
+        roadMod.endHeight = GlobalInformation.Instance.getHeight(curve.endPoint());
 
         MeshData newMesh = segmentMeshData.clone();
         arrayMod.Apply(newMesh);
