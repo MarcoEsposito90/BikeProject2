@@ -28,6 +28,7 @@ public class VillageHandler : MonoBehaviour
 
     #region ATTRIBUTES
 
+    public bool subObjectFlattening;
     public Transform link;
     public GameObject roadSegment;
 
@@ -62,7 +63,6 @@ public class VillageHandler : MonoBehaviour
         if (!initialized)
             initialize();
 
-        Debug.Log(gameObject.name + " OnEnable. position = " + gameObject.transform.position);
         Vector3 p = link.position;
         float X = p.x / (float)scale;
         float Y = p.z / (float)scale;
@@ -132,7 +132,9 @@ public class VillageHandler : MonoBehaviour
 
             BezierCurve c = new BezierCurve(start, startTangent, end, endTangent);
             RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(c, 0, roadSegmentMeshData);
-            s.gameObject.GetComponent<MeshFilter>().mesh = rmd.createMesh();
+            Mesh mesh = rmd.createMesh();
+            s.gameObject.GetComponent<MeshFilter>().mesh = mesh;
+            s.gameObject.GetComponent<MeshCollider>().sharedMesh = mesh;
             s.rotation = Quaternion.identity;
             s.position = new Vector3(s.position.x, 0, s.position.z);
         }
@@ -143,14 +145,28 @@ public class VillageHandler : MonoBehaviour
     private void initializeObjects()
     {
         Transform objectsContainer = transform.Find(OBJ_CONTAINER);
-        foreach (Transform o in objectsContainer)
+        foreach (Transform obj in objectsContainer)
         {
             Vector2 scaled2DPos = new Vector2(
-                (o.position.x) / (float)scale,
-                (o.position.z) / (float)scale);
+                (obj.position.x) / (float)scale,
+                (obj.position.z) / (float)scale);
 
             float h = GlobalInformation.Instance.getHeight(scaled2DPos) * scale;
-            o.position = new Vector3(o.position.x, h, o.position.z);
+            obj.position = new Vector3(obj.position.x, h, obj.position.z);
+
+            if (!subObjectFlattening)
+                continue;
+
+            if (!GlobalInformation.isFlatteningTag(obj.gameObject.tag))
+                continue;
+
+            Debug.Log("flattening " + obj.gameObject.name);
+            BoxCollider collider = obj.gameObject.GetComponent<BoxCollider>();
+            Vector3 pos = obj.position + (collider.center * obj.localScale.x);
+            Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.localScale.x * 0.5f;
+            Vector2 worldPos = new Vector2(pos.x, pos.z);
+            float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
+            NoiseGenerator.Instance.redrawRequest(worldPos, radius);
         }
     }
 

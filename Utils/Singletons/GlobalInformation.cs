@@ -22,6 +22,8 @@ public class GlobalInformation
     // the tags must be stored in the array in order of priority (lower first, terrain excluded)
     public static readonly string[] TAGS = { OBJECT1_TAG, OBJECT2_TAG, OBJECT3_TAG, ROAD_TAG, VILLAGE_TAG };
 
+
+    /* ---------------------------------------------------------------------- */
     public static int getPriority(string tag)
     {
         for (int i = 0; i < TAGS.Length; i++)
@@ -33,6 +35,20 @@ public class GlobalInformation
         // the given tag is not in the list
         return -1;
     }
+    
+
+    /* ---------------------------------------------------------------------- */
+    public static bool isFlatteningTag(string tag)
+    {
+        if (tag.Equals(OBJECT2_TAG))
+            return true;
+
+        if (tag.Equals(OBJECT3_TAG))
+            return true;
+
+        return false;
+    }
+
 
     #endregion
 

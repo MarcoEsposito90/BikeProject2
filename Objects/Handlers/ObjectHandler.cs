@@ -65,7 +65,6 @@ public class ObjectHandler
     /* ----------------------------------------------------------------------------------------- */
     public void initializePrefab(GameObject obj, float scaleRandomness)
     {
-        Debug.Log(obj.name + " initializePrefab");
         computeHeight();
 
         this.obj = obj;

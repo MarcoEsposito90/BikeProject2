@@ -202,16 +202,16 @@ public class NoiseGenerator
         int gridY = GeometryUtilities.roundToInt(y / (float)sectorSize);
         Vector2 gridPos = new Vector2(gridX, gridY);
 
-        //lock (heightMaps)
-        //{
-        //    if (heightMaps.ContainsKey(gridPos))
-        //        return valueFromHeightMap(gridPos, x, y);
-        //}
+        lock (heightMaps)
+        {
+            if (heightMaps.ContainsKey(gridPos))
+                return valueFromHeightMap(gridPos, x, y);
+        }
 
         float sampleX = (x + offsetX) / (noiseScale * scaleMultiply);
         float sampleY = (y + offsetY) / (noiseScale * scaleMultiply);
 
-        float sampleValue = valueFromPerlin(sampleX, sampleY/*, frequencies, frequencyMultiplier, amplitudeDemultiplier*/);
+        float sampleValue = valueFromPerlin(sampleX, sampleY, frequencies, frequencyMultiplier, amplitudeDemultiplier);
         sampleValue = sampleValue / maxValue;
         return sampleValue;
     }
@@ -251,7 +251,7 @@ public class NoiseGenerator
 
 
     /* ----------------------------------------------------------------------------------------- */
-    private float valueFromPerlin(float x, float y/*, int frequencies, float frequencyMultiplier, float amplitudeDemultiplier*/)
+    private float valueFromPerlin(float x, float y, int frequencies, float frequencyMultiplier, float amplitudeDemultiplier)
     {
         float sampleValue = 0.0f;
 
