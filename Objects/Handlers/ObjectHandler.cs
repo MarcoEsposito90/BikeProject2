@@ -9,15 +9,16 @@ public class ObjectHandler
     public float area;
     private int scale;
     public bool feasible;
-    private int priority;
-    private bool acceptsSelfIntersection;
+    //private int priority;
+    //private bool acceptsSelfIntersection;
     private bool flatteningRequested;
+    private float flatteningRadius;
     private EndlessObjectGenerator parent;
 
     private float height;
     private System.Random random;
 
-    public BoxCollider collider { get; private set; }
+    //public BoxCollider collider { get; private set; }
     public GameObject obj { get; private set; }
 
 
@@ -33,8 +34,8 @@ public class ObjectHandler
         float area,
         int scale,
         bool feasible,
-        bool acceptsSelfIntersection,
         bool flatteningRequested,
+        float flatteningRadius,
         EndlessObjectGenerator parent)
     {
         this.gridPosition = gridPosition;
@@ -42,8 +43,8 @@ public class ObjectHandler
         this.area = area;
         this.scale = scale;
         this.feasible = feasible;
-        this.acceptsSelfIntersection = acceptsSelfIntersection;
         this.flatteningRequested = flatteningRequested;
+        this.flatteningRadius = flatteningRadius;
         this.parent = parent;
         random = new System.Random((int)(position.x * position.y));
     }
@@ -83,17 +84,10 @@ public class ObjectHandler
         s = s * scaleRandomness;
         obj.transform.localScale += new Vector3(s, s, s);
 
-        /* get collider */
-        collider = obj.GetComponent<BoxCollider>();
+        if (flatteningRequested)
+            requestFlattening();
 
-        if (collider != null)
-        {
-            priority = GlobalInformation.getPriority(obj.tag);
-            if (flatteningRequested)
-                requestFlattening();
-        }
-
-
+        Debug.Log(obj.name + " setting active");
         if (!obj.activeInHierarchy)
             obj.SetActive(true);
     }
@@ -122,47 +116,6 @@ public class ObjectHandler
 
 
     /* ----------------------------------------------------------------------------------------- */
-    /* -------------------------- OVERLAPS ----------------------------------------------------- */
-    /* ----------------------------------------------------------------------------------------- */
-
-    #region OVERLAPS
-
-    public bool checkOverlaps()
-    {
-        if (collider == null)
-            return false;
-
-        Vector3 center = obj.transform.position + (collider.center * obj.transform.localScale.x);
-        Vector3 sizes = collider.size * 0.5f * obj.transform.localScale.x;
-        Collider[] intersects = Physics.OverlapBox(center, sizes, obj.transform.rotation);
-
-        foreach (Collider overlap in intersects)
-        {
-            if (overlap.Equals(obj.GetComponent<BoxCollider>()))
-                continue;
-
-            if (!overlap.gameObject.activeInHierarchy)
-                continue;
-
-            string tag = overlap.gameObject.tag;
-            int p = GlobalInformation.getPriority(tag);
-
-            if (priority <= p)
-            {
-                if (priority == p && acceptsSelfIntersection)
-                    continue;
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    #endregion
-
-
-    /* ----------------------------------------------------------------------------------------- */
     /* -------------------------- FLATTENING --------------------------------------------------- */
     /* ----------------------------------------------------------------------------------------- */
 
@@ -170,12 +123,10 @@ public class ObjectHandler
 
     private void requestFlattening()
     {
-        Vector3 pos = obj.transform.position + (collider.center * obj.transform.localScale.x);
-        Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.transform.localScale.x * 0.5f;
+        Vector3 pos = obj.transform.position;
         Vector2 worldPos = new Vector2(pos.x, pos.z);
-        float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
 
-        NoiseGenerator.Instance.redrawRequest(worldPos, radius);
+        NoiseGenerator.Instance.redrawRequest(worldPos, flatteningRadius);
     }
 
     #endregion

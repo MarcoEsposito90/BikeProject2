@@ -135,8 +135,6 @@ Shader "Custom/CustomTerrainShader" {
 		uniform sampler2D _HeightMap;
 		uniform sampler2D _AlphaMap;
 		uniform int _InvertAlpha;
-		//uniform sampler2D _RoadsMap;
-		//uniform sampler2D _RoadsTexture; uniform sampler2D _RoadsNormals; uniform sampler2D _RoadsSpec;
 		uniform sampler2D _Texture0; uniform sampler2D _Normals0; uniform sampler2D _Spec0;
 		uniform sampler2D _Texture1; uniform sampler2D _Normals1; uniform sampler2D _Spec1;
 		uniform sampler2D _Texture2; uniform sampler2D _Normals2; uniform sampler2D _Spec2;
@@ -189,18 +187,18 @@ Shader "Custom/CustomTerrainShader" {
 			else {
 
 				initialize(IN.uv_HeightMap);
-				float luminance = luminanceFromRGB(rgb);
+				float intensity = luminanceFromRGB(rgb);
 				int level = 0;
 
 				for (int i = 0; i < _numberOfSections; i++) {
 
-					if (luminance < thresholds[i]) {
+					if (intensity < thresholds[i]) {
 						level = i;
 						break;
 					}
 				}
 	
-				float3 coefficients = getCoefficients(level, luminance);
+				float3 coefficients = getCoefficients(level, intensity);
 				int upperIndex = level == _numberOfSections - 1 ? level : level + 1;
 				int lowerIndex = level == 0 ? level : level - 1;
 
@@ -209,11 +207,11 @@ Shader "Custom/CustomTerrainShader" {
 				o.Metallic = 0;
 				o.Smoothness = 1;
 
-				fixed alpha = luminanceFromRGB(tex2D(_AlphaMap, IN.uv_HeightMap).rgb);
+				//fixed alpha = luminanceFromRGB(tex2D(_AlphaMap, IN.uv_HeightMap).rgb);
 				//alpha *= alpha;
 
-				if (_InvertAlpha == 1)
-					alpha = 1 - alpha;
+				//if (_InvertAlpha == 1)
+				//	alpha = 1 - alpha;
 
 				o.Alpha = 1;
 			}

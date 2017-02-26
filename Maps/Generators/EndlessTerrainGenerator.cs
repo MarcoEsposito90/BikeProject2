@@ -63,8 +63,6 @@ public class EndlessTerrainGenerator : MonoBehaviour
 
     [Range(0, 1)]
     public float waterLevel;
-
-    public Material terrainMaterial;
     public GameObject mapSectorPrefab;
 
     private Dictionary<Vector2, MapSector> mapSectors;
@@ -72,6 +70,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
     public BlockingQueue<MapSector.SectorData> sectorResultsQueue;
     public Queue<Vector2> removingSectors;
     private bool needUpdate;
+    private bool start;
 
     public GameObject sectorsContainer;
     public MapGenerator mapGenerator;
@@ -125,6 +124,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
         sectorResultsQueue = new BlockingQueue<MapSector.SectorData>();
         removingSectors = new Queue<Vector2>();
         needUpdate = false;
+        start = true;
 
         GlobalInformation.Instance.addData(SECTOR_SIZE, sectorSize);
         GlobalInformation.Instance.addData(VIEWER, viewer);
@@ -158,10 +158,14 @@ public class EndlessTerrainGenerator : MonoBehaviour
         while (!(removingSectors.Count == 0))
             removeSector(removingSectors.Dequeue());
 
+        int count = 0;
         while (!sectorResultsQueue.isEmpty())
         {
+            if (count > 10 && !start)
+                break;
             MapSector.SectorData data = sectorResultsQueue.Dequeue();
             onSectorDisplayDataReceived(data);
+            count++;
         }
 
         if (distance >= viewerDistanceUpdate || needUpdate)
@@ -169,6 +173,8 @@ public class EndlessTerrainGenerator : MonoBehaviour
             latestViewerRecordedPosition = pos;
             updateMapAsynch(pos);
         }
+
+        start = false;
     }
 
 

@@ -15,7 +15,8 @@ public class MapSectorHandler : MonoBehaviour {
 
     private bool hasHeightMap;
     private int texturesSize;
-    private int sectorDimension;
+    private int sectorSize;
+    private float waterLevel;
     private Texture2D texture;
     private Material material;
 
@@ -40,7 +41,9 @@ public class MapSectorHandler : MonoBehaviour {
     /* ----------------------------------------------------------------------------------------- */
     void Start ()
     {
-        int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
+        waterLevel = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.WATER_LEVEL);
+
         texturesSize = sectorSize + 1;
         Vector3 scale = water.transform.localScale;
         scale *= 4;
@@ -88,12 +91,11 @@ public class MapSectorHandler : MonoBehaviour {
             texture.wrapMode = TextureWrapMode.Clamp;
         }
 
-        if(material == null)
+        if (material == null)
             material = new Material(materials[0]);
 
         texture.SetPixels(heightMap);
         texture.Apply();
-
         terrain.GetComponent<Renderer>().material = material;
         material.SetTexture("_HeightMap", texture);
 
@@ -121,8 +123,7 @@ public class MapSectorHandler : MonoBehaviour {
     {
         if (waterEnabled)
         {
-            float wl = (float)GlobalInformation.Instance.getData(EndlessTerrainGenerator.WATER_LEVEL);
-            float h = GlobalInformation.Instance.getHeight(wl);
+            float h = GlobalInformation.Instance.getHeight(waterLevel);
             water.transform.position = new Vector3(
                 water.transform.position.x,
                 h,

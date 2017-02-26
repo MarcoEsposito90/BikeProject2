@@ -78,7 +78,6 @@ public class BezierCurve : ICurve
     /* ---------------------------------------------------------------- */
     public float parameterOnCurveArchLength(float normalizedLength)
     {
-
         if (normalizedLength <= 0)
             return 0;
 

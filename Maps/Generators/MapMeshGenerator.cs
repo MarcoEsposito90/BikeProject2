@@ -14,19 +14,15 @@ public static class MapMeshGenerator
         AnimationCurve meshHeightCurve = new AnimationCurve(_meshHeightCurve.keys);
         int width = noiseMap.GetLength(0);
         int height = noiseMap.GetLength(1);
-
         float topLeftX = -noiseMap.GetLength(0) / 2.0f;
         float topLeftZ = noiseMap.GetLength(1) / 2.0f;
 
         MapMeshData meshData = new MapMeshData(width, height, LOD);
-
         int vertexIndex = 0;
         int increment = (int)Mathf.Pow(2, LOD);
 
-        int x = 0;
-        int y = 0;
-        for (x = 0; x < width; x += increment)
-            for (y = 0; y < height; y += increment)
+        for (int x = 0; x < width; x += increment)
+            for (int y = 0; y < height; y += increment)
             {
                 float h = meshHeightCurve.Evaluate(noiseMap[x, y]) * heightMultiplier;
                 Vector3 vertex = new Vector3(topLeftX + x, h, topLeftZ - y);

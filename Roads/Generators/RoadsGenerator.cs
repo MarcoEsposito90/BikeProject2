@@ -152,7 +152,8 @@ public class RoadsGenerator : MonoBehaviour
             if (dist < maxLength)
                 toBeLinked.Add(toLink);
         }
-
+        
+        // sort nearest points by distance
         ControlPoint.NearestPointComparer comparer = new ControlPoint.NearestPointComparer(gi.item);
         toBeLinked.Sort(comparer);
         int linkCount = 0;
@@ -222,7 +223,6 @@ public class RoadsGenerator : MonoBehaviour
             if (overlaps)
             {
                 RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(
-                //l,
                 curves[l],
                 distanceFromCrossroad,
                 roadSegmentMeshData);
@@ -263,7 +263,6 @@ public class RoadsGenerator : MonoBehaviour
 
         curves.Add(link, c);
         RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(
-            //link,
             c,
             distanceFromCrossroad,
             roadSegmentMeshData);

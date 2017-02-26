@@ -43,12 +43,14 @@ public class EndlessObjectGenerator : MonoBehaviour
     [Range(0.0f, 1.0f)]
     public float maxHeight;
 
-    [Range(20, 500)]
+    [Range(5, 500)]
     public int maxObjsForLoop;
 
-    public bool checkOverlapsEnabled = true;
-    public bool acceptsSelfIntersection;
+    //public bool checkOverlapsEnabled = true;
+    //public bool acceptsSelfIntersection;
     public bool flatteningRequested;
+    public float flatteningRadius;
+
     public GameObject prefab;
     public EndlessTerrainGenerator terrainGenerator;
 
@@ -70,7 +72,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     private float distanceThreshold;
     private float overlapsCheckDistanceThreshold;
     private float noiseScale;
-    private bool start = true;
+    private bool start;
 
     #endregion
 
@@ -113,6 +115,7 @@ public class EndlessObjectGenerator : MonoBehaviour
         noiseScale = uniformness == 1 ? 0 : 1.0f / uniformness;
         int startNum = (int)(Mathf.Pow(distanceThreshold / scaledArea, 2) * 1.5f);
         objectPoolManager = new PoolManager<Vector2>(startNum, true, prefab, this.gameObject);
+        start = true;
 
         updateAsynch(viewer.position);
     }
@@ -125,12 +128,16 @@ public class EndlessObjectGenerator : MonoBehaviour
         int counter = 0;
         lock (resultsQueue)
         {
-            while (!resultsQueue.isEmpty() && counter <= maxObjsForLoop)
+            while (!resultsQueue.isEmpty())
             {
-                if (!start) counter++;
+                if (counter > maxObjsForLoop && !start)
+                    break;
+
                 ObjectHandler handler = resultsQueue.Dequeue();
                 if (!currentObjects.ContainsKey(handler.gridPosition))
                     createObject(handler);
+
+                counter++;
             }
         }
 
@@ -138,8 +145,13 @@ public class EndlessObjectGenerator : MonoBehaviour
         {
             while (!removeQueue.isEmpty())
             {
+                if (counter > maxObjsForLoop && !start)
+                    break;
+
                 ObjectHandler handler = removeQueue.Dequeue();
                 releaseObject(handler);
+                currentObjects.Remove(handler.gridPosition);
+                counter++;
             }
         }
 
@@ -147,14 +159,9 @@ public class EndlessObjectGenerator : MonoBehaviour
         Vector2 pos = new Vector2(viewer.transform.position.x, viewer.transform.position.z);
         if (Vector2.Distance(pos, latestViewerRecordedPosition) >= viewerDistanceUpdate)
         {
-            //createObjects(viewer.position);
-            //updateObjects(viewer.position);
             updateAsynch(viewer.position);
             latestViewerRecordedPosition = pos;
         }
-
-        if (start && checkOverlapsEnabled)
-            StartCoroutine(checkOverlaps());
 
         start = false;
     }
@@ -184,9 +191,6 @@ public class EndlessObjectGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
 
     #region CREATE
-
-
-
 
     /* ----------------------------------------------------------------------------------------- */
     private void createObjects(Vector3 viewerPosition)
@@ -238,7 +242,6 @@ public class EndlessObjectGenerator : MonoBehaviour
         if (probability >= prob)
         {
             float n = NoiseGenerator.Instance.getNoiseValue(1, X, Y);
-
             if (n >= minHeight && n <= maxHeight)
                 feasibility = true;
         }
@@ -249,8 +252,8 @@ public class EndlessObjectGenerator : MonoBehaviour
             area,
             scale,
             feasibility,
-            acceptsSelfIntersection,
             flatteningRequested,
+            flatteningRadius,
             this);
         return h;
     }
@@ -262,8 +265,15 @@ public class EndlessObjectGenerator : MonoBehaviour
         if (handler.feasible)
         {
             GameObject obj = objectPoolManager.acquireObject(handler.gridPosition);
-            obj.name = ObjectName + " " + handler.position;
+            obj.name = ObjectName + " " + handler.gridPosition;
             handler.initializePrefab(obj, scaleRandomness);
+
+            ObjectCollisionHandler och = obj.GetComponentInChildren<ObjectCollisionHandler>();
+            if (och != null)
+            {
+                och.gridPosition = handler.gridPosition;
+                och.onCollision += onObjectCollision;
+            }
         }
 
         currentObjects.Add(handler.gridPosition, handler);
@@ -291,12 +301,7 @@ public class EndlessObjectGenerator : MonoBehaviour
             if (d > distanceThreshold)
             {
                 if (currentObjects[pos].feasible)
-                {
                     removeQueue.Enqueue(currentObjects[pos]);
-                }
-                    //releaseObject(currentObjects[pos]);
-
-                currentObjects.Remove(pos);
             }
         }
     }
@@ -305,48 +310,11 @@ public class EndlessObjectGenerator : MonoBehaviour
     /* ----------------------------------------------------------------------------------------- */
     private void releaseObject(ObjectHandler handler)
     {
+        if (handler.obj == null)
+            return;
+
         handler.resetPrefab();
         objectPoolManager.releaseObject(handler.gridPosition);
-    }
-
-
-    /* ----------------------------------------------------------------------------------------- */
-    IEnumerator checkOverlaps()
-    {
-        while (true)
-        {
-            float startX = viewer.position.x - overlapsCheckDistanceThreshold;
-            float endX = viewer.position.x + overlapsCheckDistanceThreshold;
-            float startY = viewer.position.z - overlapsCheckDistanceThreshold;
-            float endY = viewer.position.z + overlapsCheckDistanceThreshold;
-            int startGridX = Mathf.RoundToInt(startX / scaledArea + 0.1f);
-            int endGridX = Mathf.RoundToInt(endX / scaledArea + 0.1f);
-            int startGridY = Mathf.RoundToInt(startY / scaledArea + 0.1f);
-            int endGridY = Mathf.RoundToInt(endY / scaledArea + 0.1f);
-            Vector2 viewerPos = new Vector2(viewer.position.x, viewer.position.z);
-
-            for (int x = startGridX; x <= endGridX; x++)
-                for (int y = startGridY; y <= endGridY; y++)
-                {
-                    Vector2 gridPos = new Vector2(x, y);
-
-                    if (!currentObjects.ContainsKey(gridPos))
-                        continue;
-
-                    ObjectHandler handler = currentObjects[gridPos];
-                    if (!handler.feasible)
-                        continue;
-
-                    bool overlaps = handler.checkOverlaps();
-                    if (overlaps)
-                    {
-                        releaseObject(handler);
-                        handler.feasible = false;
-                    }
-                }
-
-            yield return new WaitForSeconds(5);
-        }
     }
 
     #endregion
@@ -361,7 +329,7 @@ public class EndlessObjectGenerator : MonoBehaviour
     private void OnSectorChange(Vector2 sectorGridPos)
     {
         //int sectorSize = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SECTOR_SIZE);
-        foreach(ObjectHandler o in currentObjects.Values)
+        foreach (ObjectHandler o in currentObjects.Values)
         {
             if (!o.feasible)
                 continue;
@@ -369,7 +337,7 @@ public class EndlessObjectGenerator : MonoBehaviour
             int scaledSectorSize = scale * sectorSize;
             Vector2 center = sectorGridPos * scaledSectorSize;
 
-            if( o.position.x >= center.x - (scaledSectorSize/2.0f) &&
+            if (o.position.x >= center.x - (scaledSectorSize / 2.0f) &&
                 o.position.x <= center.x + (scaledSectorSize / 2.0f) &&
                 o.position.y >= center.y - (scaledSectorSize / 2.0f) &&
                 o.position.y <= center.y + (scaledSectorSize / 2.0f))
@@ -377,6 +345,18 @@ public class EndlessObjectGenerator : MonoBehaviour
                 o.updatePrefab();
             }
         }
+    }
+
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void onObjectCollision(Vector2 gridPosition)
+    {
+        if(!currentObjects.ContainsKey(gridPosition))
+            return;
+
+        ObjectHandler oh = currentObjects[gridPosition];
+        releaseObject(oh);
+        oh.feasible = false;
     }
 
     #endregion

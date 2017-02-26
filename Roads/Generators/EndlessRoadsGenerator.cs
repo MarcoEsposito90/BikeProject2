@@ -89,7 +89,6 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
         roadsPoolManager = new PoolManager<Graph<Vector2, ControlPoint>.Link>(10, true, roadPrefab, roadsContainer);
         controlPointsPoolManager = new PoolManager<Vector2>(400, true, controlPointPrefab, controlPointsContainer);
-
     }
 
 

@@ -16,9 +16,9 @@ public class NoiseGenerator
     public static bool initialized { get; private set; }
     public static NoiseGenerator Instance { get; private set; }
 
-    public delegate void SectorChanged(Vector2 position);
-    public event SectorChanged OnSectorChanged;
-    public event SectorChanged OnSectorCreated;
+    public delegate void SectorEvent(Vector2 position);
+    public event SectorEvent OnSectorChanged;
+    public event SectorEvent OnSectorCreated;
 
     #endregion
 
@@ -221,7 +221,6 @@ public class NoiseGenerator
             }
         }
 
-
         float sampleX = (x + offsetX) / (noiseScale * scaleMultiply);
         float sampleY = (y + offsetY) / (noiseScale * scaleMultiply);
 
@@ -256,10 +255,12 @@ public class NoiseGenerator
 
         float X1Coeff = X - (float)X1;
         float Y1Coeff = Y - (float)Y1;
+        //float x1y1 = map[X1, Y1];
 
         float A = map[X1, Y1] * (1.0f - X1Coeff) + map[X2, Y1] * X1Coeff;
         float B = map[X1, Y2] * (1.0f - X1Coeff) + map[X2, Y2] * X1Coeff;
-        float res = A * Y1Coeff + B * (1.0f - Y1Coeff);
+        float res = A * (1.0f - Y1Coeff) + B * Y1Coeff;
+
         return res;
     }
 

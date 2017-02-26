@@ -25,7 +25,7 @@ public class MapGenerator : MonoBehaviour
     [Range(1.0f, 100.0f)]
     public float amplitudeDemultiplier;
 
-    public MapDisplay mapDisplayer;
+    //public MapDisplay mapDisplayer;
     private System.Random random;
 
     public float offsetX

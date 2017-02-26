@@ -56,6 +56,7 @@ public class VillageHandler : MonoBehaviour
         scale = (int)GlobalInformation.Instance.getData(EndlessTerrainGenerator.SCALE);
         Mesh m = roadSegment.GetComponent<MeshFilter>().sharedMesh;
         roadSegmentMeshData = new MeshData(m.vertices, m.triangles, m.uv, m.normals, 0);
+        initialized = true;
     }
 
 
@@ -76,12 +77,12 @@ public class VillageHandler : MonoBehaviour
 
             roadMeshDatas.Clear();
         }
-
     }
 
     /* -------------------------------------------------------------------------------------- */
     void OnEnable()
     {
+        Debug.Log(gameObject.name + " onEnable");
         if (!initialized)
             initialize();
 
@@ -95,7 +96,7 @@ public class VillageHandler : MonoBehaviour
         Vector2 gridPos = new Vector2(X / cpArea, Y / cpArea);
         Vector2 pos = new Vector2(X, Y);
 
-        EndlessRoadsGenerator.Instance.createControlPoint(gridPos, pos);
+        //EndlessRoadsGenerator.Instance.createControlPoint(gridPos, pos);
         initializeCrossroads();
         initializeObjects();
         initializeRoads();
@@ -157,12 +158,6 @@ public class VillageHandler : MonoBehaviour
 
             BezierCurve c = new BezierCurve(start, startTangent, end, endTangent);
             createRoadMeshDataAsynch(s, c);
-            //RoadMeshGenerator.RoadMeshData rmd = RoadMeshGenerator.generateMeshData(c, 0, roadSegmentMeshData);
-            //Mesh mesh = rmd.createMesh();
-            //s.gameObject.GetComponent<MeshFilter>().mesh = mesh;
-            //s.gameObject.GetComponent<MeshCollider>().sharedMesh = mesh;
-            //s.rotation = Quaternion.identity;
-            //s.position = new Vector3(s.position.x, 0, s.position.z);
         }
     }
 
@@ -204,12 +199,12 @@ public class VillageHandler : MonoBehaviour
             if (!GlobalInformation.isFlatteningTag(obj.gameObject.tag))
                 continue;
 
-            BoxCollider collider = obj.gameObject.GetComponent<BoxCollider>();
-            Vector3 pos = obj.position + (collider.center * obj.localScale.x);
-            Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.localScale.x * 0.5f;
+            //BoxCollider collider = obj.gameObject.GetComponent<BoxCollider>();
+            Vector3 pos = obj.position /*+ (collider.center * obj.localScale.x)*/;
+            //Vector2 sizes = new Vector2(collider.size.x, collider.size.z) * obj.localScale.x * 0.5f;
             Vector2 worldPos = new Vector2(pos.x, pos.z);
-            float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
-            NoiseGenerator.Instance.redrawRequest(worldPos, radius);
+            //float radius = Mathf.Max(sizes.x, sizes.y) * 1.5f;
+            NoiseGenerator.Instance.redrawRequest(worldPos, 50);
         }
     }
 
