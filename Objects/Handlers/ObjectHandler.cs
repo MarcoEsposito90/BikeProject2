@@ -87,7 +87,7 @@ public class ObjectHandler
         if (flatteningRequested)
             requestFlattening();
 
-        Debug.Log(obj.name + " setting active");
+        //Debug.Log(obj.name + " setting active");
         if (!obj.activeInHierarchy)
             obj.SetActive(true);
     }

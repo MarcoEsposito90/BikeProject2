@@ -323,7 +323,7 @@ public class NoiseGenerator
         else if (precision > 20) precision = 20;
         float increment = 1.0f / (float)precision;
 
-        radius = 0;
+        //radius = 0;
         for (float i = -radius; i <= radius; i += increment)
         {
             for (float j = -radius; j <= radius; j += increment)

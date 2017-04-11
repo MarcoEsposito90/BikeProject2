@@ -112,15 +112,15 @@ public class RoadModifier : IMeshModifier
 
             Vector2 p = curve.pointOnCurve(t);
             Vector2 right = curve.getRightVector(t, true) * v[index2];
-
-            //float n = NoiseGenerator.Instance.highestPointOnZone(p, 1, 0.5f, 1);
-            float n = NoiseGenerator.Instance.getNoiseValue(1.0f, p.x, p.y);
+        
+            float n = NoiseGenerator.Instance.highestPointOnZone(p, 1, 0.5f, 1);
+            //float n = NoiseGenerator.Instance.getNoiseValue(1.0f, p.x, p.y);
             float terrainH = GlobalInformation.Instance.getHeight(n);
             float medH = startHeight + (endHeight - startHeight) * t;
             float height = medH + (1.0f - coeff) * (terrainH - medH);
-            if (height < terrainH) height = terrainH;
-            if (height < waterH) height = waterH;
             //float height = terrainH;
+            //if (height < terrainH) height = terrainH;
+            if (height < waterH) height = waterH;
             if (relativeHeight) height = height - startHeight;
 
             vertices[i] = new Vector3(
@@ -134,6 +134,18 @@ public class RoadModifier : IMeshModifier
 
     #endregion
 
+    //private float getcoefficient(float t, float from, float to)
+    //{
+    //    float pm = (from + to) * 0.5f;
+    //    float margin = (to - from) * 0.1f;
 
+    //    if (t >= from && t <= (from + margin))
+    //        return -(t - from - margin) / margin;
+
+    //    if (t <= to && t > to - margin)
+    //        return (t - to + margin) / margin;
+
+    //    return 0; 
+    //}
 
 }

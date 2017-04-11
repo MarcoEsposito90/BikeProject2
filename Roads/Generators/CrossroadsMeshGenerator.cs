@@ -16,10 +16,6 @@ public static class CrossroadsMeshGenerator
         CrossroadMeshData crmd = new CrossroadMeshData();
         int maxAdherence = (int)GlobalInformation.Instance.getData(RoadsGenerator.MAX_ROAD_ADHERENCE);
 
-        //bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
-        int debCount = 0;
-
-
         foreach (Graph<Vector2, ControlPoint>.Link link in curves.Keys)
         {
             ControlPoint other = link.from.item.Equals(center) ? link.to.item : link.from.item;
@@ -37,9 +33,10 @@ public static class CrossroadsMeshGenerator
             GeometryUtilities.QuadDirection dir = crmd.getDirection(relativePosition);
             ICurve c = getCurve(curve, center, dir, distanceFromCenter, localOffset);
 
-            float endHeight = GlobalInformation.Instance.getHeight(c.endPoint());
+            float endNoise = NoiseGenerator.Instance.highestPointOnZone(c.endPoint(), 1, 0.5f, 1);
+            float endHeight = GlobalInformation.Instance.getHeight(endNoise);
 
-            ArrayModifier aMod = new ArrayModifier(20, true, false, false);
+            ArrayModifier aMod = new ArrayModifier(15, true, false, false);
             RoadModifier rMod = new RoadModifier(
                 c,
                 RoadModifier.Axis.X,
@@ -138,9 +135,6 @@ public static class CrossroadsMeshGenerator
         // -------------------------------------------------------- 
         public void sortPositions()
         {
-            //bool debug = (bool)GlobalInformation.Instance.getData(CreateRoads.ROADS_DEBUG);
-            //int debCount = 0;
-
             // clean free directions
             freeDirs[GeometryUtilities.QuadDirection.Left] = true;
             freeDirs[GeometryUtilities.QuadDirection.Right] = true;

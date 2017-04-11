@@ -31,7 +31,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
     [Range(2, 10)]
     public int NumberOfLods;
 
-    [Range(3, 10)]
+    [Range(2, 10)]
     public int radius;
     private float threshold;
 
@@ -59,7 +59,9 @@ public class EndlessRoadsGenerator : MonoBehaviour
     private PoolManager<Vector2> controlPointsPoolManager;
     public BlockingQueue<Road.RoadData> roadsResultsQueue { get; private set; }
     public BlockingQueue<ControlPoint.ControlPointData> cpsResultsQueue { get; private set; }
+    public BlockingQueue<Vector2> cpsRemoveQueue { get; private set; }
     public BlockingQueue<Graph<Vector2, ControlPoint>.Link> roadsRemoveQueue { get; private set; }
+
 
     #endregion
 
@@ -85,6 +87,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         roads = new Dictionary<Graph<Vector2, ControlPoint>.Link, Road>();
         roadsResultsQueue = new BlockingQueue<Road.RoadData>();
         cpsResultsQueue = new BlockingQueue<ControlPoint.ControlPointData>();
+        cpsRemoveQueue = new BlockingQueue<Vector2>();
         roadsRemoveQueue = new BlockingQueue<Graph<Vector2, ControlPoint>.Link>();
 
         roadsPoolManager = new PoolManager<Graph<Vector2, ControlPoint>.Link>(10, true, roadPrefab, roadsContainer);
@@ -110,6 +113,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         threshold = ((float)radius + 0.5f) * scaledControlPointArea;
         removeThreshold = ((float)(radius + removeRadius) + 0.5f) * scaledControlPointArea;
 
+        Debug.Log("th = " + threshold + "; remove th = " + removeThreshold);
         GlobalInformation.Instance.addData(CP_AREA, controlPointArea);
         createControlPoints(Vector3.zero);
     }
@@ -130,11 +134,19 @@ public class EndlessRoadsGenerator : MonoBehaviour
             onCpDataReceived(data);
         }
 
+        while (!cpsRemoveQueue.isEmpty())
+        {
+            Vector2 toRemove = cpsRemoveQueue.Dequeue();
+            onControlPointRemove(toRemove);
+        }
+
         while (!roadsRemoveQueue.isEmpty())
         {
             Graph<Vector2, ControlPoint>.Link l = roadsRemoveQueue.Dequeue();
             onRoadRemove(l);
         }
+
+        
 
 
         Vector2 pos = new Vector2(viewer.position.x, viewer.position.z);
@@ -142,6 +154,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         if (distance >= viewerDistanceUpdate)
         {
             createControlPoints(viewer.position);
+            updateControlPoints(viewer.position);
             latestViewerRecordedPosition = pos;
         }
     }
@@ -220,7 +233,7 @@ public class EndlessRoadsGenerator : MonoBehaviour
         //newCP.initializePrefab();
 
         controlPoints.Add(gridPos, newCP);
-        roadsGenerator.addControlPointAsynch(newCP);
+        roadsGenerator.addControlPoint(newCP);
     }
 
 
@@ -235,24 +248,16 @@ public class EndlessRoadsGenerator : MonoBehaviour
 
 
     /* ----------------------------------------------------------------------------------------- */
-    private void updateControlPoints()
+    private void updateControlPoints(Vector3 viewerPosition)
     {
-        List<ControlPoint> toBeRemoved = new List<ControlPoint>();
         foreach (ControlPoint cp in controlPoints.Values)
         {
-            float d = Vector2.Distance(cp.position * scale, new Vector2(viewer.position.x, viewer.position.z));
-            if (d > removeThreshold)
-            {
-                cp.resetPrefab();
-                controlPointsPoolManager.releaseObject(cp.gridPosition);
-                toBeRemoved.Add(cp);
-            }
-        }
+            float d = Vector2.Distance(
+                cp.gridPosition * scaledControlPointArea, 
+                new Vector2(viewerPosition.x, viewerPosition.z));
 
-        foreach (ControlPoint cp in toBeRemoved)
-        {
-            controlPoints.Remove(cp.gridPosition);
-            roadsGenerator.removeControlPoint(cp);
+            if (d > removeThreshold)
+                cpsRemoveQueue.Enqueue(cp.gridPosition);
         }
     }
 
@@ -328,6 +333,19 @@ public class EndlessRoadsGenerator : MonoBehaviour
         r = null;
     }
 
+
+    /* ----------------------------------------------------------------------------------------- */
+    private void onControlPointRemove(Vector2 gridPosition)
+    {
+        if (!controlPoints.ContainsKey(gridPosition))
+            return;
+
+        ControlPoint cp = controlPoints[gridPosition];
+        cp.resetPrefab();
+        controlPointsPoolManager.releaseObject(cp.gridPosition);
+        controlPoints.Remove(cp.gridPosition);
+        roadsGenerator.removeControlPoint(cp);
+    }
 
     /* ----------------------------------------------------------------------------------------- */
     private void onSectorChanged(Vector2 sectorGridPos)

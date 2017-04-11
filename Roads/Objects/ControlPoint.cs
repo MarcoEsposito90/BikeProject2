@@ -24,7 +24,8 @@ public class ControlPoint
     public float AreaSize;
     public int scale;
     public bool linkable;
-    public int maximumLinks = 4;
+    public int maximumLinks = 3;
+    public int currentLinks = 0;
 
     private float scaledAreaSize;
     public GameObject prefabObject;
@@ -192,6 +193,9 @@ public class ControlPoint
     /* ------------------------------------------------------------------------------------------------- */
     public void resetPrefab()
     {
+        if (prefabObject == null)
+            return;
+
         prefabObject.transform.position = Vector3.zero;
         prefabObject.name = "ControlPoint (available)";
         prefabObject.transform.localScale = Vector3.one;

@@ -50,8 +50,8 @@ public class EndlessTerrainGenerator : MonoBehaviour
     [Range(2, 10)]
     public int NumberOfLods;
 
-    [Range(2, 6)]
-    public int accuracy;
+    [Range(2, 10)]
+    public int radius;
     private float[] LODThresholds;
 
     public Transform viewer;
@@ -111,7 +111,7 @@ public class EndlessTerrainGenerator : MonoBehaviour
         scaledSectorSize = sectorSize * scale;
         viewerDistanceUpdate = scaledSectorSize / (float)(viewerDistanceUpdateFrequency + 3);
 
-        int multiply = accuracy;
+        int multiply = radius;
         for (int i = 0; i < LODThresholds.Length; i++)
         {
             if (i > 3) multiply *= 2;

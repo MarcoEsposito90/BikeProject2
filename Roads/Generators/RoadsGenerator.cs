@@ -79,7 +79,7 @@ public class RoadsGenerator : MonoBehaviour
 
         distanceFromCrossroad = crossRoadsDimension;
         tangentRescale = sinuosity / 5.0f;
-        tangentRotate = sinuosity * 10.0f;
+        tangentRotate = sinuosity * 5.0f;
 
         roadSegmentTexture.filterMode = FilterMode.Bilinear;
         roadSegmentTexture.wrapMode = TextureWrapMode.Clamp;
@@ -161,10 +161,13 @@ public class RoadsGenerator : MonoBehaviour
         // create crossroads and links ----------------
         for (int i = 0; i < toBeLinked.Count; i++)
         {
-            if (linkCount >= gi.item.maximumLinks)
+            if (linkCount >= Mathf.Max(1, gi.item.maximumLinks - 1))
                 break;
 
             ControlPoint p = toBeLinked[i];
+            if (p.currentLinks >= p.maximumLinks)
+                continue;
+
             Graph<Vector2, ControlPoint>.Link link = controlPointsGraph.createLink(cp.position, p.position);
             createCurve(link);
             Graph<Vector2, ControlPoint>.GraphItem other = null;
@@ -175,9 +178,11 @@ public class RoadsGenerator : MonoBehaviour
                 other = link.from;
 
             createCrossroad(other);
+            p.currentLinks++;
             linkCount++;
         }
 
+        cp.currentLinks = linkCount;
         createCrossroad(gi);
     }
 

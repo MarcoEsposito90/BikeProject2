@@ -96,7 +96,7 @@ public class VillageHandler : MonoBehaviour
         Vector2 gridPos = new Vector2(X / cpArea, Y / cpArea);
         Vector2 pos = new Vector2(X, Y);
 
-        //EndlessRoadsGenerator.Instance.createControlPoint(gridPos, pos);
+        EndlessRoadsGenerator.Instance.createControlPoint(gridPos, pos);
         initializeCrossroads();
         initializeObjects();
         initializeRoads();
